@@ -278,6 +278,16 @@ Durante a execução, colete um log de cada ação relevante para incluir no res
 
 ---
 
+## Persistência obrigatória em disco
+
+Ao final de cada execução, **antes de encerrar**, grave o JSON de resultados em disco:
+
+```
+tmp_db_[timestamp]/resultado.json
+```
+
+O orquestrador só considera o resultado desta execução se este arquivo existir e for legível. Se a gravação falhar, inclua `"error": "falha ao persistir artefato em disco"` no summary.
+
 ## Exibir código gerado
 
 **Exiba o código apenas se houver falhas.** Se todos os testes passarem, omita esta seção completamente.
