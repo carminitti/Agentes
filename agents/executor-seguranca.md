@@ -147,6 +147,42 @@ def run_checks_parallel(check_fns):
 
 O valor de `ssl_warning` deve ser incluído no JSON de saída ao final (campo `ssl_warning` na raiz — `null` se não houve problema).
 
+## Classificação do ambiente alvo
+
+Antes de executar os checks, classifique o ambiente. Inclua `environment_type` no JSON de saída.
+
+```python
+from urllib.parse import urlparse
+
+PUBLIC_TEST_API_DOMAINS = [
+    'jsonplaceholder.typicode.com', 'reqres.in', 'swapi.dev', 'swapi.tech',
+    'httpbin.org', 'pokeapi.co', 'fakestoreapi.com', 'dummyjson.com',
+    'gorest.co.in', 'mockapi.io', 'api.restful-api.dev',
+]
+DEMO_APP_DOMAINS = [
+    'automationexercise.com', 'the-internet.herokuapp.com', 'demoqa.com',
+    'testpages.eviltester.com', 'saucedemo.com', 'practice.expandtesting.com',
+    'magento.softwaretestingboard.com', 'tutorialsninja.com',
+]
+
+parsed = urlparse(base_url)
+netloc = parsed.netloc.lower()
+is_public_test_api = any(d in netloc for d in PUBLIC_TEST_API_DOMAINS)
+is_demo_app = any(d in netloc for d in DEMO_APP_DOMAINS)
+environment_type = (
+    "public_test_api" if is_public_test_api
+    else "demo_app" if is_demo_app
+    else "production"
+)
+```
+
+**Regras por tipo:**
+- `public_test_api` → checks de **headers** e **CORS**: status `"warning"` (não `"failed"`), campo `"note": "API pública de teste — comportamento esperado"`
+- `demo_app` → checks de **endpoints sensíveis** que retornam 200: consulte o sitemap antes de decidir (ver check 5)
+- `production` → comportamento padrão — `"failed"` para tudo
+
+---
+
 Para cada teste, identifique o tipo de verificação nos steps:
 
 **1. Autenticação (endpoint sem token deve retornar 401):**
@@ -174,21 +210,56 @@ checks = {
 }
 ```
 
+Para headers ausentes ou incorretos:
+- `is_public_test_api = True` → status `"warning"`, campo `"note": "API pública de teste — comportamento esperado"` — **não marque como `"failed"`**
+- `environment_type = "production"` → status `"failed"` (comportamento padrão)
+
 **4. CORS (origem não autorizada não deve ser aceita):**
 ```python
 cors_headers = {"Origin": "https://malicious-site.com"}
 response = safe_request("GET", "https://staging.app.com/api/dados", headers=cors_headers, timeout=10)
 acao_cors = response.headers.get("Access-Control-Allow-Origin", "")
-assert acao_cors != "*" and "malicious-site.com" not in acao_cors
+cors_aberto = (acao_cors == "*" or "malicious-site.com" in acao_cors)
+# is_public_test_api=True → CORS aberto: status "warning", note "API pública de teste — comportamento esperado"
+# is_public_test_api=False (produção) → CORS aberto: status "failed"
 ```
+
+Para CORS aberto (`*` ou origem maliciosa aceita):
+- `is_public_test_api = True` → status `"warning"`, campo `"note": "API pública de teste — comportamento esperado"` — **não marque como `"failed"`**
+- `environment_type = "production"` → status `"failed"` (comportamento padrão)
 
 **5. Endpoints sensíveis expostos (devem retornar 401/403/404 — nunca 200):**
 ```python
 paths_sensiveis = ["/admin", "/.env", "/debug", "/swagger", "/api-docs", "/actuator", "/metrics"]
+
+# Para aplicações de demonstração: consulte o sitemap antes de marcar 200 como falha
+known_paths = set()
+if is_demo_app:
+    try:
+        sitemap_resp = safe_request("GET", f"{base_url}/sitemap.xml", timeout=5)
+        if sitemap_resp.status_code == 200:
+            import re as _re
+            known_paths = set(_re.findall(r'<loc>[^<]*?(/[^<\?#]+)', sitemap_resp.text))
+    except Exception:
+        pass
+
 for path in paths_sensiveis:
-    r = safe_request("GET", f"https://staging.app.com{path}", timeout=5)
-    assert r.status_code in [401, 403, 404]
+    r = safe_request("GET", f"{base_url}{path}", timeout=5)
+    if r.status_code == 200 and is_demo_app:
+        # Path pode ser página legítima do ambiente de demonstração → WARNING, não FAIL
+        status = "warning"
+        note = "página legítima do ambiente de demonstração"
+    elif r.status_code not in [401, 403, 404]:
+        status = "failed"
+        note = None
+    else:
+        status = "passed"
+        note = None
 ```
+
+Para paths que retornam 200:
+- `is_demo_app = True` → verifique o sitemap; se o path constar ou se o ambiente for reconhecido como demonstração, registre `"warning"` com `"note": "página legítima do ambiente de demonstração"` — **não marque como `"failed"`**
+- `environment_type = "production"` → status `"failed"` (comportamento padrão)
 
 ---
 
@@ -198,6 +269,7 @@ for path in paths_sensiveis:
 {
   "executor": "security",
   "environment": "https://staging.app.com",
+  "environment_type": "production",
   "results": [
     {
       "id": "TC-050",
@@ -207,6 +279,7 @@ for path in paths_sensiveis:
         { "check": "GET /api/admin sem token retorna 401", "result": "passed", "actual": 401 }
       ],
       "severity": null,
+      "note": null,
       "logs": [
         "[CHECK] GET /api/admin sem token → esperado 401, recebido 401 ✓"
       ],
@@ -222,6 +295,7 @@ for path in paths_sensiveis:
         { "check": "Content-Security-Policy presente", "result": "failed", "actual": "ausente" }
       ],
       "severity": "medium",
+      "note": null,
       "logs": [
         "[CHECK] Header Strict-Transport-Security presente ✓",
         "[CHECK] Header X-Content-Type-Options: nosniff ✓",
@@ -235,6 +309,7 @@ for path in paths_sensiveis:
     "total": 2,
     "passed": 1,
     "failed": 1,
+    "warning": 0,
     "by_severity": {
       "high": 0,
       "medium": 1,
@@ -243,6 +318,12 @@ for path in paths_sensiveis:
   }
 }
 ```
+
+**Campo `note`:** preenchido quando o resultado for `"warning"` por classificação do ambiente:
+- `"API pública de teste — comportamento esperado"` — para headers/CORS em `public_test_api`
+- `"página legítima do ambiente de demonstração"` — para endpoints sensíveis que retornam 200 em `demo_app`
+
+**Campo `environment_type`:** `"public_test_api"` | `"demo_app"` | `"production"` — determinado automaticamente via domínio da `base_url`.
 
 ---
 

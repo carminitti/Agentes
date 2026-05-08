@@ -149,18 +149,44 @@ Se a conexão falhar, **não tente executar nenhum teste** — retorne o JSON co
 
 ### Instale o driver adequado e execute as queries via Python:
 
+Antes de importar o driver, instale-o automaticamente conforme o tipo de banco. Se a instalação falhar, marque **todos** os testes como `skipped` com a causa e encerre sem executar nenhuma query.
+
 ```python
-# PostgreSQL
-import psycopg2  # pip install psycopg2-binary -q
+import subprocess, sys
 
-# MySQL
-import mysql.connector  # pip install mysql-connector-python -q
+def install_driver(package):
+    result = subprocess.run(
+        [sys.executable, "-m", "pip", "install", "-q", package],
+        capture_output=True, text=True
+    )
+    return result.returncode == 0
 
-# SQLite
-import sqlite3  # built-in
+db_type = connection_string.split("://")[0].lower() if "://" in connection_string else "sqlite"
 
-# SQL Server
-import pyodbc  # pip install pyodbc -q
+if db_type in ("postgresql", "postgres"):
+    if not install_driver("psycopg2-binary"):
+        # Marque todos os testes como skipped
+        results = [{"id": t["id"], "title": t["title"], "status": "skipped",
+                    "error": "driver não instalado — execute pip install psycopg2-binary"} for t in tests]
+        # Retorne JSON de saída com todos skipped e encerre
+    import psycopg2
+
+elif db_type in ("mysql", "mysql+mysqlconnector"):
+    if not install_driver("mysql-connector-python"):
+        results = [{"id": t["id"], "title": t["title"], "status": "skipped",
+                    "error": "driver não instalado — execute pip install mysql-connector-python"} for t in tests]
+        # Retorne JSON de saída com todos skipped e encerre
+    import mysql.connector
+
+elif db_type == "sqlite":
+    import sqlite3  # built-in, sem instalação necessária
+
+elif db_type in ("mssql", "sqlserver"):
+    if not install_driver("pyodbc"):
+        results = [{"id": t["id"], "title": t["title"], "status": "skipped",
+                    "error": "driver não instalado — execute pip install pyodbc"} for t in tests]
+        # Retorne JSON de saída com todos skipped e encerre
+    import pyodbc
 ```
 
 Para cada teste:

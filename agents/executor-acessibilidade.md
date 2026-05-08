@@ -118,6 +118,23 @@ Para cada teste:
 
    **Regra absoluta:** `serious` é sempre `failed`, nunca `warning`. Use o valor de `impact` do axe-core como fonte de verdade — nunca reclassifique.
 
+5. **Identifique falhas conhecidas do ambiente de demonstração:**
+
+   Nos steps dos casos de teste, fique atento a anotações como:
+   - `"falha conhecida do ambiente"`, `"known_demo_failure"`, `"problema permanente do ambiente de demonstração"`, `"não corrigível pelo time"`
+
+   Também identifique automaticamente quando `environment_notes` contiver `"demo"`, `"demonstração"`, ou o domínio estiver em `DEMO_APP_DOMAINS` (ver executor-seguranca).
+
+   Para violações marcadas como conhecidas e permanentes do ambiente de demonstração:
+   - Adicione `"known_environment_failure": true` no objeto da violação
+   - **Preserve a `impact` original** (não reclassifique)
+   - Adicione o campo `"known_failure_note": "falha conhecida do ambiente de demonstração — não corrigível pelo time"` na violação
+   - **Não bloqueie o deploy** para esta suite: o veredito `deploy_blocked` deve ser `false` mesmo que haja `critical`/`serious` — **apenas se todas as violações `failed` forem marcadas como `known_environment_failure: true`**
+
+   **Bloqueio de deploy por acessibilidade:**
+   - `production` ou `staging` → `deploy_blocked: true` se houver qualquer `failed`
+   - `demo` ou `demonstração` → `deploy_blocked: false` se todas as violações `failed` forem `known_environment_failure: true`; caso contrário, `deploy_blocked: true` normalmente
+
 ---
 
 ## Formato de saída
@@ -132,6 +149,7 @@ Para cada teste:
       "id": "TC-040",
       "title": "Página de login acessível (WCAG 2.1 AA)",
       "status": "failed",
+      "deploy_blocked": true,
       "violations": [
         {
           "rule_id": "color-contrast",
@@ -139,7 +157,9 @@ Para cada teste:
           "description": "Elementos devem ter contraste de cor suficiente",
           "affected_elements": ["button.btn-primary", "a.nav-link"],
           "how_to_fix": "Aumente o contraste entre a cor do texto e o fundo para ao menos 4.5:1",
-          "help_url": "https://dequeuniversity.com/rules/axe/4.7/color-contrast"
+          "help_url": "https://dequeuniversity.com/rules/axe/4.7/color-contrast",
+          "known_environment_failure": false,
+          "known_failure_note": null
         },
         {
           "rule_id": "image-alt",
@@ -147,7 +167,9 @@ Para cada teste:
           "description": "Imagens devem ter texto alternativo",
           "affected_elements": ["img.logo"],
           "how_to_fix": "Adicione atributo alt descritivo à imagem",
-          "help_url": "https://dequeuniversity.com/rules/axe/4.7/image-alt"
+          "help_url": "https://dequeuniversity.com/rules/axe/4.7/image-alt",
+          "known_environment_failure": true,
+          "known_failure_note": "falha conhecida do ambiente de demonstração — não corrigível pelo time"
         }
       ],
       "passes_count": 38,
@@ -155,8 +177,8 @@ Para cada teste:
         "[NAV] Acessando https://staging.app.com/login",
         "[ANALYSIS] Executando axe-core (WCAG 2.1 AA)",
         "[VIOLATION] color-contrast (serious): 2 elementos afetados",
-        "[VIOLATION] image-alt (critical): 1 elemento afetado",
-        "[RESULT] 2 violações encontradas — failed"
+        "[VIOLATION] image-alt (critical): 1 elemento afetado — falha conhecida do ambiente",
+        "[RESULT] 2 violações encontradas (1 nova, 1 conhecida do ambiente) — failed; deploy bloqueado"
       ],
       "error": null
     },
@@ -164,6 +186,7 @@ Para cada teste:
       "id": "TC-041",
       "title": "Página de cadastro acessível (WCAG 2.1 AA)",
       "status": "warning",
+      "deploy_blocked": false,
       "violations": [
         {
           "rule_id": "label",
@@ -171,7 +194,9 @@ Para cada teste:
           "description": "Campos de formulário devem ter rótulos associados",
           "affected_elements": ["input#phone"],
           "how_to_fix": "Adicione um elemento <label> associado ao campo via atributo 'for'",
-          "help_url": "https://dequeuniversity.com/rules/axe/4.7/label"
+          "help_url": "https://dequeuniversity.com/rules/axe/4.7/label",
+          "known_environment_failure": false,
+          "known_failure_note": null
         }
       ],
       "passes_count": 41,
@@ -187,6 +212,7 @@ Para cada teste:
       "id": "TC-042",
       "title": "Página inicial acessível (WCAG 2.1 AA)",
       "status": "passed",
+      "deploy_blocked": false,
       "violations": [],
       "passes_count": 45,
       "logs": [
@@ -202,6 +228,7 @@ Para cada teste:
     "passed": 1,
     "failed": 1,
     "warning": 1,
+    "known_environment_failures": 1,
     "total_violations": 3,
     "by_impact": {
       "critical": 1,
