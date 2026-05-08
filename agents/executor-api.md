@@ -208,6 +208,9 @@ export default async function globalSetup(_config: FullConfig): Promise<void> {
         }
       } catch {}
     }
+    if (!process.env.AUTH_TOKEN) {
+      process.env.SETUP_FAILED = 'Autenticação falhou — token não obtido em nenhum endpoint tentado. Verifique as credenciais e o endpoint de login.';
+    }
     await apiCtx.dispose();
   }
 }
@@ -285,6 +288,12 @@ Para cada conjunto de testes:
    - Tag no describe: `test.describe("Nome @api", ...)`
    - Cada test body dividido em `test.step()` — mínimo: requisição + validações
    - Ordem de assertions: status code → `ok()` → headers → schema Zod → valores específicos
+   - **Specs que dependem de autenticação:** no início do `test.describe`, antes de qualquer `test()`, adicione:
+     ```typescript
+     if (process.env.SETUP_FAILED) {
+       test.skip(true, `Setup falhou: ${process.env.SETUP_FAILED}`);
+     }
+     ```
 
    ```typescript
    // src/api/specs/products.spec.ts

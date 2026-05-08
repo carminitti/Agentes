@@ -312,6 +312,9 @@ import { test, expect } from '../support/fixtures';
 import { request } from '@playwright/test'; // necessário para request.newContext() em beforeAll/afterAll
 
 test.describe('Gerenciamento de Produtos @produtos', () => {
+  if (process.env.SETUP_FAILED) {
+    test.skip(true, `Setup falhou: ${process.env.SETUP_FAILED}`);
+  }
   const createdIds: string[] = [];
 
   // IMPORTANTE: test.beforeAll/afterAll NÃO recebem fixtures como parâmetro no Playwright.
@@ -374,6 +377,12 @@ Para cada conjunto de testes:
    - Cada test body dividido em `test.step()` — mínimo: ação + assertion
    - `screenShot()` chamado no step de assertion
    - Credenciais via `process.env.USER_EMAIL as string`
+   - **Specs que dependem de autenticação:** no início do `test.describe`, antes de qualquer `test()`, adicione:
+     ```typescript
+     if (process.env.SETUP_FAILED) {
+       test.skip(true, `Setup falhou: ${process.env.SETUP_FAILED}`);
+     }
+     ```
 
 4. **Mapeamento de steps para ações Playwright:**
 

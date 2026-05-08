@@ -67,6 +67,9 @@ Calcule cada valor contando os campos `status` em todos os resultados de todos o
 | ⏭️ Não executado | N |
 | **Total classificado** | **N** |
 
+Se o JSON do `classifier-testes` contiver testes com `low_confidence: true`, adicione abaixo da tabela:
+> ⚠️ [N] teste(s) classificados com baixa confiança (confiança 0.50–0.69) — podem estar no executor errado: [IDs].
+
 ---
 
 ### Resultado por Executor
@@ -81,6 +84,8 @@ Para cada executor que rodou, uma seção com tabela de visão geral seguida dos
 |---|---|---|---|
 | TC-001 | Login com credenciais válidas | ✅ Passou | 1240ms |
 | TC-002 | Checkout com cartão inválido | ❌ Falhou | Elemento não encontrado |
+
+Se um teste possuir `low_confidence: true` no JSON do `classifier-testes`, acrescente `(⚠️ baixa confiança)` ao lado do ID. Exemplo: `TC-005 (⚠️ baixa confiança)`.
 
 #### Detalhes por teste
 

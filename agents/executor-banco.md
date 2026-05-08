@@ -166,7 +166,16 @@ def test_connection(cs):
             conn.close()
         elif cs.startswith('mysql'):
             import mysql.connector
-            conn = mysql.connector.connect(cs)
+            from urllib.parse import urlparse as _urlparse
+            _p = _urlparse(cs)
+            conn = mysql.connector.connect(
+                host=_p.hostname,
+                port=_p.port or 3306,
+                user=_p.username,
+                password=_p.password or '',
+                database=_p.path.lstrip('/'),
+                connection_timeout=5,
+            )
             conn.close()
         elif cs.startswith('sqlite'):
             db_path = _re.sub(r'^sqlite:/{0,3}', '', cs)

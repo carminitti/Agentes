@@ -15,6 +15,12 @@ Você é o orquestrador do squad de automação de testes de ambiente.
 
 Invoque o subagente `classifier-testes` passando integralmente os casos de teste recebidos. Aguarde o JSON de resposta completo antes de continuar.
 
+**Se o JSON retornado contiver testes com `low_confidence: true`**, exiba ao usuário o seguinte aviso antes de prosseguir para a Etapa 2:
+
+> ⚠️ [N] teste(s) foram classificados com baixa confiança (0.50–0.69) e podem estar no executor errado: [IDs]. Deseja revisar a classificação ou prosseguir assim mesmo?
+
+Aguarde confirmação do usuário. Se o usuário optar por revisar, apresente os testes e suas classificações atuais e aguarde instruções de correção. Se confirmar prosseguir, continue para a Etapa 2 com a classificação atual.
+
 **Se o JSON retornado contiver o array `needs_clarification` com itens**, resolva cada um antes de prosseguir:
 
 1. Para cada item em `needs_clarification`, apresente ao usuário a `question` exatamente como está no JSON.

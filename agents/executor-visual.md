@@ -81,8 +81,9 @@ Para cada teste:
 
    test('regressão visual — página de checkout', async ({ page }) => {
      await page.goto('https://staging.app.com/checkout');
-     await page.waitForLoadState('networkidle');
-     // Para SPAs com renderização assíncrona, se networkidle não for suficiente:
+     await page.waitForLoadState('domcontentloaded');
+     // 'domcontentloaded' é o padrão seguro — 'networkidle' trava em SPAs com polling/websocket
+     // Para SPAs com renderização assíncrona, se domcontentloaded não for suficiente:
      // await page.waitForSelector('[data-testid="content-loaded"]', { timeout: 10000 });
      // Último recurso quando não há seletor confiável de conclusão de render:
      // await page.waitForTimeout(500);
@@ -103,7 +104,7 @@ Para cada teste:
    ```typescript
    test('regressão visual — modal de confirmação', async ({ page }) => {
      await page.goto('https://staging.app.com/checkout');
-     await page.waitForLoadState('networkidle');
+     await page.waitForLoadState('domcontentloaded');
      const modal = page.locator('#modal-confirmacao');
      await expect(modal).toHaveScreenshot('modal-confirmacao.png', { maxDiffPixelRatio: 0.02 });
    });

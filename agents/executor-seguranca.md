@@ -141,7 +141,10 @@ def run_checks_parallel(check_fns):
     with ThreadPoolExecutor(max_workers=min(len(check_fns), 8)) as executor:
         futures = {executor.submit(fn): fn for fn in check_fns}
         for future in as_completed(futures):
-            results.append(future.result())
+            try:
+                results.append(future.result())
+            except Exception as e:
+                results.append({"error": str(e), "status": "error"})
     return results
 ```
 
