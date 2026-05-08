@@ -1,0 +1,1413 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mapa Mental — Squad de Automação de Testes QA</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #1e2130;
+    --surface2: #252a3a;
+    --border: #2e3450;
+    --text: #e2e8f0;
+    --text-muted: #8892a4;
+    --blue: #3b82f6;
+    --blue-light: #60a5fa;
+    --blue-dim: #1e3a5f;
+    --green: #10b981;
+    --green-light: #34d399;
+    --green-dim: #0c3d2d;
+    --orange: #f59e0b;
+    --orange-light: #fbbf24;
+    --orange-dim: #3d2a0a;
+    --purple: #8b5cf6;
+    --purple-light: #a78bfa;
+    --purple-dim: #2d1f4d;
+    --red: #ef4444;
+    --red-dim: #3d1515;
+    --cyan: #06b6d4;
+    --cyan-dim: #0c2d35;
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    font-size: 15px;
+    line-height: 1.6;
+  }
+
+  /* ── NAV ── */
+  nav {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(15,17,23,0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-wrap: wrap;
+    min-height: 52px;
+  }
+
+  nav a {
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 13px;
+    padding: 6px 12px;
+    border-radius: 6px;
+    transition: all .18s;
+    white-space: nowrap;
+  }
+
+  nav a:hover { background: var(--surface2); color: var(--text); }
+
+  nav .logo {
+    font-weight: 700;
+    font-size: 14px;
+    color: var(--text);
+    margin-right: 12px;
+    letter-spacing: -.3px;
+  }
+
+  /* ── MAIN ── */
+  main {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 40px 24px 80px;
+  }
+
+  /* ── HERO ── */
+  .hero {
+    text-align: center;
+    padding: 56px 24px 48px;
+  }
+
+  .hero h1 {
+    font-size: clamp(28px, 5vw, 48px);
+    font-weight: 800;
+    letter-spacing: -1px;
+    background: linear-gradient(135deg, #60a5fa 0%, #34d399 50%, #a78bfa 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 12px;
+  }
+
+  .hero p {
+    color: var(--text-muted);
+    font-size: 17px;
+    max-width: 580px;
+    margin: 0 auto;
+  }
+
+  /* ── SECTION ── */
+  section {
+    margin-bottom: 64px;
+  }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 28px;
+  }
+
+  .section-header h2 {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -.3px;
+  }
+
+  .badge {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 9px;
+    border-radius: 20px;
+    letter-spacing: .4px;
+    text-transform: uppercase;
+  }
+
+  .badge-blue { background: var(--blue-dim); color: var(--blue-light); }
+  .badge-green { background: var(--green-dim); color: var(--green-light); }
+  .badge-orange { background: var(--orange-dim); color: var(--orange-light); }
+  .badge-purple { background: var(--purple-dim); color: var(--purple-light); }
+  .badge-cyan { background: var(--cyan-dim); color: var(--cyan); }
+
+  /* ── PIPELINE GRID ── */
+  .pipelines {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+
+  @media (max-width: 768px) {
+    .pipelines { grid-template-columns: 1fr; }
+  }
+
+  .pipeline-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .pipeline-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+  }
+
+  .pipeline-blue::before { background: linear-gradient(90deg, var(--blue), var(--blue-light)); }
+  .pipeline-green::before { background: linear-gradient(90deg, var(--green), var(--green-light)); }
+
+  .pipeline-title {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .pipeline-subtitle {
+    color: var(--text-muted);
+    font-size: 13px;
+    margin-bottom: 20px;
+  }
+
+  /* ── FLOW ── */
+  .flow {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .flow-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    position: relative;
+  }
+
+  .flow-step:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    left: 19px;
+    top: 40px;
+    bottom: -4px;
+    width: 2px;
+    background: var(--border);
+  }
+
+  .flow-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 1;
+  }
+
+  .flow-icon-blue { background: var(--blue-dim); border: 2px solid var(--blue); }
+  .flow-icon-green { background: var(--green-dim); border: 2px solid var(--green); }
+  .flow-icon-orange { background: var(--orange-dim); border: 2px solid var(--orange); }
+  .flow-icon-purple { background: var(--purple-dim); border: 2px solid var(--purple); }
+
+  .flow-body {
+    padding: 8px 0 20px;
+    flex: 1;
+  }
+
+  .flow-body h3 {
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 4px;
+    font-family: 'Courier New', monospace;
+  }
+
+  .flow-body p {
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+
+  .tag {
+    display: inline-block;
+    font-size: 11px;
+    padding: 2px 7px;
+    border-radius: 4px;
+    margin: 2px 2px 0 0;
+    font-weight: 500;
+  }
+
+  .tag-blue { background: var(--blue-dim); color: var(--blue-light); }
+  .tag-green { background: var(--green-dim); color: var(--green-light); }
+  .tag-orange { background: var(--orange-dim); color: var(--orange-light); }
+  .tag-purple { background: var(--purple-dim); color: var(--purple-light); }
+  .tag-gray { background: #1e2130; color: var(--text-muted); border: 1px solid var(--border); }
+
+  /* ── CLASSIFIER TABLE ── */
+  .table-wrapper {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  thead tr {
+    background: var(--surface2);
+  }
+
+  th {
+    padding: 12px 16px;
+    text-align: left;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .6px;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border);
+  }
+
+  td {
+    padding: 11px 16px;
+    font-size: 13px;
+    border-bottom: 1px solid rgba(46,52,80,.5);
+    vertical-align: middle;
+  }
+
+  tr:last-child td { border-bottom: none; }
+
+  tr:hover td { background: rgba(255,255,255,.02); }
+
+  .type-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  /* ── EXECUTOR CARDS ── */
+  .executor-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 16px;
+  }
+
+  .executor-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    transition: border-color .2s;
+  }
+
+  .executor-card:hover { border-color: var(--border); }
+
+  .executor-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    cursor: pointer;
+    user-select: none;
+    gap: 12px;
+  }
+
+  .executor-header:hover { background: rgba(255,255,255,.02); }
+
+  .executor-title-wrap {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .executor-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 17px;
+    flex-shrink: 0;
+  }
+
+  .executor-name {
+    font-size: 14px;
+    font-weight: 700;
+    font-family: 'Courier New', monospace;
+    margin-bottom: 2px;
+  }
+
+  .executor-tech {
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  .chevron {
+    font-size: 12px;
+    color: var(--text-muted);
+    transition: transform .2s;
+    flex-shrink: 0;
+  }
+
+  .executor-card.open .chevron { transform: rotate(180deg); }
+
+  .executor-body {
+    display: none;
+    padding: 0 20px 20px;
+    border-top: 1px solid var(--border);
+  }
+
+  .executor-card.open .executor-body { display: block; }
+
+  .executor-body ul {
+    list-style: none;
+    padding-top: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .executor-body li {
+    font-size: 13px;
+    color: var(--text-muted);
+    padding-left: 20px;
+    position: relative;
+    line-height: 1.5;
+  }
+
+  .executor-body li::before {
+    content: '→';
+    position: absolute;
+    left: 0;
+    color: var(--text-muted);
+    opacity: .5;
+  }
+
+  .executor-body li strong { color: var(--text); }
+
+  .warn-box {
+    margin-top: 14px;
+    background: var(--red-dim);
+    border: 1px solid rgba(239,68,68,.3);
+    border-radius: 6px;
+    padding: 10px 14px;
+    font-size: 12px;
+    color: #fca5a5;
+  }
+
+  .info-box {
+    margin-top: 14px;
+    background: var(--blue-dim);
+    border: 1px solid rgba(59,130,246,.3);
+    border-radius: 6px;
+    padding: 10px 14px;
+    font-size: 12px;
+    color: #93c5fd;
+  }
+
+  /* ── LIFECYCLE ── */
+  .lifecycle {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 28px;
+  }
+
+  .lifecycle-row {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+
+  .lc-step {
+    flex: 1;
+    min-width: 160px;
+    background: var(--surface2);
+    border-radius: var(--radius-sm);
+    padding: 18px 16px;
+    text-align: center;
+    position: relative;
+  }
+
+  .lc-step:not(:last-child) {
+    margin-right: 0;
+  }
+
+  .lc-arrow {
+    display: flex;
+    align-items: center;
+    padding: 0 8px;
+    color: var(--text-muted);
+    font-size: 20px;
+    flex-shrink: 0;
+    align-self: center;
+  }
+
+  .lc-icon {
+    font-size: 26px;
+    margin-bottom: 8px;
+  }
+
+  .lc-title {
+    font-size: 13px;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+
+  .lc-desc {
+    font-size: 12px;
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+
+  .lc-blue { border-top: 3px solid var(--blue); }
+  .lc-green { border-top: 3px solid var(--green); }
+  .lc-orange { border-top: 3px solid var(--orange); }
+
+  .lifecycle-rules {
+    margin-top: 20px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  @media (max-width: 600px) {
+    .lifecycle-rules { grid-template-columns: 1fr; }
+  }
+
+  .rule-item {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px 14px;
+    font-size: 13px;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .rule-item span:first-child { flex-shrink: 0; font-size: 16px; }
+
+  /* ── AUTH PRIORITY ── */
+  .auth-flow {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .auth-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 16px 18px;
+    transition: border-color .18s;
+  }
+
+  .auth-step:hover { border-color: rgba(139,92,246,.4); }
+
+  .auth-num {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--purple-dim);
+    border: 2px solid var(--purple);
+    color: var(--purple-light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 800;
+    flex-shrink: 0;
+  }
+
+  .auth-body h4 {
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+
+  .auth-body p {
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+
+  .auth-outcome {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 4px;
+    margin-top: 6px;
+  }
+
+  .outcome-green { background: var(--green-dim); color: var(--green-light); }
+  .outcome-orange { background: var(--orange-dim); color: var(--orange-light); }
+  .outcome-red { background: var(--red-dim); color: #fca5a5; }
+  .outcome-blue { background: var(--blue-dim); color: var(--blue-light); }
+
+  /* ── STANDALONE ── */
+  .standalone-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  @media (max-width: 640px) {
+    .standalone-grid { grid-template-columns: 1fr; }
+  }
+
+  .standalone-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 22px;
+  }
+
+  .standalone-card h3 {
+    font-size: 15px;
+    font-weight: 700;
+    font-family: 'Courier New', monospace;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .standalone-card p {
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+
+  /* ── DEPS ── */
+  .deps-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 12px;
+  }
+
+  .dep-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 16px 18px;
+  }
+
+  .dep-card h4 {
+    font-size: 13px;
+    font-weight: 700;
+    font-family: 'Courier New', monospace;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .dep-card code {
+    display: block;
+    font-size: 12px;
+    background: rgba(0,0,0,.3);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 6px 10px;
+    color: var(--green-light);
+    font-family: 'Courier New', monospace;
+    margin-top: 6px;
+    white-space: nowrap;
+    overflow-x: auto;
+  }
+
+  /* ── DIVIDER ── */
+  .divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 48px 0;
+  }
+
+  /* ── FOOTER ── */
+  footer {
+    text-align: center;
+    padding: 32px;
+    color: var(--text-muted);
+    font-size: 13px;
+    border-top: 1px solid var(--border);
+  }
+
+  /* ── SCROLL OFFSET for anchors ── */
+  [id] { scroll-margin-top: 64px; }
+
+  /* ── HIGHLIGHT ── */
+  code {
+    font-family: 'Courier New', monospace;
+    font-size: .9em;
+    background: rgba(0,0,0,.3);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1px 5px;
+    color: var(--orange-light);
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <span class="logo">⚡ QA Squad</span>
+  <a href="#pipelines">Pipelines</a>
+  <a href="#classifier">Classificação</a>
+  <a href="#executors">Executores</a>
+  <a href="#lifecycle">Ciclo de Vida</a>
+  <a href="#auth">Auth &amp; Credenciais</a>
+  <a href="#standalone">Standalone</a>
+  <a href="#deps">Dependências</a>
+</nav>
+
+<main>
+
+  <!-- HERO -->
+  <div class="hero">
+    <h1>Squad de Automação de Testes QA</h1>
+    <p>Dois pipelines independentes que transformam histórias de usuário em relatórios de execução automatizados, do planejamento à análise de resultados.</p>
+  </div>
+
+  <!-- ════ PIPELINES ════ -->
+  <section id="pipelines">
+    <div class="section-header">
+      <h2>🔀 Os Dois Pipelines</h2>
+    </div>
+
+    <div class="pipelines">
+
+      <!-- Pipeline 1 -->
+      <div class="pipeline-card pipeline-blue">
+        <div class="pipeline-title">
+          <span>📋</span>
+          Pipeline 1 — Planejamento
+        </div>
+        <div class="pipeline-subtitle">História de usuário → Cenários de teste prontos para uso</div>
+
+        <div class="flow">
+
+          <div class="flow-step">
+            <div class="flow-icon flow-icon-blue">🎯</div>
+            <div class="flow-body">
+              <h3>/qa-pipeline</h3>
+              <p>Orquestrador do pipeline 1. Recebe a história de usuário e delega aos dois agentes folha em sequência.</p>
+              <div style="margin-top:6px">
+                <span class="tag tag-blue">Orquestrador</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="flow-step">
+            <div class="flow-icon flow-icon-blue">📝</div>
+            <div class="flow-body">
+              <h3>gerador-criterios-aceite</h3>
+              <p>Gera <strong>critérios de aceite</strong>, plano de testes e mapa mental Mermaid a partir da história de usuário.</p>
+              <div style="margin-top:6px">
+                <span class="tag tag-gray">Agente folha</span>
+                <span class="tag tag-gray">Sem ferramentas</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="flow-step">
+            <div class="flow-icon flow-icon-blue">🧪</div>
+            <div class="flow-body">
+              <h3>gerador-cenarios-teste</h3>
+              <p>Transforma critérios de aceite em cenários de teste nos 3 formatos, entregues progressivamente:</p>
+              <div style="margin-top:6px">
+                <span class="tag tag-blue">Gherkin</span>
+                <span class="tag tag-blue">Passo a passo</span>
+                <span class="tag tag-blue">CSV Azure DevOps</span>
+              </div>
+              <div style="margin-top:8px; font-size:12px; color:var(--text-muted);">
+                Oferece um formato por vez — só avança quando o usuário pede o próximo, até todos serem entregues.
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Pipeline 2 -->
+      <div class="pipeline-card pipeline-green">
+        <div class="pipeline-title">
+          <span>🚀</span>
+          Pipeline 2 — Execução
+        </div>
+        <div class="pipeline-subtitle">Casos de teste → Execução automatizada → Relatório consolidado</div>
+
+        <div class="flow">
+
+          <div class="flow-step">
+            <div class="flow-icon flow-icon-green">🎛️</div>
+            <div class="flow-body">
+              <h3>/orquestrador-qa</h3>
+              <p>Ponto de entrada único. Recebe os casos de teste e coordena todo o fluxo de execução.</p>
+              <div style="margin-top:6px">
+                <span class="tag tag-green">Orquestrador</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="flow-step">
+            <div class="flow-icon flow-icon-orange">🏷️</div>
+            <div class="flow-body">
+              <h3>classifier-testes</h3>
+              <p>Lê cada caso de teste e retorna JSON com <strong>tipo</strong> + <strong>executor</strong>. Exclui testes unitários e manuais.</p>
+              <div style="margin-top:6px">
+                <span class="tag tag-gray">Agente folha</span>
+                <span class="tag tag-gray">Sem ferramentas</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="flow-step">
+            <div class="flow-icon flow-icon-green">⚡</div>
+            <div class="flow-body">
+              <h3>Executores em paralelo</h3>
+              <p>Cada grupo de testes é despachado ao executor adequado, todos rodando simultaneamente para máxima eficiência.</p>
+              <div style="margin-top:6px">
+                <span class="tag tag-orange">executor-browser</span>
+                <span class="tag tag-orange">executor-api</span>
+                <span class="tag tag-orange">executor-performance</span>
+                <span class="tag tag-orange">+4 outros</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="flow-step">
+            <div class="flow-icon flow-icon-green">📊</div>
+            <div class="flow-body">
+              <h3>reporter-qa</h3>
+              <p>Consolida todos os resultados num relatório estruturado com sumário, falhas e recomendações.</p>
+              <div style="margin-top:6px">
+                <span class="tag tag-gray">Agente folha</span>
+                <span class="tag tag-gray">Sem ferramentas</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <!-- ════ CLASSIFIER ════ -->
+  <section id="classifier">
+    <div class="section-header">
+      <h2>🏷️ Classificação de Testes</h2>
+      <span class="badge badge-orange">classifier-testes</span>
+    </div>
+    <p style="color:var(--text-muted); margin-bottom:20px; font-size:14px;">
+      O agente lê os casos de teste (Gherkin, passo a passo ou CSV) e mapeia cada um para um tipo e executor específico.
+    </p>
+    <div class="info-box" style="margin-bottom:20px; font-size:13px;">
+      🎯 <strong style="color:#93c5fd;">Threshold de confiança (v1.17.0):</strong> confidence &lt; 0.50 → bloqueia pipeline e pede clarificação. 0.50–0.69 → classifica com melhor palpite + <code>low_confidence: true</code> (não bloqueia). ≥ 0.70 → classificação normal.
+    </div>
+
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>Tipos de Teste</th>
+            <th>Executor</th>
+            <th>Tecnologia</th>
+            <th>Observação</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>
+              <div class="type-list">
+                <span class="tag tag-blue">smoke</span>
+                <span class="tag tag-blue">sanity</span>
+                <span class="tag tag-blue">regressão</span>
+                <span class="tag tag-blue">e2e</span>
+                <span class="tag tag-blue">cross-browser</span>
+              </div>
+            </td>
+            <td><code>executor-browser</code></td>
+            <td>Playwright + TypeScript</td>
+            <td style="color:var(--text-muted); font-size:12px;">Também recebe <code>http</code> de smoke/sanity/regressão/e2e</td>
+          </tr>
+          <tr>
+            <td>
+              <div class="type-list">
+                <span class="tag tag-green">integração</span>
+              </div>
+            </td>
+            <td><code>executor-api</code></td>
+            <td>Python requests</td>
+            <td style="color:var(--text-muted); font-size:12px;">Recebe <code>http</code> do tipo integração</td>
+          </tr>
+          <tr>
+            <td>
+              <div class="type-list">
+                <span class="tag tag-orange">performance</span>
+                <span class="tag tag-orange">carga</span>
+                <span class="tag tag-orange">stress</span>
+                <span class="tag tag-orange">soak</span>
+              </div>
+            </td>
+            <td><code>executor-performance</code></td>
+            <td>k6 / fallback Python</td>
+            <td style="color:var(--text-muted); font-size:12px;">Instala k6 automaticamente</td>
+          </tr>
+          <tr>
+            <td>
+              <div class="type-list">
+                <span class="tag tag-purple">visual</span>
+              </div>
+            </td>
+            <td><code>executor-visual</code></td>
+            <td>Playwright screenshots</td>
+            <td style="color:var(--text-muted); font-size:12px;">Baseline na 1ª execução</td>
+          </tr>
+          <tr>
+            <td>
+              <div class="type-list">
+                <span class="tag tag-purple">acessibilidade</span>
+              </div>
+            </td>
+            <td><code>executor-acessibilidade</code></td>
+            <td>axe-core via Playwright</td>
+            <td style="color:var(--text-muted); font-size:12px;">WCAG 2.1 AA</td>
+          </tr>
+          <tr>
+            <td>
+              <div class="type-list">
+                <span class="tag tag-orange">segurança</span>
+              </div>
+            </td>
+            <td><code>executor-seguranca</code></td>
+            <td>Python (não invasivo)</td>
+            <td style="color:var(--text-muted); font-size:12px;">Sem SQL injection, XSS ou fuzzing</td>
+          </tr>
+          <tr>
+            <td>
+              <div class="type-list">
+                <span class="tag tag-green">banco</span>
+              </div>
+            </td>
+            <td><code>executor-banco</code></td>
+            <td>Python + drivers DB</td>
+            <td style="color:var(--text-muted); font-size:12px;">Requer <code>DB_CONNECTION_STRING</code></td>
+          </tr>
+          <tr>
+            <td>
+              <div class="type-list">
+                <span class="tag tag-gray">contrato (Pact)</span>
+              </div>
+            </td>
+            <td style="color:var(--text-muted);">— não executa</td>
+            <td style="color:var(--text-muted);">Pact Broker</td>
+            <td style="color:#fca5a5; font-size:12px;">⚠️ Requer Pact Broker externo</td>
+          </tr>
+          <tr>
+            <td>
+              <div class="type-list">
+                <span class="tag tag-gray">mobile (Appium)</span>
+              </div>
+            </td>
+            <td style="color:var(--text-muted);">— não executa</td>
+            <td style="color:var(--text-muted);">Appium</td>
+            <td style="color:#fca5a5; font-size:12px;">⚠️ Requer dispositivo/emulador</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="info-box" style="margin-top:16px; background:var(--surface); border-color:var(--border); color:var(--text-muted); font-size:13px;">
+      💡 <strong style="color:var(--text);">Roteamento http:</strong> testes classificados como <code>http</code> vão para <code>executor-api</code> quando o tipo é <em>integração</em>, e para <code>executor-browser</code> quando o tipo é smoke/sanity/regressão/e2e.
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <!-- ════ EXECUTORES ════ -->
+  <section id="executors">
+    <div class="section-header">
+      <h2>⚙️ Como Cada Executor Funciona</h2>
+      <span class="badge badge-orange">Clique para expandir</span>
+    </div>
+
+    <div class="executor-grid">
+
+      <!-- executor-browser -->
+      <div class="executor-card" onclick="toggleCard(this)">
+        <div class="executor-header">
+          <div class="executor-title-wrap">
+            <div class="executor-icon" style="background:var(--blue-dim);">🌐</div>
+            <div>
+              <div class="executor-name">executor-browser</div>
+              <div class="executor-tech">Playwright + TypeScript</div>
+            </div>
+          </div>
+          <span class="chevron">▼</span>
+        </div>
+        <div class="executor-body">
+          <ul>
+            <li>Gera <strong>Page Objects (POM)</strong> para cada página testada</li>
+            <li><strong>Seletores semânticos:</strong> getByRole, getByLabel, getByText — sem IDs frágeis</li>
+            <li><strong>Setup (beforeAll):</strong> cria massa de dados via API com <code>request.newContext()</code></li>
+            <li><strong>Testes:</strong> executam contra os dados criados no setup</li>
+            <li><strong>Teardown (afterAll):</strong> apaga tudo que foi criado, mesmo se testes falharem</li>
+            <li>Cobre smoke, sanity, regressão, e2e e cross-browser</li>
+            <li>Também processa testes <code>http</code> de smoke/sanity/regressão/e2e</li>
+            <li><strong>Auto-registro restrito:</strong> apenas em domínios de demonstração conhecidos (AutomationExercise, DemoQA, etc.) ou com <code>ALLOW_AUTO_REGISTER=true</code></li>
+          </ul>
+          <div class="info-box">
+            🔵 Tipos cobertos: smoke · sanity · regressão · e2e · cross-browser
+          </div>
+        </div>
+      </div>
+
+      <!-- executor-api -->
+      <div class="executor-card" onclick="toggleCard(this)">
+        <div class="executor-header">
+          <div class="executor-title-wrap">
+            <div class="executor-icon" style="background:var(--green-dim);">🔌</div>
+            <div>
+              <div class="executor-name">executor-api</div>
+              <div class="executor-tech">Python requests</div>
+            </div>
+          </div>
+          <span class="chevron">▼</span>
+        </div>
+        <div class="executor-body">
+          <ul>
+            <li>Extrai <strong>método, endpoint, payload e headers</strong> dos steps de teste</li>
+            <li><strong>Setup:</strong> cria pré-condições via API</li>
+            <li><strong>Testes:</strong> valida status code, campos do body e tempo de resposta</li>
+            <li><strong>Teardown (finally):</strong> bloco finally garante limpeza mesmo em falhas</li>
+            <li>Suporta GET, POST, PUT, PATCH, DELETE, autenticação Bearer/Basic</li>
+          </ul>
+          <div class="info-box" style="background:var(--green-dim); border-color:rgba(16,185,129,.3); color:#6ee7b7;">
+            🟢 Tipos cobertos: integração · http (integração)
+          </div>
+        </div>
+      </div>
+
+      <!-- executor-performance -->
+      <div class="executor-card" onclick="toggleCard(this)">
+        <div class="executor-header">
+          <div class="executor-title-wrap">
+            <div class="executor-icon" style="background:var(--orange-dim);">📈</div>
+            <div>
+              <div class="executor-name">executor-performance</div>
+              <div class="executor-tech">k6 ou fallback Python</div>
+            </div>
+          </div>
+          <span class="chevron">▼</span>
+        </div>
+        <div class="executor-body">
+          <ul>
+            <li>Se k6 disponível: gera script JS nativo e executa</li>
+            <li>Se k6 ausente: <strong>fallback Python imediato</strong> (threading para simular VUs) — sem tentar instalar</li>
+            <li><strong>Perfis:</strong> performance (10VUs/30s) · carga (50VUs/60s) · stress (rampa) · soak (20VUs/10min)</li>
+            <li><strong>Métricas coletadas:</strong> p50 / p95 / p99, error rate, throughput</li>
+          </ul>
+          <div class="info-box" style="background:var(--orange-dim); border-color:rgba(245,158,11,.3); color:#fcd34d;">
+            🟡 Tipos cobertos: performance · carga · stress · soak
+          </div>
+        </div>
+      </div>
+
+      <!-- executor-visual -->
+      <div class="executor-card" onclick="toggleCard(this)">
+        <div class="executor-header">
+          <div class="executor-title-wrap">
+            <div class="executor-icon" style="background:var(--purple-dim);">👁️</div>
+            <div>
+              <div class="executor-name">executor-visual</div>
+              <div class="executor-tech">Playwright screenshots</div>
+            </div>
+          </div>
+          <span class="chevron">▼</span>
+        </div>
+        <div class="executor-body">
+          <ul>
+            <li><strong>1ª execução:</strong> captura e salva imagens de baseline + aviso obrigatório para validação visual</li>
+            <li><strong>Execuções seguintes:</strong> compara screenshots com o baseline</li>
+            <li>Threshold de diferença: <strong>2%</strong> — abaixo disso é aprovado</li>
+            <li>Oculta <strong>elementos dinâmicos</strong> (datas, animações) para evitar falsos positivos</li>
+          </ul>
+          <div class="info-box" style="background:var(--purple-dim); border-color:rgba(139,92,246,.3); color:#c4b5fd;">
+            🟣 Tipos cobertos: visual
+          </div>
+        </div>
+      </div>
+
+      <!-- executor-acessibilidade -->
+      <div class="executor-card" onclick="toggleCard(this)">
+        <div class="executor-header">
+          <div class="executor-title-wrap">
+            <div class="executor-icon" style="background:var(--purple-dim);">♿</div>
+            <div>
+              <div class="executor-name">executor-acessibilidade</div>
+              <div class="executor-tech">axe-core via Playwright</div>
+            </div>
+          </div>
+          <span class="chevron">▼</span>
+        </div>
+        <div class="executor-body">
+          <ul>
+            <li>Padrão: <strong>WCAG 2.1 AA</strong></li>
+            <li><strong>critical / serious</strong> → falha o teste</li>
+            <li><strong>moderate / minor</strong> → reportado como warning</li>
+            <li>Analisa cada página ou componente especificado</li>
+            <li><strong>Falhas conhecidas de demo:</strong> violações anotadas como <code>known_demo_failure</code>, "violação conhecida", "aceito pelo time", etc. → não bloqueiam deploy; detecção case-insensitive</li>
+            <li>Ambientes de demonstração: <code>deploy_blocked: false</code> se todas as violações <code>failed</code> forem conhecidas</li>
+          </ul>
+          <div class="info-box" style="background:var(--purple-dim); border-color:rgba(139,92,246,.3); color:#c4b5fd;">
+            🟣 Tipos cobertos: acessibilidade
+          </div>
+        </div>
+      </div>
+
+      <!-- executor-seguranca -->
+      <div class="executor-card" onclick="toggleCard(this)">
+        <div class="executor-header">
+          <div class="executor-title-wrap">
+            <div class="executor-icon" style="background:var(--red-dim);">🔒</div>
+            <div>
+              <div class="executor-name">executor-seguranca</div>
+              <div class="executor-tech">Python (não invasivo)</div>
+            </div>
+          </div>
+          <span class="chevron">▼</span>
+        </div>
+        <div class="executor-body">
+          <ul>
+            <li><strong>Autenticação:</strong> verifica 401 em rotas sem token</li>
+            <li><strong>Autorização:</strong> verifica 403 em rotas sem permissão</li>
+            <li><strong>Headers:</strong> HSTS, X-Frame-Options, CSP, X-Content-Type</li>
+            <li><strong>CORS:</strong> valida via GET + <strong>OPTIONS preflight</strong> — detecta APIs que só respondem ao preflight</li>
+            <li><strong>Endpoints sensíveis:</strong> /admin, /env, /debug, /.git, etc.</li>
+          </ul>
+          <div class="warn-box">
+            ⚠️ Nunca executa: SQL injection · XSS · fuzzing · força bruta — apenas verificações passivas e seguras.
+          </div>
+        </div>
+      </div>
+
+      <!-- executor-banco -->
+      <div class="executor-card" onclick="toggleCard(this)">
+        <div class="executor-header">
+          <div class="executor-title-wrap">
+            <div class="executor-icon" style="background:var(--cyan-dim);">🗄️</div>
+            <div>
+              <div class="executor-name">executor-banco</div>
+              <div class="executor-tech">Python + drivers DB</div>
+            </div>
+          </div>
+          <span class="chevron">▼</span>
+        </div>
+        <div class="executor-body">
+          <ul>
+            <li>Apenas <strong>SELECT</strong> e verificações de schema — somente leitura</li>
+            <li>Suporta <strong>PostgreSQL</strong> (psycopg2), <strong>MySQL</strong> (connector), <strong>SQLite</strong>, <strong>SQL Server</strong> (pyodbc)</li>
+            <li>Driver instalado <strong>antes</strong> do teste de conexão — evita ImportError mascarado como "Banco inacessível"</li>
+            <li><strong>Modo real:</strong> conecta ao banco via <code>DB_CONNECTION_STRING</code> com credenciais mascaradas no relatório</li>
+            <li><strong>Modo simulado:</strong> cria SQLite <code>:memory:</code> com schema inferido dos steps — resultados marcados com <code>simulated: true</code></li>
+          </ul>
+          <div class="info-box" style="background:var(--cyan-dim); border-color:rgba(6,182,212,.3); color:#67e8f9;">
+            🔵 Tipos cobertos: banco
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <!-- ════ LIFECYCLE ════ -->
+  <section id="lifecycle">
+    <div class="section-header">
+      <h2>🔄 Ciclo de Vida dos Testes</h2>
+      <span class="badge badge-green">Setup → Teste → Teardown</span>
+    </div>
+    <p style="color:var(--text-muted); margin-bottom:20px; font-size:14px;">
+      Quando testes dependem de dados pré-existentes, os executores seguem um ciclo completo de gestão de massa de dados.
+    </p>
+
+    <div class="lifecycle">
+      <div class="lifecycle-row">
+
+        <div class="lc-step lc-blue">
+          <div class="lc-icon">🏗️</div>
+          <div class="lc-title">Setup</div>
+          <div class="lc-desc">
+            <strong>beforeAll</strong><br>
+            Cria massa de dados via API.<br>
+            Registra IDs criados.<br>
+            Se falha → testes vão para <em>skipped</em>.
+          </div>
+        </div>
+
+        <div class="lc-arrow">→</div>
+
+        <div class="lc-step lc-green">
+          <div class="lc-icon">🧪</div>
+          <div class="lc-title">Execução</div>
+          <div class="lc-desc">
+            Testes rodam contra dados criados no setup.<br><br>
+            Falhas são registradas mas não interrompem o teardown.
+          </div>
+        </div>
+
+        <div class="lc-arrow">→</div>
+
+        <div class="lc-step lc-orange">
+          <div class="lc-icon">🧹</div>
+          <div class="lc-title">Teardown</div>
+          <div class="lc-desc">
+            <strong>afterAll / finally</strong><br>
+            Apaga tudo que foi criado.<br>
+            Sempre executa, mesmo se testes falharem.<br>
+            Falha no teardown não altera resultado dos testes.
+          </div>
+        </div>
+
+      </div>
+
+      <div class="lifecycle-rules">
+        <div class="rule-item">
+          <span>✅</span>
+          <span>Se setup <strong>ok</strong> → testes executam normalmente</span>
+        </div>
+        <div class="rule-item">
+          <span>⏭️</span>
+          <span>Se setup <strong>falha</strong> → todos os testes do grupo são <em>skipped</em> com motivo</span>
+        </div>
+        <div class="rule-item">
+          <span>🧹</span>
+          <span>Teardown sempre roda, independente do resultado dos testes</span>
+        </div>
+        <div class="rule-item">
+          <span>⚠️</span>
+          <span>Se teardown <strong>falha</strong> → erro registrado, status dos testes <em>não muda</em></span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <!-- ════ AUTH ════ -->
+  <section id="auth">
+    <div class="section-header">
+      <h2>🔑 Resolução de Auth e Credenciais</h2>
+      <span class="badge badge-purple">Prioridade 1 → 4</span>
+    </div>
+    <p style="color:var(--text-muted); margin-bottom:20px; font-size:14px;">
+      Todos os executores seguem a mesma ordem de prioridade para obter credenciais antes de iniciar qualquer execução.
+    </p>
+
+    <div class="auth-flow">
+
+      <div class="auth-step">
+        <div class="auth-num">1</div>
+        <div class="auth-body">
+          <h4>Token nos steps</h4>
+          <p>O caso de teste já inclui o token ou credencial nos seus steps — nenhuma ação necessária.</p>
+          <div class="auth-outcome outcome-green">✅ Usa direto — sem perguntas</div>
+        </div>
+      </div>
+
+      <div class="auth-step">
+        <div class="auth-num">2</div>
+        <div class="auth-body">
+          <h4>Credenciais sem token</h4>
+          <p>Os steps têm usuário/senha mas não token. O executor tenta gerar o token automaticamente via:</p>
+          <div style="margin-top:8px; display:flex; flex-wrap:wrap; gap:4px;">
+            <code style="font-size:11px;">POST /auth/login</code>
+            <code style="font-size:11px;">POST /api/login</code>
+            <code style="font-size:11px;">POST /oauth/token</code>
+            <code style="font-size:11px;">POST /token</code>
+          </div>
+          <div class="auth-outcome outcome-blue">⚡ Gera token automaticamente</div>
+        </div>
+      </div>
+
+      <div class="auth-step">
+        <div class="auth-num">3</div>
+        <div class="auth-body">
+          <h4>Sem credenciais nos steps</h4>
+          <p>Os steps não contêm nenhuma credencial ou token. O executor pergunta ao usuário <strong>uma única vez</strong> antes de iniciar.</p>
+          <div class="auth-outcome outcome-orange">❓ Pergunta ao usuário — UMA vez</div>
+        </div>
+      </div>
+
+      <div class="auth-step">
+        <div class="auth-num">4</div>
+        <div class="auth-body">
+          <h4>Usuário não fornece</h4>
+          <p>O usuário foi perguntado mas não forneceu as credenciais solicitadas.</p>
+          <div class="auth-outcome outcome-red">⏭️ Testes skipped com motivo registrado</div>
+        </div>
+      </div>
+
+    </div>
+
+    <div style="margin-top:20px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-sm); padding:16px 20px;">
+      <p style="font-size:13px; color:var(--text-muted); margin-bottom:8px;"><strong style="color:var(--text);">Casos especiais:</strong></p>
+      <div style="display:flex; flex-direction:column; gap:6px;">
+        <div style="font-size:13px; color:var(--text-muted);">
+          🌐 <strong style="color:var(--text);">URL do ambiente:</strong> orquestrador infere dos steps; se não conseguir, pergunta ao usuário antes de iniciar.
+        </div>
+        <div style="font-size:13px; color:var(--text-muted);">
+          🗄️ <strong style="color:var(--text);">DB_CONNECTION_STRING:</strong> executor-banco verifica variável de ambiente; se ausente, pede ao usuário ou skipa automaticamente.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <!-- ════ STANDALONE ════ -->
+  <section id="standalone">
+    <div class="section-header">
+      <h2>🧩 Agentes Standalone</h2>
+      <span class="badge badge-cyan">Independentes</span>
+    </div>
+    <p style="color:var(--text-muted); margin-bottom:20px; font-size:14px;">
+      Agentes que operam de forma independente, sem relação com os pipelines de QA.
+    </p>
+
+    <div class="standalone-grid">
+
+      <div class="standalone-card" style="border-top: 3px solid var(--cyan);">
+        <h3>✍️ /revisor</h3>
+        <p>Revisão de texto em <strong>português brasileiro</strong>. Corrige gramática, ortografia, clareza e estilo sem alterar o significado original. Não possui ferramentas — produz apenas texto revisado.</p>
+      </div>
+
+      <div class="standalone-card" style="border-top: 3px solid var(--purple);">
+        <h3>📊 /consulta-treinamento</h3>
+        <p>Busca um colaborador por nome (<strong>fuzzy match / correspondência parcial</strong>) na planilha <code>~/Documents/3 - 28.04.26.xlsx</code> e exibe o progresso de treinamentos de 2026 com barra visual de percentual. Requer Python + openpyxl (instalado automaticamente).</p>
+      </div>
+
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <!-- ════ DEPS ════ -->
+  <section id="deps">
+    <div class="section-header">
+      <h2>📦 Dependências de Runtime</h2>
+      <span class="badge badge-orange">Pré-requisitos</span>
+    </div>
+    <p style="color:var(--text-muted); margin-bottom:20px; font-size:14px;">
+      Alguns binários precisam estar instalados na máquina antes da execução. Dependências Python/Node leves são instaladas automaticamente sob demanda.
+    </p>
+
+    <div class="deps-grid">
+
+      <div class="dep-card" style="border-top:3px solid var(--blue);">
+        <h4>🌐 executor-browser / visual / acessibilidade</h4>
+        <p style="font-size:12px; color:var(--text-muted); margin-bottom:4px;">Node.js + Playwright + binários do Chrome</p>
+        <code>npm install -D @playwright/test</code>
+        <code>npx playwright install chromium</code>
+      </div>
+
+      <div class="dep-card" style="border-top:3px solid var(--orange);">
+        <h4>📈 executor-performance</h4>
+        <p style="font-size:12px; color:var(--text-muted); margin-bottom:4px;">Binário k6 — não instalável via npm</p>
+        <code>winget install k6</code>
+        <p style="font-size:11px; color:var(--text-muted); margin-top:6px;">Se ausente: fallback Python automático</p>
+      </div>
+
+      <div class="dep-card" style="border-top:3px solid var(--green);">
+        <h4>🔌 executor-api / seguranca</h4>
+        <p style="font-size:12px; color:var(--text-muted); margin-bottom:4px;">Python + biblioteca requests</p>
+        <code>pip install requests</code>
+      </div>
+
+      <div class="dep-card" style="border-top:3px solid var(--cyan);">
+        <h4>🗄️ executor-banco</h4>
+        <p style="font-size:12px; color:var(--text-muted); margin-bottom:4px;">Driver instalado automaticamente por tipo:</p>
+        <code>pip install -q psycopg2-binary</code>
+        <code>pip install -q mysql-connector-python</code>
+        <code>pip install -q pyodbc</code>
+      </div>
+
+      <div class="dep-card" style="border-top:3px solid var(--purple);">
+        <h4>📊 consulta-treinamento</h4>
+        <p style="font-size:12px; color:var(--text-muted); margin-bottom:4px;">Instalado automaticamente na primeira execução</p>
+        <code>pip install openpyxl -q</code>
+      </div>
+
+      <div class="dep-card" style="border-top:3px solid var(--border);">
+        <h4>🗃️ Artefatos temporários</h4>
+        <p style="font-size:12px; color:var(--text-muted);">Os executores geram arquivos efêmeros na raiz do repositório durante a execução:</p>
+        <code>tmp_*.py · tmp_*.js · tmp_*.json</code>
+        <p style="font-size:11px; color:var(--text-muted); margin-top:6px;">Cobertos pelo .gitignore — não são commitados.</p>
+      </div>
+
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  Squad de Automação de Testes QA · Dois pipelines · Sete executores · Zero perguntas desnecessárias · v1.17.0
+</footer>
+
+<script>
+  function toggleCard(card) {
+    card.classList.toggle('open');
+  }
+
+  // Smooth scroll para âncoras
+  document.querySelectorAll('a[href^="#"]').forEach(a => {
+    a.addEventListener('click', e => {
+      e.preventDefault();
+      const target = document.querySelector(a.getAttribute('href'));
+      if (target) {
+        target.scrollIntoView({ behavior: 'smooth' });
+      }
+    });
+  });
+
+  // Abre o primeiro executor card por padrão
+  const firstCard = document.querySelector('.executor-card');
+  if (firstCard) firstCard.classList.add('open');
+</script>
+
+</body>
+</html>
