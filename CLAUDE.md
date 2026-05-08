@@ -176,3 +176,26 @@ python mcp_server/server.py
 2. Bump the `version` field in `.claude-plugin/plugin.json`.
 3. Re-run `.\install.ps1` to deploy it.
 4. Add it to the Agent Architecture section in this file.
+
+## Version History
+
+| Version | Changes |
+|---|---|
+| v1.1.0 | Squad base criado |
+| v1.2–1.7 | Logs, POM, auth, SSL, classifier, etc. |
+| v1.8.0 | Acessibilidade e segurança corrigidos |
+| v1.9.0 | Logs nos 5 executores restantes |
+| v1.10.0 | Orquestrador — coleta centralizada de auth/URL |
+| v1.11.0 | 7 executores com Prioridade 0 (contexto orquestrador) |
+| v1.12.0 | 5 correções de auditoria |
+| v1.13.0 | 7 correções críticas |
+| v1.14.0 | Correções A, B, C |
+| v1.15.0 | Correções D, E, F, G, H |
+| v1.15.1 | Auto-registro browser + cobertura total reporter |
+| v1.15.2 | Executor-banco modo real/simulado |
+| v1.15.3 | Otimizações de velocidade e tokens |
+| v1.15.4 | Correções de confiabilidade e integridade |
+| v1.16.0 | Classificação de ambiente, `known_demo_failure`, install automático banco |
+| v1.16.1 | Reporter-qa: separação bloqueantes vs não-bloqueantes |
+| v1.17.0 | 13 correções críticas (`networkidle`, `DEMO_HOSTS`, `beforeAll`, CORS OPTIONS, etc.) |
+| v1.18.0 | 6 bugs críticos: `domcontentloaded` no visual, `SETUP_FAILED` em specs browser/api, parallel exceptions no segurança, `mysql.connector` com urlparse, `low_confidence` visível no orquestrador e reporter |
