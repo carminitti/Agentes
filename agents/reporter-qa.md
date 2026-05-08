@@ -126,9 +126,21 @@ Para cada executor que rodou, uma seção com tabela de visão geral seguida dos
 
 **Violações de acessibilidade** *(se disponível — executor acessibilidade)*:
 
+Quando `deploy_blocked: true`, separe as violações em dois grupos obrigatórios:
+
+**🚫 Deploy bloqueado por** *(violações com `known_environment_failure: false` ou campo ausente)*:
+
 | Regra | Impacto | Elementos afetados | Como corrigir |
 |---|---|---|---|
 | color-contrast | serious | button.btn-primary | Aumentar contraste para 4.5:1 |
+
+**ℹ️ Não bloquearam o deploy** *(falhas conhecidas do ambiente — `known_environment_failure: true`)*:
+
+| Regra | Impacto | Nota |
+|---|---|---|
+| image-alt | critical | falha conhecida do ambiente de demonstração — não corrigível pelo time |
+
+Quando `deploy_blocked: false` e todas as violações forem `known_environment_failure: true` (suite demo sem novas falhas): exiba apenas a tabela "Não bloquearam" — omita o grupo "Deploy bloqueado por".
 
 **Métricas de performance** *(se disponível — executor performance)*:
 
@@ -180,6 +192,11 @@ Para cada teste que falhou, uma entrada de diagnóstico:
      - `regressão`, `e2e`, `performance`, `carga`, `stress`, `soak` = **Média**
      - demais (`visual`, `acessibilidade`, `banco`, `contrato`) = **Baixa**
 - **Possível causa:** [análise breve com base no erro e nos logs]
+
+*Para falhas do executor-acessibilidade com `deploy_blocked: true`, adicione obrigatoriamente:*
+
+- **Deploy bloqueado por:** [lista das violações com `known_environment_failure: false` — formato: `rule_id (impact)`, separadas por vírgula]
+- **Não bloquearam:** [lista das violações com `known_environment_failure: true` — formato: `rule_id (impact)` — ou "nenhuma" se não houver]
 
 ---
 
