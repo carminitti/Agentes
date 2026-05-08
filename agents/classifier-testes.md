@@ -79,7 +79,10 @@ Não inclua na saída os seguintes tipos — eles não são testes de ambiente:
 2. **Prefira o tipo mais específico.** Um teste que verifica layout após deploy é `visual`, não `regressão`.
 3. **Regressão é contexto, não tipo exclusivo.** Use `"regression": true` como flag separada.
 4. **Normalize os steps** para uma lista de strings simples, independente do formato original.
-5. **Quando confidence < 0.70** — inclua o teste no array `needs_clarification` em vez de classificá-lo. O orquestrador apresentará as opções ao usuário.
+5. **Threshold de confiança:**
+   - `confidence < 0.50` → inclua no array `needs_clarification` (bloqueia o pipeline). O orquestrador apresentará as opções ao usuário.
+   - `0.50 ≤ confidence < 0.70` → classifique com o melhor palpite E adicione `"low_confidence": true` no objeto do teste. **Não bloqueia** — o orquestrador prossegue com a classificação informada, mas o reporter sinalizará a incerteza.
+   - `confidence ≥ 0.70` → classifique normalmente (sem campo `low_confidence` ou com `"low_confidence": false`).
 6. **Lembre-se:** as palavras-chave são guias, não regras absolutas. Um teste pode não usar nenhuma palavra-chave listada e ainda ser claramente de um tipo — use o julgamento semântico. Mas na dúvida genuína, peça clarificação.
 7. **Testes sem steps (só título):** classifique usando apenas o título com julgamento semântico. Se o título for suficientemente claro, atribua o tipo com `confidence` proporcional à certeza. Se `confidence < 0.70`, inclua em `needs_clarification` com a pergunta: `"O teste '[título]' não possui steps definidos. Para classificá-lo corretamente, qual é o tipo? [lista dos 17 tipos]"`. Nunca descarte nem ignore um teste por falta de steps.
 
@@ -109,12 +112,27 @@ Retorne **apenas JSON válido**, sem texto adicional antes ou depois.
       "executor": "magnitude",
       "regression": false,
       "confidence": 0.95,
+      "low_confidence": false,
       "rationale": "Jornada completa de usuário com múltiplos steps e verificação de resultado final.",
       "steps": [
         "o usuário está na página de login",
         "preenche email e senha válidos",
         "clica em Entrar",
         "o dashboard é exibido"
+      ]
+    },
+    {
+      "id": "TC-005",
+      "title": "Verificar resposta do endpoint de relatórios",
+      "type": "integração",
+      "executor": "http",
+      "regression": false,
+      "confidence": 0.60,
+      "low_confidence": true,
+      "rationale": "O teste menciona endpoint REST mas tem características ambíguas entre integração e smoke. Classificado como integração pelo indicador HTTP mais forte, mas com baixa confiança.",
+      "steps": [
+        "acesse o endpoint /api/reports",
+        "verifique se retorna 200"
       ]
     }
   ],

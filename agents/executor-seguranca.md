@@ -216,15 +216,28 @@ Para headers ausentes ou incorretos:
 
 **4. CORS (origem não autorizada não deve ser aceita):**
 ```python
-cors_headers = {"Origin": "https://malicious-site.com"}
-response = safe_request("GET", "https://staging.app.com/api/dados", headers=cors_headers, timeout=10)
-acao_cors = response.headers.get("Access-Control-Allow-Origin", "")
-cors_aberto = (acao_cors == "*" or "malicious-site.com" in acao_cors)
+cors_headers = {
+    "Origin": "https://malicious-site.com",
+    "Access-Control-Request-Method": "POST",
+}
+# Verifica via GET simples
+response_get = safe_request("GET", "https://staging.app.com/api/dados", headers={"Origin": "https://malicious-site.com"}, timeout=10)
+acao_get = response_get.headers.get("Access-Control-Allow-Origin", "")
+cors_aberto_get = (acao_get == "*" or "malicious-site.com" in acao_get)
+
+# Verifica também via OPTIONS preflight (cobre APIs que só respondem ao preflight)
+response_options = safe_request("OPTIONS", "https://staging.app.com/api/dados", headers=cors_headers, timeout=10)
+acao_options = response_options.headers.get("Access-Control-Allow-Origin", "")
+cors_aberto_options = (acao_options == "*" or "malicious-site.com" in acao_options)
+
+# CORS aberto se qualquer um dos dois aceitar a origem maliciosa
+cors_aberto = cors_aberto_get or cors_aberto_options
+
 # is_public_test_api=True → CORS aberto: status "warning", note "API pública de teste — comportamento esperado"
 # is_public_test_api=False (produção) → CORS aberto: status "failed"
 ```
 
-Para CORS aberto (`*` ou origem maliciosa aceita):
+Para CORS aberto (`*` ou origem maliciosa aceita via GET ou OPTIONS preflight):
 - `is_public_test_api = True` → status `"warning"`, campo `"note": "API pública de teste — comportamento esperado"` — **não marque como `"failed"`**
 - `environment_type = "production"` → status `"failed"` (comportamento padrão)
 

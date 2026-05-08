@@ -31,7 +31,7 @@ Invoque o subagente `classifier-testes` passando integralmente os casos de teste
 
 ## Etapa 2 — Coleta de informações obrigatórias
 
-Antes de despachar qualquer executor, analise o JSON classificado e colete **em uma única pergunta ao usuário** todas as informações que não estiverem disponíveis nos steps. Execute esta etapa mesmo que pareça que algumas informações estejam presentes — confirme antes de assumir.
+Antes de despachar qualquer executor, analise o JSON classificado e colete **em uma única pergunta ao usuário** todas as informações que estiverem genuinamente ausentes ou ambíguas. **Se a informação estiver explícita nos steps ou na mensagem do usuário, use-a diretamente — não pergunte para confirmar o que já está claro.**
 
 ### 2a — URL do ambiente
 

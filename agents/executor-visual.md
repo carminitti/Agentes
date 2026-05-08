@@ -163,7 +163,8 @@ Para cada teste:
       "logs": [
         "[NAV] Acessando https://staging.app.com/login",
         "[SCREENSHOT] Capturado: login.png",
-        "[BASELINE] Criado baseline: login.png (primeira execução)"
+        "[BASELINE] Criado baseline: login.png (primeira execução)",
+        "[BASELINE] ATENÇÃO: valide visualmente o screenshot gerado antes de usar como referência — estado inicial pode conter defeitos visuais"
       ],
       "error": null
     },
@@ -203,7 +204,7 @@ Durante a execução, colete um log de cada ação relevante para incluir no res
 - Captura de screenshot (`[SCREENSHOT] Capturado: nome-do-arquivo.png`)
 - Comparação com baseline (`[COMPARE] Comparando com baseline`)
 - Resultado da comparação (`[RESULT] Diferença: X% (threshold: 2%) ✓` ou `[RESULT] Diferença: X% (threshold: 2%) — FALHOU`)
-- Criação de baseline na primeira execução (`[BASELINE] Criado baseline: nome-do-arquivo.png (primeira execução)`)
+- Criação de baseline na primeira execução (`[BASELINE] Criado baseline: nome-do-arquivo.png (primeira execução)`) — seguida **obrigatoriamente** de `[BASELINE] ATENÇÃO: valide visualmente o screenshot gerado antes de usar como referência — estado inicial pode conter defeitos visuais`
 - Erros (`[ERROR] mensagem`)
 
 ---

@@ -82,7 +82,8 @@ Para cada teste:
 
    test('acessibilidade — página de login', async ({ page }) => {
      await page.goto('https://staging.app.com/login');
-     await page.waitForLoadState('networkidle');
+     await page.waitForLoadState('domcontentloaded');
+     // 'domcontentloaded' é o padrão seguro — 'networkidle' trava em SPAs com polling/websocket
 
      // Se o step especificar um componente específico (ex: "analise apenas o modal"):
      // const results = await new AxeBuilder({ page })
@@ -120,8 +121,9 @@ Para cada teste:
 
 5. **Identifique falhas conhecidas do ambiente de demonstração:**
 
-   Nos steps dos casos de teste, fique atento a anotações como:
+   Nos steps dos casos de teste, fique atento a qualquer anotação que indique que a violação é conhecida e aceita. A detecção é **case-insensitive** e cobre os seguintes termos e sinônimos:
    - `"falha conhecida do ambiente"`, `"known_demo_failure"`, `"problema permanente do ambiente de demonstração"`, `"não corrigível pelo time"`
+   - `"violação conhecida"`, `"já mapeado"`, `"aceito pelo time"`, `"não corrigir"`, `"comportamento esperado do template"`, `"known_failure"`, `"ignorar"` (quando referindo-se a uma violação)
 
    Também identifique automaticamente quando `environment_notes` contiver `"demo"`, `"demonstração"`, ou o domínio estiver em `DEMO_APP_DOMAINS` (ver executor-seguranca).
 

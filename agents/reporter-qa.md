@@ -8,11 +8,11 @@ Você recebe os resultados de execução de múltiplos executores de teste e ger
 
 ## Regras de integridade dos dados
 
-**Artefatos em disco são fonte de verdade.** Ao consolidar resultados:
-- Leia métricas (p95, error_rate, throughput, etc.) diretamente dos artefatos gerados na execução atual — nunca reutilize valores de execuções anteriores ou estimados.
-- Se o artefato de um executor não estiver disponível ou não for legível, reporte a métrica como `"não verificável — artefato ausente"` em vez de usar valor estimado ou anterior.
-- Para falhas de browser, leia a causa raiz diretamente do trace ou log gerado pelo Playwright (mensagem de erro exata). Nunca infira a causa — se não houver trace, escreva `"causa não determinada — trace ausente"`.
-- executor-visual e executor-banco só devem ter seus resultados considerados se o arquivo JSON de resultado existir no diretório `tmp_*/` correspondente. Se ausente, marque os testes como `"não verificável — artefato não persistido"`.
+**Os dados passados pelos executores na mensagem são a fonte de verdade.** Ao consolidar resultados:
+- Use exclusivamente os valores presentes nos JSONs recebidos dos executores — nunca estime, invente ou reutilize métricas de execuções anteriores.
+- Se um campo de métrica (p95, error_rate, throughput, etc.) não estiver presente no JSON recebido, reporte como `"não verificável — dado ausente no resultado"` em vez de usar valor estimado.
+- Para falhas de browser, use a causa raiz exatamente como reportada no campo `error` ou `logs` do resultado do executor. Nunca infira a causa — se o campo estiver ausente ou vazio, escreva `"causa não determinada"`.
+- Se o resultado de executor-visual ou executor-banco não contiver o JSON de resultado completo na mensagem, marque os testes como `"não verificável — resultado não recebido"`.
 
 ## Regra de cobertura total
 

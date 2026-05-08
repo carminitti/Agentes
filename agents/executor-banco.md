@@ -113,43 +113,9 @@ cursor.executescript("""
 
 ## Como executar
 
-### Pré-verificação de conexão
+### Prepare o driver e verifique a conexão
 
-Antes de processar qualquer teste, execute um teste de conexão:
-
-```python
-def test_connection(connection_string):
-    try:
-        if connection_string.startswith('postgresql'):
-            import psycopg2
-            conn = psycopg2.connect(connection_string, connect_timeout=5)
-            conn.close()
-        elif connection_string.startswith('mysql'):
-            import mysql.connector
-            conn = mysql.connector.connect(connection_string)
-            conn.close()
-        elif connection_string.startswith('sqlite'):
-            import sqlite3, re
-            db_path = re.sub(r'^sqlite:/{0,3}', '', connection_string)
-            conn = sqlite3.connect(db_path)
-            conn.close()
-        return True, None
-    except Exception as e:
-        return False, str(e)
-
-ok, err = test_connection(db_connection)
-if not ok:
-    # Marque TODOS os testes como skipped e retorne imediatamente
-    results = [{"id": t["id"], "title": t["title"], "status": "skipped",
-                "error": f"Banco inacessível: {err}"} for t in tests]
-    # Retorne o JSON de saída com todos os testes skipped
-```
-
-Se a conexão falhar, **não tente executar nenhum teste** — retorne o JSON com todos como `skipped` e o motivo do erro.
-
-### Instale o driver adequado e execute as queries via Python:
-
-Antes de importar o driver, instale-o automaticamente conforme o tipo de banco. Se a instalação falhar, marque **todos** os testes como `skipped` com a causa e encerre sem executar nenhuma query.
+**Passo 1 — Instale o driver** (deve ocorrer antes de qualquer import ou teste de conexão):
 
 ```python
 import subprocess, sys
@@ -161,33 +127,70 @@ def install_driver(package):
     )
     return result.returncode == 0
 
-db_type = connection_string.split("://")[0].lower() if "://" in connection_string else "sqlite"
+# Normaliza o db_type removendo qualifier após '+' (ex: mssql+pyodbc → mssql, mysql+mysqlconnector → mysql)
+raw_type = connection_string.split("://")[0].lower() if "://" in connection_string else "sqlite"
+db_type = raw_type.split("+")[0]
 
 if db_type in ("postgresql", "postgres"):
     if not install_driver("psycopg2-binary"):
-        # Marque todos os testes como skipped
         results = [{"id": t["id"], "title": t["title"], "status": "skipped",
                     "error": "driver não instalado — execute pip install psycopg2-binary"} for t in tests]
         # Retorne JSON de saída com todos skipped e encerre
-    import psycopg2
 
-elif db_type in ("mysql", "mysql+mysqlconnector"):
+elif db_type == "mysql":
     if not install_driver("mysql-connector-python"):
         results = [{"id": t["id"], "title": t["title"], "status": "skipped",
                     "error": "driver não instalado — execute pip install mysql-connector-python"} for t in tests]
         # Retorne JSON de saída com todos skipped e encerre
-    import mysql.connector
 
 elif db_type == "sqlite":
-    import sqlite3  # built-in, sem instalação necessária
+    pass  # built-in, sem instalação necessária
 
 elif db_type in ("mssql", "sqlserver"):
     if not install_driver("pyodbc"):
         results = [{"id": t["id"], "title": t["title"], "status": "skipped",
                     "error": "driver não instalado — execute pip install pyodbc"} for t in tests]
         # Retorne JSON de saída com todos skipped e encerre
-    import pyodbc
 ```
+
+**Passo 2 — Verifique a conexão** (o driver já está instalado):
+
+```python
+import re as _re
+
+def test_connection(cs):
+    try:
+        if cs.startswith(('postgresql', 'postgres')):
+            import psycopg2
+            conn = psycopg2.connect(cs, connect_timeout=5)
+            conn.close()
+        elif cs.startswith('mysql'):
+            import mysql.connector
+            conn = mysql.connector.connect(cs)
+            conn.close()
+        elif cs.startswith('sqlite'):
+            db_path = _re.sub(r'^sqlite:/{0,3}', '', cs)
+            import sqlite3
+            conn = sqlite3.connect(db_path)
+            conn.close()
+        elif cs.startswith(('mssql', 'sqlserver')):
+            import pyodbc
+            conn = pyodbc.connect(cs, timeout=5)
+            conn.close()
+        else:
+            return False, f"Tipo de banco não reconhecido: {cs[:40]}"
+        return True, None
+    except Exception as e:
+        return False, str(e)
+
+ok, err = test_connection(db_connection)
+if not ok:
+    results = [{"id": t["id"], "title": t["title"], "status": "skipped",
+                "error": f"Banco inacessível: {err}"} for t in tests]
+    # Retorne o JSON de saída com todos os testes skipped e encerre
+```
+
+Se a conexão falhar, **não tente executar nenhum teste** — retorne o JSON com todos como `skipped` e o motivo do erro.
 
 Para cada teste:
 

@@ -111,7 +111,8 @@ export class ProductPage {
 
   async navigate(): Promise<void> {
     await this.page.goto('/products');
-    await this.page.waitForLoadState('networkidle');
+    // 'domcontentloaded' é o padrão seguro — 'networkidle' trava em SPAs com polling/websocket
+    await this.page.waitForLoadState('domcontentloaded');
   }
 
   async create(data: { nome: string; preco: string }): Promise<void> {
@@ -219,8 +220,16 @@ import * as fs from 'fs';
 export default async function globalSetup(config: FullConfig): Promise<void> {
   fs.mkdirSync('reports', { recursive: true });
 
-  // Auto-geração de token com fallback de auto-registro
-  // Fluxo: tenta login → se falhar (usuário não existe), registra → tenta login novamente
+  // Auto-registro restrito a ambientes de demonstração conhecidos
+  // Em ambientes reais (produção/staging) não tentamos criar contas automaticamente
+  const DEMO_HOSTS = [
+    'automationexercise.com', 'the-internet.herokuapp.com', 'demoqa.com',
+    'testpages.eviltester.com', 'saucedemo.com', 'practice.expandtesting.com',
+    'magento.softwaretestingboard.com', 'tutorialsninja.com',
+  ];
+  const baseHost = new URL(process.env.BASE_URL || 'http://localhost').hostname.toLowerCase();
+  const isDemoEnv = DEMO_HOSTS.some(h => baseHost.includes(h)) || process.env.ALLOW_AUTO_REGISTER === 'true';
+
   if (process.env.USER_EMAIL && process.env.USER_PASSWORD && !process.env.AUTH_TOKEN) {
     const apiCtx = await request.newContext({ baseURL: process.env.BASE_URL });
     const authEndpoints = ['/auth/login', '/api/auth/login', '/api/login', '/login', '/oauth/token'];
@@ -243,35 +252,38 @@ export default async function globalSetup(config: FullConfig): Promise<void> {
 
     const tokenAcquired = await tryLogin();
 
-    // Login falhou — usuário provavelmente não existe; tenta registrar e refaz login
+    // Auto-registro: apenas em ambientes de demonstração ou quando ALLOW_AUTO_REGISTER=true
     // REGRA: nunca use credenciais de fallback. Se o registro falhar, os cenários que
     // dependem de autenticação devem ser marcados como FAIL com causa "falha no setup —
     // registro não concluído". Não prossiga com o login usando outra conta.
     if (!tokenAcquired) {
-      const registerEndpoints = [
-        '/api/register', '/api/auth/register', '/register',
-        '/signup', '/api/signup', '/auth/register', '/api/v1/register',
-      ];
-      let registered = false;
-      for (const endpoint of registerEndpoints) {
-        try {
-          const resp = await apiCtx.post(endpoint, {
-            data: {
-              name: process.env.USER_NAME || 'QA Test User',
-              email: process.env.USER_EMAIL,
-              password: process.env.USER_PASSWORD,
-            },
-          });
-          if (resp.status() === 200 || resp.status() === 201) {
-            registered = true;
-            await tryLogin();
-            break;
-          }
-        } catch {}
-      }
-      // Se o registro falhou em todos os endpoints, sinaliza para os specs falharem
-      if (!registered) {
-        process.env.SETUP_FAILED = 'Registro não concluído — nenhum endpoint de registro respondeu com sucesso. Marque cenários de login como FAIL com causa: falha no setup — registro não concluído.';
+      if (!isDemoEnv) {
+        process.env.SETUP_FAILED = `Auto-registro desabilitado para este ambiente (${baseHost}). Forneça credenciais válidas ou configure ALLOW_AUTO_REGISTER=true se este for um ambiente de demonstração.`;
+      } else {
+        const registerEndpoints = [
+          '/api/register', '/api/auth/register', '/register',
+          '/signup', '/api/signup', '/auth/register', '/api/v1/register',
+        ];
+        let registered = false;
+        for (const endpoint of registerEndpoints) {
+          try {
+            const resp = await apiCtx.post(endpoint, {
+              data: {
+                name: process.env.USER_NAME || 'QA Test User',
+                email: process.env.USER_EMAIL,
+                password: process.env.USER_PASSWORD,
+              },
+            });
+            if (resp.status() === 200 || resp.status() === 201) {
+              registered = true;
+              await tryLogin();
+              break;
+            }
+          } catch {}
+        }
+        if (!registered) {
+          process.env.SETUP_FAILED = 'Registro não concluído — nenhum endpoint de registro respondeu com sucesso. Marque cenários de login como FAIL com causa: falha no setup — registro não concluído.';
+        }
       }
     }
 

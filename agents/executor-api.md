@@ -232,19 +232,34 @@ export default async function globalTeardown(): Promise<void> {
 Quando testes dependem de dados pré-existentes, use `beforeAll`/`afterAll`:
 
 ```typescript
+import { test, expect } from '../../support/fixtures';
+import { request } from '@playwright/test'; // necessário para request.newContext() em beforeAll/afterAll
+
 test.describe('Produtos API @api', () => {
   const createdIds: string[] = [];
 
-  test.beforeAll(async ({ apiClient }) => {
-    const resp = await apiClient.create('/api/products', { name: 'Produto Setup', price: 50 });
+  // IMPORTANTE: test.beforeAll/afterAll NÃO recebem fixtures como parâmetro no Playwright.
+  // Para setup/teardown com HTTP, use request.newContext() diretamente:
+  test.beforeAll(async () => {
+    const apiCtx = await request.newContext({
+      baseURL: process.env.BASE_URL,
+      extraHTTPHeaders: process.env.AUTH_TOKEN ? { Authorization: `Bearer ${process.env.AUTH_TOKEN}` } : {},
+    });
+    const resp = await apiCtx.post('/api/products', { data: { name: 'Produto Setup', price: 50 } });
     if (!resp.ok()) throw new Error(`Setup falhou: ${resp.status()}`);
     createdIds.push((await resp.json()).id);
+    await apiCtx.dispose();
   });
 
-  test.afterAll(async ({ apiClient }) => {
+  test.afterAll(async () => {
+    const apiCtx = await request.newContext({
+      baseURL: process.env.BASE_URL,
+      extraHTTPHeaders: process.env.AUTH_TOKEN ? { Authorization: `Bearer ${process.env.AUTH_TOKEN}` } : {},
+    });
     for (const id of createdIds) {
-      await apiClient.remove('/api/products', id);
+      await apiCtx.delete(`/api/products/${id}`);
     }
+    await apiCtx.dispose();
   });
   // ... testes
 });

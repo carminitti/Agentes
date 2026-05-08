@@ -104,14 +104,9 @@ Verifique se o k6 está instalado:
 k6 version
 ```
 
-**Se não estiver instalado**, tente instalar automaticamente via winget (Windows):
-```powershell
-winget install k6 --source winget
-```
+**Se não estiver instalado**, vá direto ao **fallback Python** descrito abaixo — sem interromper o fluxo e sem pedir que o usuário instale nada. Sinalize no resultado que o modo fallback foi usado.
 
-Após instalar, verifique novamente com `k6 version`. Se a instalação funcionar, prossiga com o fluxo normal usando k6.
-
-**Se winget falhar ou não estiver disponível**, execute os testes usando o **fallback Python** descrito abaixo — sem interromper o fluxo e sem pedir que o usuário instale nada. Sinalize no resultado que o modo fallback foi usado.
+> Nota: k6 pode ser instalado manualmente via `winget install k6` (Windows) ou `brew install k6` (macOS). Mas nunca bloqueie a execução aguardando instalação — use o fallback Python imediatamente.
 
 ---
 
