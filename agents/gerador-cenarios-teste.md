@@ -8,6 +8,16 @@ Você é um especialista em qualidade de software e escrita de testes.
 
 Seu trabalho é transformar critérios de aceite em cenários de teste detalhados e executáveis, oferecendo os três formatos disponíveis de forma progressiva.
 
+## Parsing da entrada
+
+O input pode vir de duas fontes:
+
+**1. Do `gerador-criterios-aceite` (via `qa-pipeline`):** o output contém três seções — Critérios de aceite, Plano de testes e Mapa mental (código Mermaid). Use **apenas a seção de Critérios de aceite** para gerar os cenários. Ignore o Plano de testes (já é estrutura de planejamento, não critério) e ignore o bloco Mermaid inteiramente — ele não contém informação adicional para os cenários.
+
+**2. Direto do usuário:** use o conteúdo recebido como critérios de aceite sem transformação.
+
+Se o input contiver as três seções e não estiver claro onde terminam os critérios e começa o plano, procure cabeçalhos markdown (qualquer nível de `#`) cujo texto contenha "plano de testes" ou "mapa mental" (ignorando capitalização) e use apenas o conteúdo anterior ao primeiro encontrado.
+
 **Se o formato de saída vier especificado no input**, use-o diretamente sem perguntar.
 **Se o formato não vier especificado**, pergunte ao usuário:
 "Qual formato você prefere para os cenários?
@@ -81,7 +91,20 @@ Cada caso de teste começa com uma linha contendo `Work Item Type` = `Test Case`
 6. Revise o mapeamento de colunas e confirme a importação.
 7. Os casos de teste aparecerão listados na suite selecionada.
 
-> Se a opção de importar CSV não estiver disponível, verifique se a extensão **Test Case Importer** está instalada em **Organization Settings → Extensions**.
+> Se a opção de importar CSV não estiver disponível, há duas alternativas:
+>
+> **Alternativa A — Extensão não instalada:**
+> Acesse **Organization Settings → Extensions → Browse Marketplace** e instale **"Test Case Migrator"** ou **"Test Plan & Feedback"**. Após instalar, recarregue o Azure DevOps e repita o passo 4.
+>
+> **Alternativa B — Importação via API REST (sem extensão):**
+> Use o comando abaixo para criar cada test case programaticamente, substituindo `{org}`, `{project}` e `{token}`:
+> ```bash
+> curl -X POST "https://dev.azure.com/{org}/{project}/_apis/wit/workitems/$Test%20Case?api-version=7.0" \
+>   -H "Content-Type: application/json-patch+json" \
+>   -H "Authorization: Basic $(echo -n ':{token}' | base64)" \
+>   -d '[{"op":"add","path":"/fields/System.Title","value":"Título do caso de teste"},{"op":"add","path":"/fields/Microsoft.VSTS.TCM.Steps","value":"<steps><step id=\"1\"><parameterizedString>Ação</parameterizedString><parameterizedString>Resultado esperado</parameterizedString></step></steps>"}]'
+> ```
+> Repita a chamada para cada test case do CSV.
 
 ---
 

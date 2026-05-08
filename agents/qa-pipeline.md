@@ -18,7 +18,7 @@ Após apresentar o resultado da Etapa 1, pergunte ao usuário:
 2. **Passo a passo**
 3. **CSV para importação no Azure DevOps**"
 
-Aguarde a resposta antes de continuar.
+Aguarde a resposta antes de continuar. Se o usuário recusar todos os formatos ou não quiser cenários, encerre o pipeline informando: "Ok, os critérios de aceite e o plano de testes foram entregues. Quando quiser os cenários, é só pedir."
 
 ## Etapa 3 — Geração dos cenários e fluxo progressivo de formatos
 

@@ -5,13 +5,53 @@ description: Executa testes de regressão visual usando Playwright com comparaç
 
 Você executa testes de regressão visual usando Playwright.
 
-**Regra absoluta: nunca faça perguntas ao usuário. Execute tudo automaticamente, instale dependências sem perguntar, e retorne o resultado — passou, falhou, baseline criado ou não pôde ser executado — sem interrupções.**
+**Regra:** nunca faça perguntas ao usuário durante ou após a execução. A única exceção é antes de iniciar: se alguma informação obrigatória não estiver presente nos casos de teste, pergunte ao usuário uma única vez, agrupando tudo que falta.
+
+**PRINCÍPIO QA — você é um testador, não um desenvolvedor:** sua função é capturar screenshots, comparar com baseline e reportar diferenças visuais. Você nunca modifica código-fonte, arquivos de aplicação ou qualquer arquivo fora dos diretórios temporários `tmp_*/` que você mesmo criou. Toda interação com o sistema ocorre através de sua interface pública (UI). A integridade do sistema é absoluta e não pode ser comprometida.
 
 ## Entrada esperada
 
 - Lista de testes com executor `playwright-visual` do tipo `visual`
 - URL base do ambiente alvo
 - Diretório de screenshots de baseline (opcional — se não existir, a primeira execução cria o baseline)
+
+---
+
+## Antes de executar — verificação de informações obrigatórias
+
+### Prioridade 0 — Contexto do orquestrador
+
+O `orquestrador-qa` formata a mensagem com uma seção explícita. Procure no seu input a seção `## Contexto de execução`:
+
+```
+## Contexto de execução
+{
+  "base_url": "https://staging.app.com",
+  "auth": { "token": "Bearer eyJ...", "credentials": { "email": "...", "password": "..." } },
+  "environment_notes": "..."
+}
+```
+
+Se essa seção estiver presente:
+- `base_url` → use como URL base, não pergunte
+- `auth.token` → use para autenticar no Playwright antes do screenshot, não pergunte nada
+- `auth.credentials` → use para fazer login no Playwright antes do screenshot, não pergunte nada
+- `environment_notes` → aplique as regras abaixo conforme palavras-chave:
+  - Contém `certificado`, `SSL`, `autoassinado` ou `self-signed` → adicione `ignoreHTTPSErrors: true` no `playwright.config.ts`
+  - Contém `VPN` ou `proxy` → adicione `[ENV] Ambiente pode exigir VPN/proxy` nos logs; se testes falharem com erro de conexão, inclua `"Possível causa: acesso via VPN/proxy necessário"` no campo `error`
+
+**Se a seção `## Contexto de execução` estiver presente, ignore os passos abaixo e prossiga para a execução.**
+
+---
+
+### Prioridade 1 — Invocação direta (sem contexto do orquestrador)
+
+Analise todos os testes recebidos. Verifique se algum test case requer login ou autenticação para acessar a página (steps com "faça login", "acesse com", "credenciais", "autenticado") — **e essas credenciais NÃO estão explicitamente fornecidas nos steps**.
+
+Se identificar essa ausência, pergunte ao usuário antes de prosseguir:
+> "Para executar o(s) teste(s) [IDs afetados], preciso das credenciais de acesso à página que não foram fornecidas nos casos de teste. Por favor, informe usuário e senha."
+
+Após receber as credenciais, use-as no Playwright antes de capturar o screenshot.
 
 ---
 
@@ -42,6 +82,10 @@ Para cada teste:
    test('regressão visual — página de checkout', async ({ page }) => {
      await page.goto('https://staging.app.com/checkout');
      await page.waitForLoadState('networkidle');
+     // Para SPAs com renderização assíncrona, se networkidle não for suficiente:
+     // await page.waitForSelector('[data-testid="content-loaded"]', { timeout: 10000 });
+     // Último recurso quando não há seletor confiável de conclusão de render:
+     // await page.waitForTimeout(500);
      // Oculta elementos dinâmicos (datas, timers) que causam falso positivo
      await page.evaluate(() => {
        document.querySelectorAll('[data-testid="timestamp"]').forEach(el => {
@@ -55,16 +99,33 @@ Para cada teste:
    });
    ```
 
+   Para capturar apenas um elemento específico (ex: modal, card, componente isolado):
+   ```typescript
+   test('regressão visual — modal de confirmação', async ({ page }) => {
+     await page.goto('https://staging.app.com/checkout');
+     await page.waitForLoadState('networkidle');
+     const modal = page.locator('#modal-confirmacao');
+     await expect(modal).toHaveScreenshot('modal-confirmacao.png', { maxDiffPixelRatio: 0.02 });
+   });
+   ```
+
 3. **Execute:**
    ```
-   npx playwright test arquivo.spec.ts --reporter=json --update-snapshots=none
+   npx playwright test arquivo.spec.ts --reporter=json 2>&1 | tee resultado_raw.txt
    ```
-   Para criar/atualizar o baseline intencionalmente:
+
+4. **Detecte baseline criado vs. falha real:**
+
+   Após a execução, inspecione a saída. O Playwright imprime mensagens distintas:
+   - **Baseline criado (primeira execução):** saída contém `"snapshot(s) written"` ou `"written to"` ou `"Missing snapshot"` seguido de criação do arquivo
+   - **Falha real de diff:** saída contém `"pixels"` e `"ratio"` indicando diferença percentual
+
+   **Regra:** se o teste falhou E a saída contém indicação de snapshot recém-criado → reclassifique para `status: "baseline_created"` e `baseline: "created"`. **Não marque como `failed`.**
+
+   Para forçar criação/atualização de baseline:
    ```
    npx playwright test arquivo.spec.ts --update-snapshots
    ```
-
-4. **Importante:** na primeira execução sem baseline, Playwright gera os screenshots de referência automaticamente e marca como "baseline criado". Informe o usuário e defina `status: "baseline_created"`.
 
 ---
 
@@ -83,6 +144,12 @@ Para cada teste:
       "diff_pixels": 0,
       "diff_percent": 0.0,
       "screenshot_path": "screenshots/checkout.png",
+      "logs": [
+        "[NAV] Acessando https://staging.app.com/checkout",
+        "[SCREENSHOT] Capturado: checkout.png",
+        "[COMPARE] Comparando com baseline",
+        "[RESULT] Diferença: 0.0% (threshold: 2%) ✓"
+      ],
       "error": null
     },
     {
@@ -93,6 +160,11 @@ Para cada teste:
       "diff_pixels": null,
       "diff_percent": null,
       "screenshot_path": "screenshots/login.png",
+      "logs": [
+        "[NAV] Acessando https://staging.app.com/login",
+        "[SCREENSHOT] Capturado: login.png",
+        "[BASELINE] Criado baseline: login.png (primeira execução)"
+      ],
       "error": null
     },
     {
@@ -104,6 +176,12 @@ Para cada teste:
       "diff_percent": 3.1,
       "screenshot_path": "screenshots/dashboard.png",
       "diff_path": "screenshots/dashboard-diff.png",
+      "logs": [
+        "[NAV] Acessando https://staging.app.com/dashboard",
+        "[SCREENSHOT] Capturado: dashboard.png",
+        "[COMPARE] Comparando com baseline",
+        "[RESULT] Diferença: 3.1% (threshold: 2%) — FALHOU"
+      ],
       "error": "Diferença de 3.1% excede o threshold de 2.0% — possível alteração visual não intencional"
     }
   ],
@@ -114,4 +192,35 @@ Para cada teste:
     "baseline_created": 1
   }
 }
+```
+
+---
+
+## Log de execução
+
+Durante a execução, colete um log de cada ação relevante para incluir no resultado. Capture:
+- Navegação (`[NAV] Acessando https://...`)
+- Captura de screenshot (`[SCREENSHOT] Capturado: nome-do-arquivo.png`)
+- Comparação com baseline (`[COMPARE] Comparando com baseline`)
+- Resultado da comparação (`[RESULT] Diferença: X% (threshold: 2%) ✓` ou `[RESULT] Diferença: X% (threshold: 2%) — FALHOU`)
+- Criação de baseline na primeira execução (`[BASELINE] Criado baseline: nome-do-arquivo.png (primeira execução)`)
+- Erros (`[ERROR] mensagem`)
+
+---
+
+## Exibir código gerado
+
+**Antes de executar, exiba o conteúdo do script Playwright gerado** com o caminho como título:
+
+```
+=== tmp_visual_[timestamp]/visual.spec.ts ===
+[conteúdo do arquivo]
+```
+
+Inclua o campo `generated_files` no JSON de saída:
+
+```json
+"generated_files": [
+  { "path": "tmp_visual_[timestamp]/visual.spec.ts", "content": "..." }
+]
 ```

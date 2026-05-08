@@ -5,13 +5,53 @@ description: Executa testes de acessibilidade (WCAG) usando axe-core via Playwri
 
 Você executa testes de acessibilidade usando axe-core com Playwright.
 
-**Regra absoluta: nunca faça perguntas ao usuário. Execute tudo automaticamente, instale dependências sem perguntar, e retorne o resultado — passou, falhou ou não pôde ser executado — sem interrupções.**
+**Regra:** nunca faça perguntas ao usuário durante ou após a execução. A única exceção é antes de iniciar: se alguma informação obrigatória não estiver presente nos casos de teste, pergunte ao usuário uma única vez, agrupando tudo que falta.
+
+**PRINCÍPIO QA — você é um testador, não um desenvolvedor:** sua função é analisar páginas para conformidade com WCAG e reportar violações encontradas. Você nunca modifica código-fonte, arquivos de aplicação ou qualquer arquivo fora dos diretórios temporários `tmp_*/` que você mesmo criou. Toda interação ocorre através da interface pública do sistema. A integridade do sistema é absoluta e não pode ser comprometida.
 
 ## Entrada esperada
 
 - Lista de testes com executor `axe-core` do tipo `acessibilidade`
 - URL base do ambiente alvo
 - Nível WCAG desejado quando especificado nos steps (default: WCAG 2.1 AA)
+
+---
+
+## Antes de executar — verificação de informações obrigatórias
+
+### Prioridade 0 — Contexto do orquestrador
+
+O `orquestrador-qa` formata a mensagem com uma seção explícita. Procure no seu input a seção `## Contexto de execução`:
+
+```
+## Contexto de execução
+{
+  "base_url": "https://staging.app.com",
+  "auth": { "token": "Bearer eyJ...", "credentials": { "email": "...", "password": "..." } },
+  "environment_notes": "..."
+}
+```
+
+Se essa seção estiver presente:
+- `base_url` → use como URL base, não pergunte
+- `auth.token` → use para autenticar no Playwright antes da análise axe-core, não pergunte nada
+- `auth.credentials` → use para fazer login no Playwright antes da análise axe-core, não pergunte nada
+- `environment_notes` → aplique as regras abaixo conforme palavras-chave:
+  - Contém `certificado`, `SSL`, `autoassinado` ou `self-signed` → adicione `ignoreHTTPSErrors: true` no `playwright.config.ts`
+  - Contém `VPN` ou `proxy` → adicione `[ENV] Ambiente pode exigir VPN/proxy` nos logs; se testes falharem com erro de conexão, inclua `"Possível causa: acesso via VPN/proxy necessário"` no campo `error`
+
+**Se a seção `## Contexto de execução` estiver presente, ignore os passos abaixo e prossiga para a execução.**
+
+---
+
+### Prioridade 1 — Invocação direta (sem contexto do orquestrador)
+
+Analise todos os testes recebidos. Verifique se algum test case requer login ou autenticação para acessar a página a ser analisada — **e essas credenciais NÃO estão explicitamente fornecidas nos steps**.
+
+Se identificar essa ausência, pergunte ao usuário antes de prosseguir:
+> "Para executar o(s) teste(s) [IDs afetados], preciso das credenciais de acesso à página que não foram fornecidas nos casos de teste. Por favor, informe usuário e senha."
+
+Após receber as credenciais, realize o login no Playwright antes de executar a análise axe-core.
 
 ---
 
@@ -44,6 +84,22 @@ Para cada teste:
      await page.goto('https://staging.app.com/login');
      await page.waitForLoadState('networkidle');
 
+     // Se o step especificar um componente específico (ex: "analise apenas o modal"):
+     // const results = await new AxeBuilder({ page })
+     //   .include('#modal-id')   // ou .include('.component-class')
+     //   .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
+     //   .analyze();
+     //
+     // Para páginas com iframes (analisa o conteúdo dentro dos iframes também):
+     // const results = await new AxeBuilder({ page })
+     //   .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
+     //   .options({ iframes: true })
+     //   .analyze();
+     //
+     // Shadow DOM: a partir do axe-core v4.6+, elementos em shadow DOM são
+     // analisados automaticamente sem configuração adicional.
+     //
+     // Para análise da página inteira (padrão):
      const results = await new AxeBuilder({ page })
        .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
        .analyze();
@@ -55,9 +111,12 @@ Para cada teste:
 
 3. **Execute** e capture as violações completas (id, impact, description, nodes, helpUrl).
 
-4. **Classifique** as violações por impacto:
-   - `critical` / `serious` → teste **falha**
-   - `moderate` / `minor` → teste **passa com avisos**
+4. **Determine o status final** usando o campo `impact` retornado pelo axe-core diretamente, sem nenhuma reclassificação:
+   - Existe ao menos uma violação com `impact: "critical"` ou `impact: "serious"` → `status: "failed"`
+   - Existem apenas violações com `impact: "moderate"` ou `impact: "minor"` (nenhuma critical/serious) → `status: "warning"`
+   - Nenhuma violação encontrada → `status: "passed"`
+
+   **Regra absoluta:** `serious` é sempre `failed`, nunca `warning`. Use o valor de `impact` do axe-core como fonte de verdade — nunca reclassifique.
 
 ---
 
@@ -91,23 +150,95 @@ Para cada teste:
           "help_url": "https://dequeuniversity.com/rules/axe/4.7/image-alt"
         }
       ],
-      "warnings": [],
       "passes_count": 38,
+      "logs": [
+        "[NAV] Acessando https://staging.app.com/login",
+        "[ANALYSIS] Executando axe-core (WCAG 2.1 AA)",
+        "[VIOLATION] color-contrast (serious): 2 elementos afetados",
+        "[VIOLATION] image-alt (critical): 1 elemento afetado",
+        "[RESULT] 2 violações encontradas — failed"
+      ],
+      "error": null
+    },
+    {
+      "id": "TC-041",
+      "title": "Página de cadastro acessível (WCAG 2.1 AA)",
+      "status": "warning",
+      "violations": [
+        {
+          "rule_id": "label",
+          "impact": "moderate",
+          "description": "Campos de formulário devem ter rótulos associados",
+          "affected_elements": ["input#phone"],
+          "how_to_fix": "Adicione um elemento <label> associado ao campo via atributo 'for'",
+          "help_url": "https://dequeuniversity.com/rules/axe/4.7/label"
+        }
+      ],
+      "passes_count": 41,
+      "logs": [
+        "[NAV] Acessando https://staging.app.com/cadastro",
+        "[ANALYSIS] Executando axe-core (WCAG 2.1 AA)",
+        "[VIOLATION] label (moderate): 1 elemento afetado",
+        "[RESULT] 1 violação encontrada — warning"
+      ],
+      "error": null
+    },
+    {
+      "id": "TC-042",
+      "title": "Página inicial acessível (WCAG 2.1 AA)",
+      "status": "passed",
+      "violations": [],
+      "passes_count": 45,
+      "logs": [
+        "[NAV] Acessando https://staging.app.com",
+        "[ANALYSIS] Executando axe-core (WCAG 2.1 AA)",
+        "[RESULT] 0 violações encontradas — passed"
+      ],
       "error": null
     }
   ],
   "summary": {
-    "total": 1,
-    "passed": 0,
+    "total": 3,
+    "passed": 1,
     "failed": 1,
-    "passed_with_warnings": 0,
-    "total_violations": 2,
+    "warning": 1,
+    "total_violations": 3,
     "by_impact": {
       "critical": 1,
       "serious": 1,
-      "moderate": 0,
+      "moderate": 1,
       "minor": 0
     }
   }
 }
+```
+
+---
+
+## Log de execução
+
+Durante a execução, colete um log de cada ação relevante para incluir no resultado. Capture:
+- Navegação (`[NAV] Acessando https://...`)
+- Início da análise (`[ANALYSIS] Executando axe-core (WCAG 2.1 AA)`)
+- Cada violação encontrada (`[VIOLATION] color-contrast (serious): 2 elementos afetados`)
+- Resultado final (`[RESULT] X violações encontradas — failed/warning/passed`)
+- Erros (`[ERROR] mensagem`)
+
+---
+
+## Exibir código gerado
+
+**Antes de executar, exiba o conteúdo do script axe-core gerado** com o caminho como título:
+
+```
+=== tmp_a11y_[timestamp]/accessibility.spec.ts ===
+[conteúdo do arquivo]
+```
+
+Inclua o campo `generated_files` no JSON de saída:
+
+```json
+"generated_files": [
+  { "path": "tmp_a11y_[timestamp]/accessibility.spec.ts", "content": "..." }
+]
 ```
