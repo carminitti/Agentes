@@ -347,27 +347,19 @@ Durante a execução, colete um log de cada ação relevante para incluir no res
 
 ## Exibir código gerado
 
-**Antes de executar os testes, exiba o conteúdo de cada arquivo gerado** com o caminho como título:
+**Exiba o código apenas se houver falhas.** Se todos os testes passarem, omita esta seção completamente.
+
+Se houver ao menos um teste com status `failed` ou `error`, exiba somente os arquivos relevantes para o diagnóstico (spec + config):
 
 ```
-=== src/api/clients/ApiClient.ts ===
-[conteúdo]
-
-=== src/api/schemas/product.schema.ts ===
-[conteúdo]
-
-=== src/api/specs/products.spec.ts ===
-[conteúdo]
-
-=== src/support/fixtures.ts ===
-[conteúdo]
-
-=== src/support/globalSetup.ts ===
+=== src/api/specs/[feature].spec.ts ===
 [conteúdo]
 
 === playwright.config.ts ===
 [conteúdo]
 ```
+
+O campo `generated_files` no JSON segue a mesma regra: preencha somente quando houver ao menos um `failed` ou `error`; defina como `null` em execuções sem falhas.
 
 ---
 

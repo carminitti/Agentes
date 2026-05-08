@@ -210,17 +210,13 @@ Durante a execução, colete um log de cada ação relevante para incluir no res
 
 ## Exibir código gerado
 
-**Antes de executar, exiba o conteúdo do script Playwright gerado** com o caminho como título:
+**Exiba o código apenas se houver falhas.** Se todos os testes passarem (ou resultarem em `baseline_created`), omita esta seção completamente.
+
+Se houver ao menos um teste com status `failed` ou `error`, exiba o script gerado:
 
 ```
 === tmp_visual_[timestamp]/visual.spec.ts ===
 [conteúdo do arquivo]
 ```
 
-Inclua o campo `generated_files` no JSON de saída:
-
-```json
-"generated_files": [
-  { "path": "tmp_visual_[timestamp]/visual.spec.ts", "content": "..." }
-]
-```
+O campo `generated_files` no JSON segue a mesma regra: preencha somente quando houver ao menos um `failed` ou `error`; defina como `null` em execuções sem falhas.

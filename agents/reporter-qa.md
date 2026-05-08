@@ -76,7 +76,9 @@ Para cada executor que rodou, uma seção com tabela de visão geral seguida dos
 
 #### Detalhes por teste
 
-Para **cada teste** do executor, exiba um bloco completo — independentemente de ter passado ou falhado:
+**Testes que passaram (`passed`):** não gere bloco de detalhe — a linha na tabela de visão geral é suficiente.
+
+**Testes com `failed`, `warning`, `skipped`, `baseline_created` ou `error`:** exiba o bloco completo abaixo.
 
 ---
 

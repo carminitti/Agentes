@@ -131,6 +131,18 @@ def safe_request(method, url, **kwargs):
                 "Recomenda-se substituir o certificado por um válido antes do deploy."
             )
         return requests.request(method, url, verify=False, **kwargs)
+
+# Execute todos os checks em paralelo para reduzir tempo total
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
+def run_checks_parallel(check_fns):
+    """Recebe lista de callables sem argumentos; retorna lista de resultados na ordem de conclusão."""
+    results = []
+    with ThreadPoolExecutor(max_workers=min(len(check_fns), 8)) as executor:
+        futures = {executor.submit(fn): fn for fn in check_fns}
+        for future in as_completed(futures):
+            results.append(future.result())
+    return results
 ```
 
 O valor de `ssl_warning` deve ser incluído no JSON de saída ao final (campo `ssl_warning` na raiz — `null` se não houve problema).
@@ -248,17 +260,13 @@ Durante a execução, colete um log de cada ação relevante para incluir no res
 
 ## Exibir código gerado
 
-**Antes de executar, exiba o conteúdo do script Python gerado** com o caminho como título:
+**Exiba o código apenas se houver falhas.** Se todos os testes passarem, omita esta seção completamente.
+
+Se houver ao menos um teste com status `failed` ou `error`, exiba o script gerado:
 
 ```
 === tmp_sec_[timestamp]/security_check.py ===
 [conteúdo do arquivo]
 ```
 
-Inclua o campo `generated_files` no JSON de saída:
-
-```json
-"generated_files": [
-  { "path": "tmp_sec_[timestamp]/security_check.py", "content": "..." }
-]
-```
+O campo `generated_files` no JSON segue a mesma regra: preencha somente quando houver ao menos um `failed` ou `error`; defina como `null` em execuções sem falhas.
