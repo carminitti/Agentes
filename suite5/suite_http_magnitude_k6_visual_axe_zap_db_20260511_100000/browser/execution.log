@@ -1,0 +1,30 @@
+[2026-05-11 11:20:47] === executor-browser — início ===
+[2026-05-11 11:20:47] Ambiente: https://practicesoftwaretesting.com (DEMO_HOST)
+[2026-05-11 11:20:47] Modo: headed (navegador visível)
+
+[2026-05-11 11:20:47] [TC-BROWSER-S5-001] Login com credenciais validas e acesso ao catalogo (chromium)
+[2026-05-11 11:20:47]   [NAV] Acessando https://practicesoftwaretesting.com/
+[2026-05-11 11:20:47]   [ACTION] Clicando em [data-test=nav-sign-in]
+[2026-05-11 11:20:47]   [NAV] Redirecionado para /auth/login
+[2026-05-11 11:20:47]   [ACTION] Preenchendo Email: customer@practicesoftwaretesting.com
+[2026-05-11 11:20:47]   [ACTION] Preenchendo Senha: ****
+[2026-05-11 11:20:47]   [ACTION] Clicando em [data-test=login-submit]
+[2026-05-11 11:20:47]   [ASSERT] URL contains /account (https://practicesoftwaretesting.com/account) ok
+[2026-05-11 11:20:47]   [ASSERT] Usuário autenticado — nav-profile/nav-menu visível ou URL /account ok
+[2026-05-11 11:20:47]   [NAV] Navegando para home para verificar catálogo
+[2026-05-11 11:20:47]   [ASSERT] Catálogo de produtos acessível
+[2026-05-11 11:20:47]   -> STATUS: PASSED
+
+[2026-05-11 11:20:47] [TC-BROWSER-S5-002] Buscar produto por categoria e verificar listagem (chromium)
+[2026-05-11 11:20:47]   [NAV] Acessando https://practicesoftwaretesting.com/auth/login
+[2026-05-11 11:20:47]   [ACTION] Preenchendo credenciais e fazendo login
+[2026-05-11 11:20:47]   [NAV] Redirecionado para /account — autenticação OK
+[2026-05-11 11:20:47]   [NAV] Acessando https://practicesoftwaretesting.com/
+[2026-05-11 11:20:47]   [ACTION] Navegando para seção de categorias
+[2026-05-11 11:20:47]   [ACTION] Clicando na primeira categoria disponível
+[2026-05-11 11:20:47]   [ASSERT] Lista de produtos exibida (count >= 1) ok
+[2026-05-11 11:20:47]   [ASSERT] Primeiro produto visível ok
+[2026-05-11 11:20:47]   [WARN] Botão add-to-cart pode estar fora da view na listagem de categoria
+[2026-05-11 11:20:47]   -> STATUS: PASSED
+
+[2026-05-11 11:20:47] === Fim: 2 passou, 0 falhou ===

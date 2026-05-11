@@ -1,0 +1,47 @@
+{
+  "executor": "playwright-visual",
+  "environment": "https://www.a11yproject.com + https://webaim.org",
+  "results": [
+    {
+      "id": "TC-VISUAL-S5-001",
+      "title": "Regressao visual da pagina de checklist do A11Y Project",
+      "status": "baseline_created",
+      "baseline": "created",
+      "diff_pixels": null,
+      "diff_percent": null,
+      "screenshot_path": "visual.spec.ts-snapshots/a11y-checklist-win32.png",
+      "logs": [
+        "[NAV] Acessando https://www.a11yproject.com/checklist/",
+        "[WAIT] Aguardando elemento main estar visivel",
+        "[ACTION] Ocultando elementos dinamicos (datas, contadores)",
+        "[SCREENSHOT] Capturado: a11y-checklist.png (main content area)",
+        "[BASELINE] Criado baseline: a11y-checklist-win32.png (primeira execucao)",
+        "[BASELINE] ATENCAO: valide visualmente o screenshot gerado antes de usar como referencia — estado inicial pode conter defeitos visuais"
+      ],
+      "error": null
+    },
+    {
+      "id": "TC-VISUAL-S5-002",
+      "title": "Regressao visual da pagina de recursos do WebAIM",
+      "status": "baseline_created",
+      "baseline": "created",
+      "diff_pixels": null,
+      "diff_percent": null,
+      "screenshot_path": "visual.spec.ts-snapshots/webaim-resources-win32.png",
+      "logs": [
+        "[NAV] Acessando https://webaim.org/resources/",
+        "[WAIT] Aguardando elemento main ou article estar visivel",
+        "[SCREENSHOT] Capturado: webaim-resources.png (pagina completa)",
+        "[BASELINE] Criado baseline: webaim-resources-win32.png (primeira execucao)",
+        "[BASELINE] ATENCAO: valide visualmente o screenshot gerado antes de usar como referencia — estado inicial pode conter defeitos visuais"
+      ],
+      "error": null
+    }
+  ],
+  "summary": {
+    "total": 2,
+    "passed": 0,
+    "failed": 0,
+    "baseline_created": 2
+  }
+}

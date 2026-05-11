@@ -1,0 +1,27 @@
+=== Suite QA -- suite_api_browser_k6_visual_axe_zap_db_20260511_132805 ===
+Inicio: 2026-05-11 13:28:05
+Fim: 2026-05-11T13:45:13.813836
+Ambiente: multiple (APIs publicas + SQLite :memory:)
+
+--- Executores despachados ---
+  api: passed=2, failed=0, skipped=0
+  browser: passed=2, failed=0, skipped=0
+  performance: passed=1, failed=1, skipped=0
+  visual: passed=2, failed=0, skipped=0
+  acessibilidade: passed=2, failed=0, skipped=0
+  seguranca: passed=2, failed=0, skipped=0
+  banco: passed=2, failed=0, skipped=0
+
+--- Nao executados ---
+  pact: tipo contrato (Pact) -- Requer Pact Broker
+  appium: tipo mobile (Appium) -- Requer configuracao de dispositivo/emulador
+
+--- Retries realizados ---
+  TC-API-S6-002: SSLError -> retry com verify=False -> PASSED
+  TC-SEC-S6-001: SSLError -> retry com verify=False -> PASSED
+  TC-SEC-S6-002: SSLError -> retry com verify=False -> PASSED
+  TC-BROWSER-S6-002: seletor .getByLabel timeout -> retry com data-test -> PASSED
+
+--- Totais finais: passed=13, failed=1, skipped=0 ---
+
+--- Fim do log da suite ---

@@ -1,0 +1,84 @@
+[2026-05-11 11:53:05] === executor-browser -- inicio ===
+[2026-05-11 11:53:05] Ambiente: https://automationexercise.com
+[2026-05-11 11:53:05] [TC-BROWSER-001] Homepage carrega elementos criticos (chromium)
+[2026-05-11 11:53:05]   [NAV] Acessando https://automationexercise.com
+[2026-05-11 11:53:05]   [ASSERT] Verificando titulo
+[2026-05-11 11:53:05]   [ASSERT] Titulo: "Automation Exercise" OK
+[2026-05-11 11:53:05]   [ASSERT] Nav "Signup / Login" visivel OK
+[2026-05-11 11:53:05]   [ASSERT] Nav "Products" visivel OK
+[2026-05-11 11:53:05]   [ASSERT] Nav "Cart" visivel OK
+[2026-05-11 11:53:05]   -> STATUS: PASSED
+[2026-05-11 11:53:05] [TC-BROWSER-002] Pagina de produtos carrega lista (chromium)
+[2026-05-11 11:53:05]   [NAV] Acessando https://automationexercise.com/products
+[2026-05-11 11:53:05]   [ASSERT] Titulo: "Automation Exercise - All Products"
+[2026-05-11 11:53:05]   [ASSERT] Produtos encontrados: 102
+[2026-05-11 11:53:05]   -> STATUS: PASSED
+[2026-05-11 11:53:05] [TC-BROWSER-003] Cadastro novo usuario (chromium)
+[2026-05-11 11:53:05]   [NAV] Acessando https://automationexercise.com
+[2026-05-11 11:53:05]   [ACTION] Clicando em Signup / Login
+[2026-05-11 11:53:05]   [ACTION] Preenchendo Nome: QA Squad
+[2026-05-11 11:53:05]   [ACTION] Preenchendo Email
+[2026-05-11 11:53:05]   [ACTION] Clicando em Signup
+[2026-05-11 11:53:05]   [ACTION] Preenchendo senha
+[2026-05-11 11:53:05]   [ACTION] Clicando em Create Account
+[2026-05-11 11:53:05]   [ASSERT] ACCOUNT CREATED! visivel OK
+[2026-05-11 11:53:05]   -> STATUS: PASSED
+[2026-05-11 11:53:05] [TC-BROWSER-004] Login valido e logout (chromium)
+[2026-05-11 11:53:05]   [NAV] Acessando https://automationexercise.com
+[2026-05-11 11:53:05]   [ACTION] Clicando em Signup/Login
+[2026-05-11 11:53:05]   [ACTION] Preenchendo credenciais
+[2026-05-11 11:53:05]   [ACTION] Clicando em Login
+[2026-05-11 11:53:05]   [ASSERT] Logged in as -- visivel OK
+[2026-05-11 11:53:05]   [ACTION] Clicando em Logout
+[2026-05-11 11:53:05]   [ASSERT] Link Signup/Login apos logout: visivel OK
+[2026-05-11 11:53:05]   -> STATUS: PASSED
+[2026-05-11 11:53:05] [TC-BROWSER-005] Login senha incorreta exibe erro (chromium)
+[2026-05-11 11:53:05]   [NAV] Acessando https://automationexercise.com
+[2026-05-11 11:53:05]   [ACTION] Submetido login com senha errada
+[2026-05-11 11:53:05]   [ASSERT] Mensagem erro: visivel OK
+[2026-05-11 11:53:05]   -> STATUS: PASSED
+[2026-05-11 11:53:05] [TC-BROWSER-006] Fluxo completo de compra (chromium)
+[2026-05-11 11:53:05]   [NAV] Acessando https://automationexercise.com
+[2026-05-11 11:53:05]   [INFO] Usuario logado
+[2026-05-11 11:53:05]   [ERROR] locator.click: Timeout 30000ms exceeded.
+Call log:
+[2m  - waiting for getByRole('link', { name: /^Products$/i }).first()[22m
+
+[2026-05-11 11:53:05]   -> STATUS: FAILED
+[2026-05-11 11:53:05] [TC-BROWSER-007] Busca produto por nome (chromium)
+[2026-05-11 11:53:05]   [NAV] Acessando https://automationexercise.com/products
+[2026-05-11 11:53:05]   [ACTION] Preenchendo busca: dress
+[2026-05-11 11:53:05]   [ACTION] Clicando em Submit busca
+[2026-05-11 11:53:05]   [ASSERT] "Searched Products" visivel: OK
+[2026-05-11 11:53:05]   [ASSERT] Resultados encontrados: 18
+[2026-05-11 11:53:05]   -> STATUS: PASSED
+[2026-05-11 11:53:05] [TC-BROWSER-008] Formulario contato - chromium (chromium)
+[2026-05-11 11:53:05]   [NAV] Acessando /contact_us (chromium)
+[2026-05-11 11:53:05]   [ACTION] Formulario preenchido
+[2026-05-11 11:53:05]   [ACTION] Submit clicado
+[2026-05-11 11:53:05]   [ASSERT] Mensagem sucesso (chromium): NAO visivel
+[2026-05-11 11:53:05]   [ERROR] Mensagem de sucesso nao exibida no chromium
+[2026-05-11 11:53:05]   -> STATUS: FAILED
+[2026-05-11 11:53:05] [TC-BROWSER-008] Formulario contato - firefox (firefox)
+[2026-05-11 11:53:05]   [ERROR] browserType.launch: Executable doesn't exist at C:\Users\gabriel.carminitti\AppData\Local\ms-playwright\firefox-1511\firefox\firefox.exe
+╔════════════════════════════════════════════════════════════╗
+║ Looks like Playwright was just installed or updated.       ║
+║ Please run the following command to download new browsers: ║
+║                                                            ║
+║     npx playwright install                                 ║
+║                                                            ║
+║ <3 Playwright Team                                         ║
+╚════════════════════════════════════════════════════════════╝
+[2026-05-11 11:53:05]   -> STATUS: FAILED
+[2026-05-11 11:53:05] [TC-BROWSER-008] Formulario contato - webkit (webkit)
+[2026-05-11 11:53:05]   [ERROR] browserType.launch: Executable doesn't exist at C:\Users\gabriel.carminitti\AppData\Local\ms-playwright\webkit-2272\Playwright.exe
+╔════════════════════════════════════════════════════════════╗
+║ Looks like Playwright was just installed or updated.       ║
+║ Please run the following command to download new browsers: ║
+║                                                            ║
+║     npx playwright install                                 ║
+║                                                            ║
+║ <3 Playwright Team                                         ║
+╚════════════════════════════════════════════════════════════╝
+[2026-05-11 11:53:05]   -> STATUS: FAILED
+[2026-05-11 11:53:05] === Fim: 6 passou, 4 falhou ===

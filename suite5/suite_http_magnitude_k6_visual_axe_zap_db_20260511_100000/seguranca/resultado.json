@@ -1,0 +1,162 @@
+{
+  "executor": "security",
+  "environment": "https://pokeapi.co/api/v2 + https://api.nationalize.io",
+  "environment_type": "public_test_api",
+  "credentials_failed": false,
+  "results": [
+    {
+      "id": "TC-SEC-S5-001",
+      "title": "Headers de seguranca e exposicao de informacoes na PokeAPI",
+      "status": "skipped",
+      "checks": [
+        {
+          "check": "Acesso à PokéAPI disponível no ambiente de execução",
+          "result": "skipped",
+          "actual": "403 Blocked by Cato — Corporate Internet policy violation (Games)"
+        }
+      ],
+      "severity": "medium",
+      "note": "Ambiente corporativo bloqueia pokeapi.co — retestar em ambiente sem filtro de categoria",
+      "logs": [
+        "[CHECK] /pokemon/1 Content-Type: text/html — FALHOU",
+        "[CHECK] /pokemon/1 Server: 'Cato' — ok",
+        "[CHECK] /pokemon/1 Strict-Transport-Security: ausente — aviso (opcional)",
+        "[CHECK] /pokemon/1 X-Frame-Options: ausente — aviso (opcional)",
+        "[CHECK] /pokemon/1 Content-Security-Policy: ausente — aviso (opcional)",
+        "[CHECK] /type/1 Content-Type: text/html — FALHOU",
+        "[CHECK] /type/1 Server: 'Cato' — ok",
+        "[CHECK] /type/1 Strict-Transport-Security: ausente — aviso (opcional)",
+        "[CHECK] /type/1 X-Frame-Options: ausente — aviso (opcional)",
+        "[CHECK] /type/1 Content-Security-Policy: ausente — aviso (opcional)",
+        "[CHECK] /ability/1 Content-Type: text/html — FALHOU",
+        "[CHECK] /ability/1 Server: 'Cato' — ok",
+        "[CHECK] /ability/1 Strict-Transport-Security: ausente — aviso (opcional)",
+        "[CHECK] /ability/1 X-Frame-Options: ausente — aviso (opcional)",
+        "[CHECK] /ability/1 Content-Security-Policy: ausente — aviso (opcional)",
+        "[CHECK] Admin endpoint retornou 403 — ok",
+        "[RESULT] TC-SEC-S5-001 — failed",
+        "[SKIP] Acesso à pokeapi.co bloqueado pelo filtro corporativo Cato Networks (HTTP 403 + HTML de bloqueio)",
+        "[SKIP] Este é um bloqueio de rede do ambiente, não uma falha da API em si"
+      ],
+      "error": "Acesso bloqueado pelo filtro de internet corporativo (Cato Networks) — categoria 'Games'. A PokéAPI (pokeapi.co) está inacessível neste ambiente de execução. O teste não pode ser concluído sem acesso direto à API."
+    },
+    {
+      "id": "TC-SEC-S5-002",
+      "title": "Headers de seguranca e CORS na Nationalize API",
+      "status": "warning",
+      "checks": [
+        {
+          "check": "GET /?name=james status 200",
+          "result": "passed",
+          "actual": "200"
+        },
+        {
+          "check": "GET /?name=james Content-Type contains application/json",
+          "result": "passed",
+          "actual": "application/json; charset=utf-8"
+        },
+        {
+          "check": "GET /?name=james Server nao expoe versao",
+          "result": "warning",
+          "actual": "nginx/1.16.1"
+        },
+        {
+          "check": "GET /?name=james CORS nao expoe dados",
+          "result": "warning",
+          "actual": "*",
+          "note": "API publica — CORS aberto esperado"
+        },
+        {
+          "check": "GET /?name=james Strict-Transport-Security",
+          "result": "warning",
+          "actual": "ausente",
+          "note": "header opcional"
+        },
+        {
+          "check": "GET /?name=james X-Frame-Options",
+          "result": "warning",
+          "actual": "ausente",
+          "note": "header opcional"
+        },
+        {
+          "check": "GET /?name=james Content-Security-Policy",
+          "result": "warning",
+          "actual": "ausente",
+          "note": "header opcional"
+        },
+        {
+          "check": "GET /?name=maria status 200",
+          "result": "passed",
+          "actual": "200"
+        },
+        {
+          "check": "GET /?name=maria Content-Type contains application/json",
+          "result": "passed",
+          "actual": "application/json; charset=utf-8"
+        },
+        {
+          "check": "GET /?name=maria Server nao expoe versao",
+          "result": "warning",
+          "actual": "nginx/1.16.1"
+        },
+        {
+          "check": "GET /?name=maria CORS nao expoe dados",
+          "result": "warning",
+          "actual": "*",
+          "note": "API publica — CORS aberto esperado"
+        },
+        {
+          "check": "GET /?name=maria Strict-Transport-Security",
+          "result": "warning",
+          "actual": "ausente",
+          "note": "header opcional"
+        },
+        {
+          "check": "GET /?name=maria X-Frame-Options",
+          "result": "warning",
+          "actual": "ausente",
+          "note": "header opcional"
+        },
+        {
+          "check": "GET /?name=maria Content-Security-Policy",
+          "result": "warning",
+          "actual": "ausente",
+          "note": "header opcional"
+        }
+      ],
+      "severity": "low",
+      "note": "API publica de teste — comportamento esperado",
+      "logs": [
+        "[CHECK] /?name=james status: 200 — ok",
+        "[CHECK] /?name=james Content-Type: application/json; charset=utf-8 — ok",
+        "[CHECK] /?name=james Server: 'nginx/1.16.1' — WARNING",
+        "[CHECK] /?name=james CORS ACAO: '*' — aviso (API publica)",
+        "[CHECK] /?name=james Strict-Transport-Security: ausente — aviso",
+        "[CHECK] /?name=james X-Frame-Options: ausente — aviso",
+        "[CHECK] /?name=james Content-Security-Policy: ausente — aviso",
+        "[CHECK] /?name=maria status: 200 — ok",
+        "[CHECK] /?name=maria Content-Type: application/json; charset=utf-8 — ok",
+        "[CHECK] /?name=maria Server: 'nginx/1.16.1' — WARNING",
+        "[CHECK] /?name=maria CORS ACAO: '*' — aviso (API publica)",
+        "[CHECK] /?name=maria Strict-Transport-Security: ausente — aviso",
+        "[CHECK] /?name=maria X-Frame-Options: ausente — aviso",
+        "[CHECK] /?name=maria Content-Security-Policy: ausente — aviso",
+        "[RESULT] TC-SEC-S5-002 — warning"
+      ],
+      "error": null
+    }
+  ],
+  "ssl_warning": "Certificado SSL invalido detectado. Execucao com verify=False.",
+  "summary": {
+    "total": 2,
+    "passed": 0,
+    "failed": 0,
+    "warning": 1,
+    "by_severity": {
+      "high": 0,
+      "medium": 1,
+      "low": 1
+    },
+    "skipped": 1
+  }
+}

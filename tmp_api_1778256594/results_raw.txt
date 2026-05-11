@@ -1,0 +1,1066 @@
+{
+  "config": {
+    "configFile": "C:\\Users\\gabriel.carminitti\\Documents\\claude\\agentes\\tmp_api_1778256594\\playwright.config.ts",
+    "rootDir": "C:/Users/gabriel.carminitti/Documents/claude/agentes/tmp_api_1778256594",
+    "forbidOnly": false,
+    "fullyParallel": true,
+    "globalSetup": "C:\\Users\\gabriel.carminitti\\Documents\\claude\\agentes\\tmp_api_1778256594\\src\\support\\globalSetup.ts",
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 4
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "C:/Users/gabriel.carminitti/Documents/claude/agentes/tmp_api_1778256594/reports/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 4
+        },
+        "id": "",
+        "name": "",
+        "testDir": "C:/Users/gabriel.carminitti/Documents/claude/agentes/tmp_api_1778256594",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.spec.ts"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "json"
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.59.1",
+    "workers": 4,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "src\\api\\specs\\jsonplaceholder.spec.ts",
+      "file": "src/api/specs/jsonplaceholder.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "JSONPlaceholder API @api",
+          "file": "src/api/specs/jsonplaceholder.spec.ts",
+          "line": 4,
+          "column": 6,
+          "specs": [
+            {
+              "title": "TC-API-001 — Listar todos os posts e validar contagem",
+              "ok": true,
+              "tags": [
+                "api"
+              ],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 323,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "steps": [
+                        {
+                          "title": "Requisitar lista de posts",
+                          "duration": 63
+                        },
+                        {
+                          "title": "Validar resposta",
+                          "duration": 235
+                        }
+                      ],
+                      "startTime": "2026-05-08T16:12:08.778Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "96e9724de3ab48fe085b-27b31449e9f938c7b38a",
+              "file": "src/api/specs/jsonplaceholder.spec.ts",
+              "line": 6,
+              "column": 7
+            },
+            {
+              "title": "TC-API-002 — Buscar post específico pelo ID 1",
+              "ok": true,
+              "tags": [
+                "api"
+              ],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 90,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "steps": [
+                        {
+                          "title": "Requisitar post ID 1",
+                          "duration": 70
+                        },
+                        {
+                          "title": "Validar campos do post",
+                          "duration": 5
+                        }
+                      ],
+                      "startTime": "2026-05-08T16:12:08.762Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "96e9724de3ab48fe085b-2c937c54a39fe9d7a1e2",
+              "file": "src/api/specs/jsonplaceholder.spec.ts",
+              "line": 30,
+              "column": 7
+            },
+            {
+              "title": "TC-API-003 — Criar novo post via POST",
+              "ok": true,
+              "tags": [
+                "api"
+              ],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 2,
+                      "status": "passed",
+                      "duration": 197,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "steps": [
+                        {
+                          "title": "Criar post",
+                          "duration": 175
+                        },
+                        {
+                          "title": "Validar criação",
+                          "duration": 5
+                        }
+                      ],
+                      "startTime": "2026-05-08T16:12:08.919Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "96e9724de3ab48fe085b-d6c718c94207225f9a61",
+              "file": "src/api/specs/jsonplaceholder.spec.ts",
+              "line": 48,
+              "column": 7
+            },
+            {
+              "title": "TC-API-004 — Atualizar post via PUT",
+              "ok": true,
+              "tags": [
+                "api"
+              ],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [
+                    {
+                      "workerIndex": 3,
+                      "parallelIndex": 3,
+                      "status": "passed",
+                      "duration": 195,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "steps": [
+                        {
+                          "title": "Atualizar post",
+                          "duration": 179
+                        },
+                        {
+                          "title": "Validar atualização",
+                          "duration": 4
+                        }
+                      ],
+                      "startTime": "2026-05-08T16:12:09.009Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "96e9724de3ab48fe085b-f64217dd46e95a4743b6",
+              "file": "src/api/specs/jsonplaceholder.spec.ts",
+              "line": 66,
+              "column": 7
+            },
+            {
+              "title": "TC-API-005 — Deletar post via DELETE",
+              "ok": true,
+              "tags": [
+                "api"
+              ],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 139,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "steps": [
+                        {
+                          "title": "Deletar post",
+                          "duration": 131
+                        },
+                        {
+                          "title": "Validar deleção",
+                          "duration": 6
+                        }
+                      ],
+                      "startTime": "2026-05-08T16:12:08.873Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "96e9724de3ab48fe085b-0004371d9ea32629a190",
+              "file": "src/api/specs/jsonplaceholder.spec.ts",
+              "line": 83,
+              "column": 7
+            },
+            {
+              "title": "TC-API-006 — Buscar todos os posts do usuário 1",
+              "ok": true,
+              "tags": [
+                "api"
+              ],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 34,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "steps": [
+                        {
+                          "title": "Requisitar posts do usuário 1",
+                          "duration": 22
+                        },
+                        {
+                          "title": "Validar filtro por userId",
+                          "duration": 10
+                        }
+                      ],
+                      "startTime": "2026-05-08T16:12:09.020Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "96e9724de3ab48fe085b-0dd4663901e00d67a569",
+              "file": "src/api/specs/jsonplaceholder.spec.ts",
+              "line": 97,
+              "column": 7
+            },
+            {
+              "title": "TC-API-007 — Buscar usuário ID 1 e validar schema completo",
+              "ok": true,
+              "tags": [
+                "api"
+              ],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 35,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "steps": [
+                        {
+                          "title": "Requisitar usuário ID 1",
+                          "duration": 28
+                        },
+                        {
+                          "title": "Validar campos do usuário",
+                          "duration": 4
+                        }
+                      ],
+                      "startTime": "2026-05-08T16:12:09.062Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "96e9724de3ab48fe085b-1460eb735b398f13e331",
+              "file": "src/api/specs/jsonplaceholder.spec.ts",
+              "line": 114,
+              "column": 7
+            },
+            {
+              "title": "TC-API-008 — Validar schema Zod do endpoint /users/1",
+              "ok": true,
+              "tags": [
+                "api"
+              ],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 31,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "steps": [
+                        {
+                          "title": "Requisitar usuário ID 1",
+                          "duration": 20
+                        },
+                        {
+                          "title": "Validar contrato Zod",
+                          "duration": 3
+                        }
+                      ],
+                      "startTime": "2026-05-08T16:12:09.104Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "96e9724de3ab48fe085b-369ae1f842457547ca36",
+              "file": "src/api/specs/jsonplaceholder.spec.ts",
+              "line": 136,
+              "column": 7
+            },
+            {
+              "title": "TC-API-009 — Buscar todos os todos do usuário 1",
+              "ok": true,
+              "tags": [
+                "api"
+              ],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 158,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "steps": [
+                        {
+                          "title": "Requisitar todos do usuário 1",
+                          "duration": 132
+                        },
+                        {
+                          "title": "Validar todos",
+                          "duration": 19
+                        }
+                      ],
+                      "startTime": "2026-05-08T16:12:09.121Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "96e9724de3ab48fe085b-11ed56dfd0bc93dcc943",
+              "file": "src/api/specs/jsonplaceholder.spec.ts",
+              "line": 154,
+              "column": 7
+            },
+            {
+              "title": "TC-API-010 — Buscar todo ID 1",
+              "ok": true,
+              "tags": [
+                "api"
+              ],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 2,
+                      "status": "passed",
+                      "duration": 27,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "steps": [
+                        {
+                          "title": "Requisitar todo ID 1",
+                          "duration": 19
+                        },
+                        {
+                          "title": "Validar todo",
+                          "duration": 3
+                        }
+                      ],
+                      "startTime": "2026-05-08T16:12:09.138Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "96e9724de3ab48fe085b-217d1fc09304c2bb3ae9",
+              "file": "src/api/specs/jsonplaceholder.spec.ts",
+              "line": 174,
+              "column": 7
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "src\\api\\specs\\practiceexpand.spec.ts",
+      "file": "src/api/specs/practiceexpand.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Practice Expand API @api",
+          "file": "src/api/specs/practiceexpand.spec.ts",
+          "line": 5,
+          "column": 6,
+          "specs": [
+            {
+              "title": "TC-API-011 — Health check da API de notas",
+              "ok": false,
+              "tags": [
+                "api"
+              ],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "failed",
+                      "duration": 1044,
+                      "error": {
+                        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m200\u001b[39m\nReceived: \u001b[31m404\u001b[39m",
+                        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m200\u001b[39m\nReceived: \u001b[31m404\u001b[39m\n    at C:\\Users\\gabriel.carminitti\\Documents\\claude\\agentes\\tmp_api_1778256594\\src\\api\\specs\\practiceexpand.spec.ts:15:34\n    at C:\\Users\\gabriel.carminitti\\Documents\\claude\\agentes\\tmp_api_1778256594\\src\\api\\specs\\practiceexpand.spec.ts:14:5",
+                        "location": {
+                          "file": "C:\\Users\\gabriel.carminitti\\Documents\\claude\\agentes\\tmp_api_1778256594\\src\\api\\specs\\practiceexpand.spec.ts",
+                          "column": 34,
+                          "line": 15
+                        },
+                        "snippet": "\u001b[0m \u001b[90m 13 |\u001b[39m\n \u001b[90m 14 |\u001b[39m     \u001b[36mawait\u001b[39m test\u001b[33m.\u001b[39mstep(\u001b[32m'Validar health check'\u001b[39m\u001b[33m,\u001b[39m \u001b[36masync\u001b[39m () \u001b[33m=>\u001b[39m {\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 15 |\u001b[39m       expect(response\u001b[33m!\u001b[39m\u001b[33m.\u001b[39mstatus())\u001b[33m.\u001b[39mtoBe(\u001b[35m200\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                                  \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 16 |\u001b[39m       \u001b[36mconst\u001b[39m data \u001b[33m=\u001b[39m \u001b[36mawait\u001b[39m response\u001b[33m!\u001b[39m\u001b[33m.\u001b[39mjson()\u001b[33m;\u001b[39m\n \u001b[90m 17 |\u001b[39m       expect(data\u001b[33m.\u001b[39mmessage)\u001b[33m.\u001b[39mtoBe(\u001b[32m'Notes API is Running'\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m 18 |\u001b[39m     })\u001b[33m;\u001b[39m\u001b[0m"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\Users\\gabriel.carminitti\\Documents\\claude\\agentes\\tmp_api_1778256594\\src\\api\\specs\\practiceexpand.spec.ts",
+                            "column": 34,
+                            "line": 15
+                          },
+                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m200\u001b[39m\nReceived: \u001b[31m404\u001b[39m\n\n  13 |\n  14 |     await test.step('Validar health check', async () => {\n> 15 |       expect(response!.status()).toBe(200);\n     |                                  ^\n  16 |       const data = await response!.json();\n  17 |       expect(data.message).toBe('Notes API is Running');\n  18 |     });\n    at C:\\Users\\gabriel.carminitti\\Documents\\claude\\agentes\\tmp_api_1778256594\\src\\api\\specs\\practiceexpand.spec.ts:15:34\n    at C:\\Users\\gabriel.carminitti\\Documents\\claude\\agentes\\tmp_api_1778256594\\src\\api\\specs\\practiceexpand.spec.ts:14:5"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "steps": [
+                        {
+                          "title": "GET /health-check",
+                          "duration": 1040
+                        },
+                        {
+                          "title": "Validar health check",
+                          "duration": 2,
+                          "error": {
+                            "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m200\u001b[39m\nReceived: \u001b[31m404\u001b[39m",
+                            "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m200\u001b[39m\nReceived: \u001b[31m404\u001b[39m\n    at C:\\Users\\gabriel.carminitti\\Documents\\claude\\agentes\\tmp_api_1778256594\\src\\api\\specs\\practiceexpand.spec.ts:15:34\n    at C:\\Users\\gabriel.carminitti\\Documents\\claude\\agentes\\tmp_api_1778256594\\src\\api\\specs\\practiceexpand.spec.ts:14:5",
+                            "location": {
+                              "file": "C:\\Users\\gabriel.carminitti\\Documents\\claude\\agentes\\tmp_api_1778256594\\src\\api\\specs\\practiceexpand.spec.ts",
+                              "column": 34,
+                              "line": 15
+                            },
+                            "snippet": "\u001b[0m \u001b[90m 13 |\u001b[39m\n \u001b[90m 14 |\u001b[39m     \u001b[36mawait\u001b[39m test\u001b[33m.\u001b[39mstep(\u001b[32m'Validar health check'\u001b[39m\u001b[33m,\u001b[39m \u001b[36masync\u001b[39m () \u001b[33m=>\u001b[39m {\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 15 |\u001b[39m       expect(response\u001b[33m!\u001b[39m\u001b[33m.\u001b[39mstatus())\u001b[33m.\u001b[39mtoBe(\u001b[35m200\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                                  \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 16 |\u001b[39m       \u001b[36mconst\u001b[39m data \u001b[33m=\u001b[39m \u001b[36mawait\u001b[39m response\u001b[33m!\u001b[39m\u001b[33m.\u001b[39mjson()\u001b[33m;\u001b[39m\n \u001b[90m 17 |\u001b[39m       expect(data\u001b[33m.\u001b[39mmessage)\u001b[33m.\u001b[39mtoBe(\u001b[32m'Notes API is Running'\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m 18 |\u001b[39m     })\u001b[33m;\u001b[39m\u001b[0m"
+                          }
+                        }
+                      ],
+                      "startTime": "2026-05-08T16:12:09.144Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\Users\\gabriel.carminitti\\Documents\\claude\\agentes\\tmp_api_1778256594\\reports\\test-results\\src-api-specs-practiceexpa-67658-ealth-check-da-API-de-notas\\error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "C:\\Users\\gabriel.carminitti\\Documents\\claude\\agentes\\tmp_api_1778256594\\src\\api\\specs\\practiceexpand.spec.ts",
+                        "column": 34,
+                        "line": 15
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "34121fd900bb680db88c-5d4296b9b1b35d7f12bc",
+              "file": "src/api/specs/practiceexpand.spec.ts",
+              "line": 7,
+              "column": 7
+            },
+            {
+              "title": "TC-API-012 — Registrar usuário no Practice Expand",
+              "ok": false,
+              "tags": [
+                "api"
+              ],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 2,
+                      "status": "failed",
+                      "duration": 1010,
+                      "error": {
+                        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoContain\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // indexOf\u001b[22m\n\nExpected value: \u001b[32m404\u001b[39m\nReceived array: \u001b[31m[200, 201, 409]\u001b[39m",
+                        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoContain\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // indexOf\u001b[22m\n\nExpected value: \u001b[32m404\u001b[39m\nReceived array: \u001b[31m[200, 201, 409]\u001b[39m\n    at C:\\Users\\gabriel.carminitti\\Documents\\claude\\agentes\\tmp_api_1778256594\\src\\api\\specs\\practiceexpand.spec.ts:36:31\n    at C:\\Users\\gabriel.carminitti\\Documents\\claude\\agentes\\tmp_api_1778256594\\src\\api\\specs\\practiceexpand.spec.ts:34:5",
+                        "location": {
+                          "file": "C:\\Users\\gabriel.carminitti\\Documents\\claude\\agentes\\tmp_api_1778256594\\src\\api\\specs\\practiceexpand.spec.ts",
+                          "column": 31,
+                          "line": 36
+                        },
+                        "snippet": "\u001b[0m \u001b[90m 34 |\u001b[39m     \u001b[36mawait\u001b[39m test\u001b[33m.\u001b[39mstep(\u001b[32m'Validar registro ou usuário já existente'\u001b[39m\u001b[33m,\u001b[39m \u001b[36masync\u001b[39m () \u001b[33m=>\u001b[39m {\n \u001b[90m 35 |\u001b[39m       \u001b[90m// 201 = criado com sucesso; 409 = usuário já existe (aceitável em re-execução)\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 36 |\u001b[39m       expect([\u001b[35m200\u001b[39m\u001b[33m,\u001b[39m \u001b[35m201\u001b[39m\u001b[33m,\u001b[39m \u001b[35m409\u001b[39m])\u001b[33m.\u001b[39mtoContain(response\u001b[33m!\u001b[39m\u001b[33m.\u001b[39mstatus())\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                               \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 37 |\u001b[39m       \u001b[36mif\u001b[39m (response\u001b[33m!\u001b[39m\u001b[33m.\u001b[39mstatus() \u001b[33m===\u001b[39m \u001b[35m201\u001b[39m) {\n \u001b[90m 38 |\u001b[39m         \u001b[36mconst\u001b[39m data \u001b[33m=\u001b[39m \u001b[36mawait\u001b[39m response\u001b[33m!\u001b[39m\u001b[33m.\u001b[39mjson()\u001b[33m;\u001b[39m\n \u001b[90m 39 |\u001b[39m         expect(data\u001b[33m.\u001b[39mdata\u001b[33m.\u001b[39mname)\u001b[33m.\u001b[39mtoBe(\u001b[32m'QA Agente'\u001b[39m)\u001b[33m;\u001b[39m\u001b[0m"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\Users\\gabriel.carminitti\\Documents\\claude\\agentes\\tmp_api_1778256594\\src\\api\\specs\\practiceexpand.spec.ts",
+                            "column": 31,
+                            "line": 36
+                          },
+                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoContain\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // indexOf\u001b[22m\n\nExpected value: \u001b[32m404\u001b[39m\nReceived array: \u001b[31m[200, 201, 409]\u001b[39m\n\n  34 |     await test.step('Validar registro ou usuário já existente', async () => {\n  35 |       // 201 = criado com sucesso; 409 = usuário já existe (aceitável em re-execução)\n> 36 |       expect([200, 201, 409]).toContain(response!.status());\n     |                               ^\n  37 |       if (response!.status() === 201) {\n  38 |         const data = await response!.json();\n  39 |         expect(data.data.name).toBe('QA Agente');\n    at C:\\Users\\gabriel.carminitti\\Documents\\claude\\agentes\\tmp_api_1778256594\\src\\api\\specs\\practiceexpand.spec.ts:36:31\n    at C:\\Users\\gabriel.carminitti\\Documents\\claude\\agentes\\tmp_api_1778256594\\src\\api\\specs\\practiceexpand.spec.ts:34:5"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "steps": [
+                        {
+                          "title": "POST /users/register",
+                          "duration": 1005
+                        },
+                        {
+                          "title": "Validar registro ou usuário já existente",
+                          "duration": 2,
+                          "error": {
+                            "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoContain\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // indexOf\u001b[22m\n\nExpected value: \u001b[32m404\u001b[39m\nReceived array: \u001b[31m[200, 201, 409]\u001b[39m",
+                            "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoContain\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // indexOf\u001b[22m\n\nExpected value: \u001b[32m404\u001b[39m\nReceived array: \u001b[31m[200, 201, 409]\u001b[39m\n    at C:\\Users\\gabriel.carminitti\\Documents\\claude\\agentes\\tmp_api_1778256594\\src\\api\\specs\\practiceexpand.spec.ts:36:31\n    at C:\\Users\\gabriel.carminitti\\Documents\\claude\\agentes\\tmp_api_1778256594\\src\\api\\specs\\practiceexpand.spec.ts:34:5",
+                            "location": {
+                              "file": "C:\\Users\\gabriel.carminitti\\Documents\\claude\\agentes\\tmp_api_1778256594\\src\\api\\specs\\practiceexpand.spec.ts",
+                              "column": 31,
+                              "line": 36
+                            },
+                            "snippet": "\u001b[0m \u001b[90m 34 |\u001b[39m     \u001b[36mawait\u001b[39m test\u001b[33m.\u001b[39mstep(\u001b[32m'Validar registro ou usuário já existente'\u001b[39m\u001b[33m,\u001b[39m \u001b[36masync\u001b[39m () \u001b[33m=>\u001b[39m {\n \u001b[90m 35 |\u001b[39m       \u001b[90m// 201 = criado com sucesso; 409 = usuário já existe (aceitável em re-execução)\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 36 |\u001b[39m       expect([\u001b[35m200\u001b[39m\u001b[33m,\u001b[39m \u001b[35m201\u001b[39m\u001b[33m,\u001b[39m \u001b[35m409\u001b[39m])\u001b[33m.\u001b[39mtoContain(response\u001b[33m!\u001b[39m\u001b[33m.\u001b[39mstatus())\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                               \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 37 |\u001b[39m       \u001b[36mif\u001b[39m (response\u001b[33m!\u001b[39m\u001b[33m.\u001b[39mstatus() \u001b[33m===\u001b[39m \u001b[35m201\u001b[39m) {\n \u001b[90m 38 |\u001b[39m         \u001b[36mconst\u001b[39m data \u001b[33m=\u001b[39m \u001b[36mawait\u001b[39m response\u001b[33m!\u001b[39m\u001b[33m.\u001b[39mjson()\u001b[33m;\u001b[39m\n \u001b[90m 39 |\u001b[39m         expect(data\u001b[33m.\u001b[39mdata\u001b[33m.\u001b[39mname)\u001b[33m.\u001b[39mtoBe(\u001b[32m'QA Agente'\u001b[39m)\u001b[33m;\u001b[39m\u001b[0m"
+                          }
+                        }
+                      ],
+                      "startTime": "2026-05-08T16:12:09.174Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\Users\\gabriel.carminitti\\Documents\\claude\\agentes\\tmp_api_1778256594\\reports\\test-results\\src-api-specs-practiceexpa-aec2f--usuário-no-Practice-Expand\\error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "C:\\Users\\gabriel.carminitti\\Documents\\claude\\agentes\\tmp_api_1778256594\\src\\api\\specs\\practiceexpand.spec.ts",
+                        "column": 31,
+                        "line": 36
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "34121fd900bb680db88c-75abe076cac61a0c1d20",
+              "file": "src/api/specs/practiceexpand.spec.ts",
+              "line": 21,
+              "column": 7
+            },
+            {
+              "title": "TC-API-013 — Login e obter token no Practice Expand",
+              "ok": false,
+              "tags": [
+                "api"
+              ],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [
+                    {
+                      "workerIndex": 3,
+                      "parallelIndex": 3,
+                      "status": "failed",
+                      "duration": 1273,
+                      "error": {
+                        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m200\u001b[39m\nReceived: \u001b[31m404\u001b[39m",
+                        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m200\u001b[39m\nReceived: \u001b[31m404\u001b[39m\n    at C:\\Users\\gabriel.carminitti\\Documents\\claude\\agentes\\tmp_api_1778256594\\src\\api\\specs\\practiceexpand.spec.ts:58:34\n    at C:\\Users\\gabriel.carminitti\\Documents\\claude\\agentes\\tmp_api_1778256594\\src\\api\\specs\\practiceexpand.spec.ts:57:5",
+                        "location": {
+                          "file": "C:\\Users\\gabriel.carminitti\\Documents\\claude\\agentes\\tmp_api_1778256594\\src\\api\\specs\\practiceexpand.spec.ts",
+                          "column": 34,
+                          "line": 58
+                        },
+                        "snippet": "\u001b[0m \u001b[90m 56 |\u001b[39m\n \u001b[90m 57 |\u001b[39m     \u001b[36mawait\u001b[39m test\u001b[33m.\u001b[39mstep(\u001b[32m'Validar token obtido'\u001b[39m\u001b[33m,\u001b[39m \u001b[36masync\u001b[39m () \u001b[33m=>\u001b[39m {\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 58 |\u001b[39m       expect(response\u001b[33m!\u001b[39m\u001b[33m.\u001b[39mstatus())\u001b[33m.\u001b[39mtoBe(\u001b[35m200\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                                  \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 59 |\u001b[39m       \u001b[36mconst\u001b[39m data \u001b[33m=\u001b[39m \u001b[36mawait\u001b[39m response\u001b[33m!\u001b[39m\u001b[33m.\u001b[39mjson()\u001b[33m;\u001b[39m\n \u001b[90m 60 |\u001b[39m       expect(data\u001b[33m.\u001b[39mdata\u001b[33m.\u001b[39mtoken)\u001b[33m.\u001b[39mtoBeTruthy()\u001b[33m;\u001b[39m\n \u001b[90m 61 |\u001b[39m       expect(data\u001b[33m.\u001b[39mdata\u001b[33m.\u001b[39mtoken\u001b[33m.\u001b[39mlength)\u001b[33m.\u001b[39mtoBeGreaterThan(\u001b[35m0\u001b[39m)\u001b[33m;\u001b[39m\u001b[0m"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\Users\\gabriel.carminitti\\Documents\\claude\\agentes\\tmp_api_1778256594\\src\\api\\specs\\practiceexpand.spec.ts",
+                            "column": 34,
+                            "line": 58
+                          },
+                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m200\u001b[39m\nReceived: \u001b[31m404\u001b[39m\n\n  56 |\n  57 |     await test.step('Validar token obtido', async () => {\n> 58 |       expect(response!.status()).toBe(200);\n     |                                  ^\n  59 |       const data = await response!.json();\n  60 |       expect(data.data.token).toBeTruthy();\n  61 |       expect(data.data.token.length).toBeGreaterThan(0);\n    at C:\\Users\\gabriel.carminitti\\Documents\\claude\\agentes\\tmp_api_1778256594\\src\\api\\specs\\practiceexpand.spec.ts:58:34\n    at C:\\Users\\gabriel.carminitti\\Documents\\claude\\agentes\\tmp_api_1778256594\\src\\api\\specs\\practiceexpand.spec.ts:57:5"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "steps": [
+                        {
+                          "title": "POST /users/login",
+                          "duration": 1267
+                        },
+                        {
+                          "title": "Validar token obtido",
+                          "duration": 3,
+                          "error": {
+                            "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m200\u001b[39m\nReceived: \u001b[31m404\u001b[39m",
+                            "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m200\u001b[39m\nReceived: \u001b[31m404\u001b[39m\n    at C:\\Users\\gabriel.carminitti\\Documents\\claude\\agentes\\tmp_api_1778256594\\src\\api\\specs\\practiceexpand.spec.ts:58:34\n    at C:\\Users\\gabriel.carminitti\\Documents\\claude\\agentes\\tmp_api_1778256594\\src\\api\\specs\\practiceexpand.spec.ts:57:5",
+                            "location": {
+                              "file": "C:\\Users\\gabriel.carminitti\\Documents\\claude\\agentes\\tmp_api_1778256594\\src\\api\\specs\\practiceexpand.spec.ts",
+                              "column": 34,
+                              "line": 58
+                            },
+                            "snippet": "\u001b[0m \u001b[90m 56 |\u001b[39m\n \u001b[90m 57 |\u001b[39m     \u001b[36mawait\u001b[39m test\u001b[33m.\u001b[39mstep(\u001b[32m'Validar token obtido'\u001b[39m\u001b[33m,\u001b[39m \u001b[36masync\u001b[39m () \u001b[33m=>\u001b[39m {\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 58 |\u001b[39m       expect(response\u001b[33m!\u001b[39m\u001b[33m.\u001b[39mstatus())\u001b[33m.\u001b[39mtoBe(\u001b[35m200\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                                  \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 59 |\u001b[39m       \u001b[36mconst\u001b[39m data \u001b[33m=\u001b[39m \u001b[36mawait\u001b[39m response\u001b[33m!\u001b[39m\u001b[33m.\u001b[39mjson()\u001b[33m;\u001b[39m\n \u001b[90m 60 |\u001b[39m       expect(data\u001b[33m.\u001b[39mdata\u001b[33m.\u001b[39mtoken)\u001b[33m.\u001b[39mtoBeTruthy()\u001b[33m;\u001b[39m\n \u001b[90m 61 |\u001b[39m       expect(data\u001b[33m.\u001b[39mdata\u001b[33m.\u001b[39mtoken\u001b[33m.\u001b[39mlength)\u001b[33m.\u001b[39mtoBeGreaterThan(\u001b[35m0\u001b[39m)\u001b[33m;\u001b[39m\u001b[0m"
+                          }
+                        }
+                      ],
+                      "startTime": "2026-05-08T16:12:09.228Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\Users\\gabriel.carminitti\\Documents\\claude\\agentes\\tmp_api_1778256594\\reports\\test-results\\src-api-specs-practiceexpa-77374-er-token-no-Practice-Expand\\error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "C:\\Users\\gabriel.carminitti\\Documents\\claude\\agentes\\tmp_api_1778256594\\src\\api\\specs\\practiceexpand.spec.ts",
+                        "column": 34,
+                        "line": 58
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "34121fd900bb680db88c-ee53ce683f7e4ad73c89",
+              "file": "src/api/specs/practiceexpand.spec.ts",
+              "line": 45,
+              "column": 7
+            },
+            {
+              "title": "TC-API-014 — Criar nota autenticada no Practice Expand",
+              "ok": false,
+              "tags": [
+                "api"
+              ],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 1864,
+                      "error": {
+                        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m200\u001b[39m\nReceived: \u001b[31m404\u001b[39m",
+                        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m200\u001b[39m\nReceived: \u001b[31m404\u001b[39m\n    at C:\\Users\\gabriel.carminitti\\Documents\\claude\\agentes\\tmp_api_1778256594\\src\\api\\specs\\practiceexpand.spec.ts:76:34\n    at C:\\Users\\gabriel.carminitti\\Documents\\claude\\agentes\\tmp_api_1778256594\\src\\api\\specs\\practiceexpand.spec.ts:72:5",
+                        "location": {
+                          "file": "C:\\Users\\gabriel.carminitti\\Documents\\claude\\agentes\\tmp_api_1778256594\\src\\api\\specs\\practiceexpand.spec.ts",
+                          "column": 34,
+                          "line": 76
+                        },
+                        "snippet": "\u001b[0m \u001b[90m 74 |\u001b[39m         data\u001b[33m:\u001b[39m { email\u001b[33m:\u001b[39m \u001b[32m'qa_agente_v3@test.com'\u001b[39m\u001b[33m,\u001b[39m password\u001b[33m:\u001b[39m \u001b[32m'Test@1234'\u001b[39m }\u001b[33m,\u001b[39m\n \u001b[90m 75 |\u001b[39m       })\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 76 |\u001b[39m       expect(loginResp\u001b[33m.\u001b[39mstatus())\u001b[33m.\u001b[39mtoBe(\u001b[35m200\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                                  \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 77 |\u001b[39m       \u001b[36mconst\u001b[39m loginData \u001b[33m=\u001b[39m \u001b[36mawait\u001b[39m loginResp\u001b[33m.\u001b[39mjson()\u001b[33m;\u001b[39m\n \u001b[90m 78 |\u001b[39m       token \u001b[33m=\u001b[39m loginData\u001b[33m.\u001b[39mdata\u001b[33m.\u001b[39mtoken\u001b[33m;\u001b[39m\n \u001b[90m 79 |\u001b[39m     })\u001b[33m;\u001b[39m\u001b[0m"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\Users\\gabriel.carminitti\\Documents\\claude\\agentes\\tmp_api_1778256594\\src\\api\\specs\\practiceexpand.spec.ts",
+                            "column": 34,
+                            "line": 76
+                          },
+                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m200\u001b[39m\nReceived: \u001b[31m404\u001b[39m\n\n  74 |         data: { email: 'qa_agente_v3@test.com', password: 'Test@1234' },\n  75 |       });\n> 76 |       expect(loginResp.status()).toBe(200);\n     |                                  ^\n  77 |       const loginData = await loginResp.json();\n  78 |       token = loginData.data.token;\n  79 |     });\n    at C:\\Users\\gabriel.carminitti\\Documents\\claude\\agentes\\tmp_api_1778256594\\src\\api\\specs\\practiceexpand.spec.ts:76:34\n    at C:\\Users\\gabriel.carminitti\\Documents\\claude\\agentes\\tmp_api_1778256594\\src\\api\\specs\\practiceexpand.spec.ts:72:5"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "steps": [
+                        {
+                          "title": "Obter token via login",
+                          "duration": 1861,
+                          "error": {
+                            "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m200\u001b[39m\nReceived: \u001b[31m404\u001b[39m",
+                            "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m200\u001b[39m\nReceived: \u001b[31m404\u001b[39m\n    at C:\\Users\\gabriel.carminitti\\Documents\\claude\\agentes\\tmp_api_1778256594\\src\\api\\specs\\practiceexpand.spec.ts:76:34\n    at C:\\Users\\gabriel.carminitti\\Documents\\claude\\agentes\\tmp_api_1778256594\\src\\api\\specs\\practiceexpand.spec.ts:72:5",
+                            "location": {
+                              "file": "C:\\Users\\gabriel.carminitti\\Documents\\claude\\agentes\\tmp_api_1778256594\\src\\api\\specs\\practiceexpand.spec.ts",
+                              "column": 34,
+                              "line": 76
+                            },
+                            "snippet": "\u001b[0m \u001b[90m 74 |\u001b[39m         data\u001b[33m:\u001b[39m { email\u001b[33m:\u001b[39m \u001b[32m'qa_agente_v3@test.com'\u001b[39m\u001b[33m,\u001b[39m password\u001b[33m:\u001b[39m \u001b[32m'Test@1234'\u001b[39m }\u001b[33m,\u001b[39m\n \u001b[90m 75 |\u001b[39m       })\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 76 |\u001b[39m       expect(loginResp\u001b[33m.\u001b[39mstatus())\u001b[33m.\u001b[39mtoBe(\u001b[35m200\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                                  \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 77 |\u001b[39m       \u001b[36mconst\u001b[39m loginData \u001b[33m=\u001b[39m \u001b[36mawait\u001b[39m loginResp\u001b[33m.\u001b[39mjson()\u001b[33m;\u001b[39m\n \u001b[90m 78 |\u001b[39m       token \u001b[33m=\u001b[39m loginData\u001b[33m.\u001b[39mdata\u001b[33m.\u001b[39mtoken\u001b[33m;\u001b[39m\n \u001b[90m 79 |\u001b[39m     })\u001b[33m;\u001b[39m\u001b[0m"
+                          }
+                        }
+                      ],
+                      "startTime": "2026-05-08T16:12:09.288Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\Users\\gabriel.carminitti\\Documents\\claude\\agentes\\tmp_api_1778256594\\reports\\test-results\\src-api-specs-practiceexpa-e0944-enticada-no-Practice-Expand\\error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "C:\\Users\\gabriel.carminitti\\Documents\\claude\\agentes\\tmp_api_1778256594\\src\\api\\specs\\practiceexpand.spec.ts",
+                        "column": 34,
+                        "line": 76
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "34121fd900bb680db88c-543559f8ea30918480c6",
+              "file": "src/api/specs/practiceexpand.spec.ts",
+              "line": 67,
+              "column": 7
+            },
+            {
+              "title": "TC-API-015 — Listar notas autenticado no Practice Expand",
+              "ok": false,
+              "tags": [
+                "api"
+              ],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [
+                    {
+                      "workerIndex": 4,
+                      "parallelIndex": 2,
+                      "status": "failed",
+                      "duration": 488,
+                      "error": {
+                        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m200\u001b[39m\nReceived: \u001b[31m404\u001b[39m",
+                        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m200\u001b[39m\nReceived: \u001b[31m404\u001b[39m\n    at C:\\Users\\gabriel.carminitti\\Documents\\claude\\agentes\\tmp_api_1778256594\\src\\api\\specs\\practiceexpand.spec.ts:109:34\n    at C:\\Users\\gabriel.carminitti\\Documents\\claude\\agentes\\tmp_api_1778256594\\src\\api\\specs\\practiceexpand.spec.ts:105:5",
+                        "location": {
+                          "file": "C:\\Users\\gabriel.carminitti\\Documents\\claude\\agentes\\tmp_api_1778256594\\src\\api\\specs\\practiceexpand.spec.ts",
+                          "column": 34,
+                          "line": 109
+                        },
+                        "snippet": "\u001b[0m \u001b[90m 107 |\u001b[39m         data\u001b[33m:\u001b[39m { email\u001b[33m:\u001b[39m \u001b[32m'qa_agente_v3@test.com'\u001b[39m\u001b[33m,\u001b[39m password\u001b[33m:\u001b[39m \u001b[32m'Test@1234'\u001b[39m }\u001b[33m,\u001b[39m\n \u001b[90m 108 |\u001b[39m       })\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 109 |\u001b[39m       expect(loginResp\u001b[33m.\u001b[39mstatus())\u001b[33m.\u001b[39mtoBe(\u001b[35m200\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m     |\u001b[39m                                  \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 110 |\u001b[39m       \u001b[36mconst\u001b[39m loginData \u001b[33m=\u001b[39m \u001b[36mawait\u001b[39m loginResp\u001b[33m.\u001b[39mjson()\u001b[33m;\u001b[39m\n \u001b[90m 111 |\u001b[39m       token \u001b[33m=\u001b[39m loginData\u001b[33m.\u001b[39mdata\u001b[33m.\u001b[39mtoken\u001b[33m;\u001b[39m\n \u001b[90m 112 |\u001b[39m     })\u001b[33m;\u001b[39m\u001b[0m"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\Users\\gabriel.carminitti\\Documents\\claude\\agentes\\tmp_api_1778256594\\src\\api\\specs\\practiceexpand.spec.ts",
+                            "column": 34,
+                            "line": 109
+                          },
+                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m200\u001b[39m\nReceived: \u001b[31m404\u001b[39m\n\n  107 |         data: { email: 'qa_agente_v3@test.com', password: 'Test@1234' },\n  108 |       });\n> 109 |       expect(loginResp.status()).toBe(200);\n      |                                  ^\n  110 |       const loginData = await loginResp.json();\n  111 |       token = loginData.data.token;\n  112 |     });\n    at C:\\Users\\gabriel.carminitti\\Documents\\claude\\agentes\\tmp_api_1778256594\\src\\api\\specs\\practiceexpand.spec.ts:109:34\n    at C:\\Users\\gabriel.carminitti\\Documents\\claude\\agentes\\tmp_api_1778256594\\src\\api\\specs\\practiceexpand.spec.ts:105:5"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "steps": [
+                        {
+                          "title": "Obter token via login",
+                          "duration": 480,
+                          "error": {
+                            "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m200\u001b[39m\nReceived: \u001b[31m404\u001b[39m",
+                            "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m200\u001b[39m\nReceived: \u001b[31m404\u001b[39m\n    at C:\\Users\\gabriel.carminitti\\Documents\\claude\\agentes\\tmp_api_1778256594\\src\\api\\specs\\practiceexpand.spec.ts:109:34\n    at C:\\Users\\gabriel.carminitti\\Documents\\claude\\agentes\\tmp_api_1778256594\\src\\api\\specs\\practiceexpand.spec.ts:105:5",
+                            "location": {
+                              "file": "C:\\Users\\gabriel.carminitti\\Documents\\claude\\agentes\\tmp_api_1778256594\\src\\api\\specs\\practiceexpand.spec.ts",
+                              "column": 34,
+                              "line": 109
+                            },
+                            "snippet": "\u001b[0m \u001b[90m 107 |\u001b[39m         data\u001b[33m:\u001b[39m { email\u001b[33m:\u001b[39m \u001b[32m'qa_agente_v3@test.com'\u001b[39m\u001b[33m,\u001b[39m password\u001b[33m:\u001b[39m \u001b[32m'Test@1234'\u001b[39m }\u001b[33m,\u001b[39m\n \u001b[90m 108 |\u001b[39m       })\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 109 |\u001b[39m       expect(loginResp\u001b[33m.\u001b[39mstatus())\u001b[33m.\u001b[39mtoBe(\u001b[35m200\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m     |\u001b[39m                                  \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 110 |\u001b[39m       \u001b[36mconst\u001b[39m loginData \u001b[33m=\u001b[39m \u001b[36mawait\u001b[39m loginResp\u001b[33m.\u001b[39mjson()\u001b[33m;\u001b[39m\n \u001b[90m 111 |\u001b[39m       token \u001b[33m=\u001b[39m loginData\u001b[33m.\u001b[39mdata\u001b[33m.\u001b[39mtoken\u001b[33m;\u001b[39m\n \u001b[90m 112 |\u001b[39m     })\u001b[33m;\u001b[39m\u001b[0m"
+                          }
+                        }
+                      ],
+                      "startTime": "2026-05-08T16:12:10.844Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\Users\\gabriel.carminitti\\Documents\\claude\\agentes\\tmp_api_1778256594\\reports\\test-results\\src-api-specs-practiceexpa-23ada-enticado-no-Practice-Expand\\error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "C:\\Users\\gabriel.carminitti\\Documents\\claude\\agentes\\tmp_api_1778256594\\src\\api\\specs\\practiceexpand.spec.ts",
+                        "column": 34,
+                        "line": 109
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "34121fd900bb680db88c-a3238d56698af638c11c",
+              "file": "src/api/specs/practiceexpand.spec.ts",
+              "line": 100,
+              "column": 7
+            },
+            {
+              "title": "TC-API-016 — Tentar criar nota sem autenticação retorna 401",
+              "ok": false,
+              "tags": [
+                "api"
+              ],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [
+                    {
+                      "workerIndex": 5,
+                      "parallelIndex": 1,
+                      "status": "failed",
+                      "duration": 1311,
+                      "error": {
+                        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m401\u001b[39m\nReceived: \u001b[31m404\u001b[39m",
+                        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m401\u001b[39m\nReceived: \u001b[31m404\u001b[39m\n    at C:\\Users\\gabriel.carminitti\\Documents\\claude\\agentes\\tmp_api_1778256594\\src\\api\\specs\\practiceexpand.spec.ts:148:34\n    at C:\\Users\\gabriel.carminitti\\Documents\\claude\\agentes\\tmp_api_1778256594\\src\\api\\specs\\practiceexpand.spec.ts:147:5",
+                        "location": {
+                          "file": "C:\\Users\\gabriel.carminitti\\Documents\\claude\\agentes\\tmp_api_1778256594\\src\\api\\specs\\practiceexpand.spec.ts",
+                          "column": 34,
+                          "line": 148
+                        },
+                        "snippet": "\u001b[0m \u001b[90m 146 |\u001b[39m\n \u001b[90m 147 |\u001b[39m     \u001b[36mawait\u001b[39m test\u001b[33m.\u001b[39mstep(\u001b[32m'Validar 401'\u001b[39m\u001b[33m,\u001b[39m \u001b[36masync\u001b[39m () \u001b[33m=>\u001b[39m {\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 148 |\u001b[39m       expect(response\u001b[33m!\u001b[39m\u001b[33m.\u001b[39mstatus())\u001b[33m.\u001b[39mtoBe(\u001b[35m401\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m     |\u001b[39m                                  \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 149 |\u001b[39m     })\u001b[33m;\u001b[39m\n \u001b[90m 150 |\u001b[39m   })\u001b[33m;\u001b[39m\n \u001b[90m 151 |\u001b[39m\u001b[0m"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\Users\\gabriel.carminitti\\Documents\\claude\\agentes\\tmp_api_1778256594\\src\\api\\specs\\practiceexpand.spec.ts",
+                            "column": 34,
+                            "line": 148
+                          },
+                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m401\u001b[39m\nReceived: \u001b[31m404\u001b[39m\n\n  146 |\n  147 |     await test.step('Validar 401', async () => {\n> 148 |       expect(response!.status()).toBe(401);\n      |                                  ^\n  149 |     });\n  150 |   });\n  151 |\n    at C:\\Users\\gabriel.carminitti\\Documents\\claude\\agentes\\tmp_api_1778256594\\src\\api\\specs\\practiceexpand.spec.ts:148:34\n    at C:\\Users\\gabriel.carminitti\\Documents\\claude\\agentes\\tmp_api_1778256594\\src\\api\\specs\\practiceexpand.spec.ts:147:5"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "steps": [
+                        {
+                          "title": "POST /notes sem x-auth-token",
+                          "duration": 1297
+                        },
+                        {
+                          "title": "Validar 401",
+                          "duration": 3,
+                          "error": {
+                            "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m401\u001b[39m\nReceived: \u001b[31m404\u001b[39m",
+                            "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m401\u001b[39m\nReceived: \u001b[31m404\u001b[39m\n    at C:\\Users\\gabriel.carminitti\\Documents\\claude\\agentes\\tmp_api_1778256594\\src\\api\\specs\\practiceexpand.spec.ts:148:34\n    at C:\\Users\\gabriel.carminitti\\Documents\\claude\\agentes\\tmp_api_1778256594\\src\\api\\specs\\practiceexpand.spec.ts:147:5",
+                            "location": {
+                              "file": "C:\\Users\\gabriel.carminitti\\Documents\\claude\\agentes\\tmp_api_1778256594\\src\\api\\specs\\practiceexpand.spec.ts",
+                              "column": 34,
+                              "line": 148
+                            },
+                            "snippet": "\u001b[0m \u001b[90m 146 |\u001b[39m\n \u001b[90m 147 |\u001b[39m     \u001b[36mawait\u001b[39m test\u001b[33m.\u001b[39mstep(\u001b[32m'Validar 401'\u001b[39m\u001b[33m,\u001b[39m \u001b[36masync\u001b[39m () \u001b[33m=>\u001b[39m {\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 148 |\u001b[39m       expect(response\u001b[33m!\u001b[39m\u001b[33m.\u001b[39mstatus())\u001b[33m.\u001b[39mtoBe(\u001b[35m401\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m     |\u001b[39m                                  \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 149 |\u001b[39m     })\u001b[33m;\u001b[39m\n \u001b[90m 150 |\u001b[39m   })\u001b[33m;\u001b[39m\n \u001b[90m 151 |\u001b[39m\u001b[0m"
+                          }
+                        }
+                      ],
+                      "startTime": "2026-05-08T16:12:10.923Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\Users\\gabriel.carminitti\\Documents\\claude\\agentes\\tmp_api_1778256594\\reports\\test-results\\src-api-specs-practiceexpa-51742-em-autenticação-retorna-401\\error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "C:\\Users\\gabriel.carminitti\\Documents\\claude\\agentes\\tmp_api_1778256594\\src\\api\\specs\\practiceexpand.spec.ts",
+                        "column": 34,
+                        "line": 148
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "34121fd900bb680db88c-c51fff2f3a868f2b7963",
+              "file": "src/api/specs/practiceexpand.spec.ts",
+              "line": 134,
+              "column": 7
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-05-08T16:12:07.789Z",
+    "duration": 4480.057,
+    "expected": 10,
+    "skipped": 0,
+    "unexpected": 6,
+    "flaky": 0
+  }
+}

@@ -1,0 +1,213 @@
+{
+  "config": {
+    "configFile": "C:\\Users\\gabriel.carminitti\\Documents\\claude\\agentes\\suite5\\tmp_api_s5_1778508362\\playwright.config.ts",
+    "rootDir": "C:/Users/gabriel.carminitti/Documents/claude/agentes/suite5/tmp_api_s5_1778508362",
+    "forbidOnly": false,
+    "fullyParallel": true,
+    "globalSetup": "C:\\Users\\gabriel.carminitti\\Documents\\claude\\agentes\\suite5\\tmp_api_s5_1778508362\\src\\support\\globalSetup.ts",
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 2
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "C:/Users/gabriel.carminitti/Documents/claude/agentes/suite5/tmp_api_s5_1778508362/reports/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 2
+        },
+        "id": "",
+        "name": "",
+        "testDir": "C:/Users/gabriel.carminitti/Documents/claude/agentes/suite5/tmp_api_s5_1778508362",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.spec.ts"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "json"
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.59.1",
+    "workers": 4,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "src\\api\\specs\\public_apis.spec.ts",
+      "file": "src/api/specs/public_apis.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Public APIs Suite5 @api",
+          "file": "src/api/specs/public_apis.spec.ts",
+          "line": 5,
+          "column": 6,
+          "specs": [
+            {
+              "title": "TC-API-S5-001 — Consultar dados do Brasil na Countries REST API",
+              "ok": true,
+              "tags": [
+                "api"
+              ],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 783,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "steps": [
+                        {
+                          "title": "Enviar GET /name/brazil",
+                          "duration": 701
+                        },
+                        {
+                          "title": "Validar resposta",
+                          "duration": 39
+                        }
+                      ],
+                      "startTime": "2026-05-11T14:06:57.422Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "9b6e73d01c53128a95dd-b0acbabbd34ad5e862e8",
+              "file": "src/api/specs/public_apis.spec.ts",
+              "line": 7,
+              "column": 7
+            },
+            {
+              "title": "TC-API-S5-002 — Consultar posição atual da ISS via Open Notify",
+              "ok": false,
+              "tags": [
+                "api"
+              ],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "failed",
+                      "duration": 7923,
+                      "error": {
+                        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m4000\u001b[39m\nReceived:   \u001b[31m7862\u001b[39m",
+                        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m4000\u001b[39m\nReceived:   \u001b[31m7862\u001b[39m\n    at C:\\Users\\gabriel.carminitti\\Documents\\claude\\agentes\\suite5\\tmp_api_s5_1778508362\\src\\api\\specs\\public_apis.spec.ts:50:27\n    at C:\\Users\\gabriel.carminitti\\Documents\\claude\\agentes\\suite5\\tmp_api_s5_1778508362\\src\\api\\specs\\public_apis.spec.ts:47:5",
+                        "location": {
+                          "file": "C:\\Users\\gabriel.carminitti\\Documents\\claude\\agentes\\suite5\\tmp_api_s5_1778508362\\src\\api\\specs\\public_apis.spec.ts",
+                          "column": 27,
+                          "line": 50
+                        },
+                        "snippet": "\u001b[0m \u001b[90m 48 |\u001b[39m       expect(response\u001b[33m.\u001b[39mstatus())\u001b[33m.\u001b[39mtoBe(\u001b[35m200\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m 49 |\u001b[39m       expect(response\u001b[33m.\u001b[39mok())\u001b[33m.\u001b[39mtoBeTruthy()\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 50 |\u001b[39m       expect(duration_ms)\u001b[33m.\u001b[39mtoBeLessThan(\u001b[35m4000\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                           \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 51 |\u001b[39m\n \u001b[90m 52 |\u001b[39m       \u001b[36mconst\u001b[39m data \u001b[33m=\u001b[39m \u001b[36mawait\u001b[39m response\u001b[33m.\u001b[39mjson()\u001b[33m;\u001b[39m\n \u001b[90m 53 |\u001b[39m       \u001b[36mconst\u001b[39m validation \u001b[33m=\u001b[39m issSchema\u001b[33m.\u001b[39msafeParse(data)\u001b[33m;\u001b[39m\u001b[0m"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\Users\\gabriel.carminitti\\Documents\\claude\\agentes\\suite5\\tmp_api_s5_1778508362\\src\\api\\specs\\public_apis.spec.ts",
+                            "column": 27,
+                            "line": 50
+                          },
+                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m4000\u001b[39m\nReceived:   \u001b[31m7862\u001b[39m\n\n  48 |       expect(response.status()).toBe(200);\n  49 |       expect(response.ok()).toBeTruthy();\n> 50 |       expect(duration_ms).toBeLessThan(4000);\n     |                           ^\n  51 |\n  52 |       const data = await response.json();\n  53 |       const validation = issSchema.safeParse(data);\n    at C:\\Users\\gabriel.carminitti\\Documents\\claude\\agentes\\suite5\\tmp_api_s5_1778508362\\src\\api\\specs\\public_apis.spec.ts:50:27\n    at C:\\Users\\gabriel.carminitti\\Documents\\claude\\agentes\\suite5\\tmp_api_s5_1778508362\\src\\api\\specs\\public_apis.spec.ts:47:5"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "steps": [
+                        {
+                          "title": "Enviar GET /iss-now.json",
+                          "duration": 7863
+                        },
+                        {
+                          "title": "Validar resposta",
+                          "duration": 20,
+                          "error": {
+                            "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m4000\u001b[39m\nReceived:   \u001b[31m7862\u001b[39m",
+                            "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m4000\u001b[39m\nReceived:   \u001b[31m7862\u001b[39m\n    at C:\\Users\\gabriel.carminitti\\Documents\\claude\\agentes\\suite5\\tmp_api_s5_1778508362\\src\\api\\specs\\public_apis.spec.ts:50:27\n    at C:\\Users\\gabriel.carminitti\\Documents\\claude\\agentes\\suite5\\tmp_api_s5_1778508362\\src\\api\\specs\\public_apis.spec.ts:47:5",
+                            "location": {
+                              "file": "C:\\Users\\gabriel.carminitti\\Documents\\claude\\agentes\\suite5\\tmp_api_s5_1778508362\\src\\api\\specs\\public_apis.spec.ts",
+                              "column": 27,
+                              "line": 50
+                            },
+                            "snippet": "\u001b[0m \u001b[90m 48 |\u001b[39m       expect(response\u001b[33m.\u001b[39mstatus())\u001b[33m.\u001b[39mtoBe(\u001b[35m200\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m 49 |\u001b[39m       expect(response\u001b[33m.\u001b[39mok())\u001b[33m.\u001b[39mtoBeTruthy()\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 50 |\u001b[39m       expect(duration_ms)\u001b[33m.\u001b[39mtoBeLessThan(\u001b[35m4000\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                           \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 51 |\u001b[39m\n \u001b[90m 52 |\u001b[39m       \u001b[36mconst\u001b[39m data \u001b[33m=\u001b[39m \u001b[36mawait\u001b[39m response\u001b[33m.\u001b[39mjson()\u001b[33m;\u001b[39m\n \u001b[90m 53 |\u001b[39m       \u001b[36mconst\u001b[39m validation \u001b[33m=\u001b[39m issSchema\u001b[33m.\u001b[39msafeParse(data)\u001b[33m;\u001b[39m\u001b[0m"
+                          }
+                        }
+                      ],
+                      "startTime": "2026-05-11T14:06:57.276Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\Users\\gabriel.carminitti\\Documents\\claude\\agentes\\suite5\\tmp_api_s5_1778508362\\reports\\test-results\\src-api-specs-public_apis--b6ee2-tual-da-ISS-via-Open-Notify\\error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "C:\\Users\\gabriel.carminitti\\Documents\\claude\\agentes\\suite5\\tmp_api_s5_1778508362\\src\\api\\specs\\public_apis.spec.ts",
+                        "column": 27,
+                        "line": 50
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "9b6e73d01c53128a95dd-4f8aaf835b12c9b32b3d",
+              "file": "src/api/specs/public_apis.spec.ts",
+              "line": 37,
+              "column": 7
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-05-11T14:06:55.410Z",
+    "duration": 9912.204,
+    "expected": 1,
+    "skipped": 0,
+    "unexpected": 1,
+    "flaky": 0
+  }
+}

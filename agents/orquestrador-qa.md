@@ -106,8 +106,13 @@ Inclua **sempre** na pergunta ao usuário, independentemente dos outros itens:
 >
 > **Modo de execução (browser):** *(apenas se houver testes com executor `magnitude` ou `http` de tipo browser)*
 > - "Deseja executar os testes de browser com o navegador visível em tempo real? (S/N — padrão: N, headless)"
+>
+> **Evidências visuais (screenshots e vídeos):**
+> - "Deseja capturar screenshots e vídeos de **todos** os testes, incluindo os que passarem? (S — gera evidência completa para tudo / N — somente falhas têm screenshots e vídeos obrigatórios — padrão: N)"
 
 Se o usuário não informar um diretório, use `"."` (diretório atual). Armazene as respostas como `code_output_dir` e `report_output_dir`.
+
+Se o usuário responder **S** para evidências visuais, armazene `screenshot_all: true`; caso contrário, `screenshot_all: false`.
 
 ### Envio da pergunta
 
@@ -127,7 +132,8 @@ contexto = {
   suite_dir: "suite_[nome]_[YYYYMMDD_HHMMSS]",
   code_output_dir: "/caminho/escolhido" | ".",
   report_output_dir: "/caminho/escolhido" | ".",
-  headed: true | false
+  headed: true | false,
+  screenshot_all: true | false
 }
 ```
 
@@ -184,7 +190,8 @@ Execute **todos** os tipos identificados. Nunca pergunte se deve executar um sub
   },
   "db_connection": "postgresql://...",
   "environment_notes": "...",
-  "suite_dir": "suite_[nome]_[YYYYMMDD_HHMMSS]"
+  "suite_dir": "suite_[nome]_[YYYYMMDD_HHMMSS]",
+  "screenshot_all": true | false
 }
 
 ## Testes a executar
@@ -257,6 +264,7 @@ Após receber os resultados de todos os executores, invoque o subagente `reporte
 - A URL do ambiente testado
 - Os tipos que não foram executados e o motivo
 - O valor de `suite_dir` (para exibir no cabeçalho do relatório)
+- O valor de `screenshot_all` (`true` ou `false`) coletado na Etapa 2f
 
 O `reporter-qa` retornará um HTML completo como resposta. Após recebê-lo:
 

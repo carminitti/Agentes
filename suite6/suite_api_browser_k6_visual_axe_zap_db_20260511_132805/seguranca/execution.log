@@ -1,0 +1,46 @@
+[2026-05-11 13:39:23] === executor-seguranca -- inicio ===
+[2026-05-11 13:39:23] Modo: analise nao invasiva de headers HTTP
+[2026-05-11 13:39:23] Executando TC-SEC-S6-001...
+[2026-05-11 13:39:25]   [REQUEST] GET https://api.adviceslip.com/advice
+[2026-05-11 13:39:25]   [RESPONSE] 200
+[2026-05-11 13:39:25]   [ASSERT] status 200 OK
+[2026-05-11 13:39:25]   [ASSERT] Content-Type='text/html; charset=UTF-8' AVISO
+[2026-05-11 13:39:25]   [ASSERT] Server='Apache' OK
+[2026-05-11 13:39:25]   [WARN] Header 'x-frame-options' ausente em /advice (nao bloqueante)
+[2026-05-11 13:39:25]   [ASSERT] Sem stack trace OK
+[2026-05-11 13:39:25]   [REQUEST] GET https://api.adviceslip.com/advice/search/work
+[2026-05-11 13:39:25]   [RESPONSE] 200
+[2026-05-11 13:39:25]   [ASSERT] status 200 OK
+[2026-05-11 13:39:25]   [ASSERT] Content-Type='text/html; charset=UTF-8' AVISO
+[2026-05-11 13:39:25]   [ASSERT] Server='Apache' OK
+[2026-05-11 13:39:25]   [WARN] Header 'x-frame-options' ausente em /advice/search/work (nao bloqueante)
+[2026-05-11 13:39:25]   [ASSERT] Sem stack trace OK
+[2026-05-11 13:39:25]   -> STATUS: PASSED
+[2026-05-11 13:39:25]   [WARN] 4 avisos nao bloqueantes
+[2026-05-11 13:39:25] [TC-SEC-S6-001] -> PASSED
+[2026-05-11 13:39:25] Executando TC-SEC-S6-002...
+[2026-05-11 13:39:26]   [REQUEST] GET https://opentdb.com/api.php?amount=1
+[2026-05-11 13:39:26]   [RESPONSE] 200
+[2026-05-11 13:39:26]   [ASSERT] status 200 OK
+[2026-05-11 13:39:26]   [ASSERT] Content-Type='application/json' OK
+[2026-05-11 13:39:26]   [ASSERT] Server='Apache' OK
+[2026-05-11 13:39:26]   [WARN] Header 'content-security-policy' ausente em /api.php?amount=1 (nao bloqueante)
+[2026-05-11 13:39:26]   [WARN] Header 'x-frame-options' ausente em /api.php?amount=1 (nao bloqueante)
+[2026-05-11 13:39:26]   [WARN] Header 'x-content-type-options' ausente em /api.php?amount=1 (nao bloqueante)
+[2026-05-11 13:39:26]   [WARN] Header 'referrer-policy' ausente em /api.php?amount=1 (nao bloqueante)
+[2026-05-11 13:39:26]   [ASSERT] Sem stack trace OK
+[2026-05-11 13:39:26]   [REQUEST] GET https://opentdb.com/api_token.php?command=request
+[2026-05-11 13:39:26]   [RESPONSE] 200
+[2026-05-11 13:39:26]   [ASSERT] status 200 OK
+[2026-05-11 13:39:26]   [ASSERT] Content-Type='application/json' OK
+[2026-05-11 13:39:26]   [ASSERT] Server='Apache' OK
+[2026-05-11 13:39:26]   [WARN] Header 'content-security-policy' ausente em /api_token.php?command=request (nao bloqueante)
+[2026-05-11 13:39:26]   [WARN] Header 'x-frame-options' ausente em /api_token.php?command=request (nao bloqueante)
+[2026-05-11 13:39:26]   [WARN] Header 'x-content-type-options' ausente em /api_token.php?command=request (nao bloqueante)
+[2026-05-11 13:39:26]   [WARN] Header 'referrer-policy' ausente em /api_token.php?command=request (nao bloqueante)
+[2026-05-11 13:39:26]   [ASSERT] Sem stack trace OK
+[2026-05-11 13:39:26]   [ASSERT] tokens unicos por sessao OK
+[2026-05-11 13:39:26]   -> STATUS: PASSED
+[2026-05-11 13:39:26]   [WARN] 8 avisos nao bloqueantes
+[2026-05-11 13:39:26] [TC-SEC-S6-002] -> PASSED
+[2026-05-11 13:39:26] === Fim: 2 passou, 0 falhou ===

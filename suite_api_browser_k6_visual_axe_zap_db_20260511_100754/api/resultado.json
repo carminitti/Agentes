@@ -1,0 +1,91 @@
+{
+  "executor": "api",
+  "environment": "https://reqres.in/api",
+  "credentials_failed": false,
+  "generated_files": null,
+  "results": [
+    {
+      "id": "TC-API-S3-001",
+      "title": "Autenticar usuario valido e receber token",
+      "status": "failed",
+      "duration_ms": 637,
+      "details": {
+        "method": "POST",
+        "url": "https://reqres.in/api/login",
+        "status_code": 401,
+        "validations": [
+          {
+            "check": "status == 200",
+            "result": "failed"
+          },
+          {
+            "check": "campo token presente e nao vazio",
+            "result": "failed"
+          },
+          {
+            "check": "tempo de resposta < 3000ms (637ms)",
+            "result": "passed"
+          }
+        ]
+      },
+      "logs": [
+        "[REQUEST] POST https://reqres.in/api/login",
+        "[RESPONSE] 401 - 637ms",
+        "[ASSERT] status == 200 x",
+        "[ASSERT] campo token:  x",
+        "[ASSERT] tempo < 3000ms (637ms) v"
+      ],
+      "error": "Falha nas validacoes"
+    },
+    {
+      "id": "TC-API-S3-002",
+      "title": "Listar usuarios pagina 2 e validar estrutura",
+      "status": "failed",
+      "duration_ms": 256,
+      "details": {
+        "method": "GET",
+        "url": "https://reqres.in/api/users?page=2",
+        "status_code": 401,
+        "validations": [
+          {
+            "check": "status == 200",
+            "result": "failed"
+          },
+          {
+            "check": "page == 2",
+            "result": "failed"
+          },
+          {
+            "check": "data >= 1 item (0 itens)",
+            "result": "failed"
+          },
+          {
+            "check": "campos id/email/first_name/last_name",
+            "result": "failed"
+          },
+          {
+            "check": "tempo < 3000ms (256ms)",
+            "result": "passed"
+          }
+        ]
+      },
+      "logs": [
+        "[REQUEST] GET https://reqres.in/api/users?page=2",
+        "[RESPONSE] 401 - 256ms",
+        "[ASSERT] status==200 x",
+        "[ASSERT] page==None x",
+        "[ASSERT] data 0 itens x",
+        "[ASSERT] campos estruturais x",
+        "[ASSERT] tempo 256ms v"
+      ],
+      "error": "Falha"
+    }
+  ],
+  "summary": {
+    "total": 2,
+    "passed": 0,
+    "failed": 2,
+    "skipped": 0,
+    "credentials_failed": false
+  }
+}

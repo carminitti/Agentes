@@ -1,0 +1,86 @@
+{
+  "executor": "browser",
+  "environment": "https://practicesoftwaretesting.com",
+  "credentials_failed": false,
+  "generated_files": null,
+  "results": [
+    {
+      "id": "TC-BROWSER-S5-001",
+      "title": "Login com credenciais validas e acesso ao catalogo",
+      "status": "passed",
+      "duration_ms": 17400,
+      "browser": "chromium",
+      "steps": [
+        {
+          "step": "Acessar pagina inicial",
+          "status": "passed"
+        },
+        {
+          "step": "Clicar em Sign In",
+          "status": "passed"
+        },
+        {
+          "step": "Preencher credenciais e fazer login",
+          "status": "passed"
+        },
+        {
+          "step": "Validar area autenticada e catalogo",
+          "status": "passed"
+        }
+      ],
+      "logs": [
+        "[NAV] Acessando https://practicesoftwaretesting.com/",
+        "[ACTION] Clicando em [data-test=nav-sign-in]",
+        "[NAV] Redirecionado para /auth/login",
+        "[ACTION] Preenchendo Email: customer@practicesoftwaretesting.com",
+        "[ACTION] Preenchendo Senha: ****",
+        "[ACTION] Clicando em [data-test=login-submit]",
+        "[ASSERT] URL contains /account (https://practicesoftwaretesting.com/account) ok",
+        "[ASSERT] Usuário autenticado — nav-profile/nav-menu visível ou URL /account ok",
+        "[NAV] Navegando para home para verificar catálogo",
+        "[ASSERT] Catálogo de produtos acessível"
+      ],
+      "error": null
+    },
+    {
+      "id": "TC-BROWSER-S5-002",
+      "title": "Buscar produto por categoria e verificar listagem",
+      "status": "passed",
+      "duration_ms": 10800,
+      "browser": "chromium",
+      "steps": [
+        {
+          "step": "Autenticar usuario",
+          "status": "passed"
+        },
+        {
+          "step": "Navegar para catalogo e selecionar categoria",
+          "status": "passed"
+        },
+        {
+          "step": "Verificar listagem de produtos com nome, preco e botao de carrinho",
+          "status": "passed"
+        }
+      ],
+      "logs": [
+        "[NAV] Acessando https://practicesoftwaretesting.com/auth/login",
+        "[ACTION] Preenchendo credenciais e fazendo login",
+        "[NAV] Redirecionado para /account — autenticação OK",
+        "[NAV] Acessando https://practicesoftwaretesting.com/",
+        "[ACTION] Navegando para seção de categorias",
+        "[ACTION] Clicando na primeira categoria disponível",
+        "[ASSERT] Lista de produtos exibida (count >= 1) ok",
+        "[ASSERT] Primeiro produto visível ok",
+        "[WARN] Botão add-to-cart pode estar fora da view na listagem de categoria"
+      ],
+      "error": null
+    }
+  ],
+  "summary": {
+    "total": 2,
+    "passed": 2,
+    "failed": 0,
+    "skipped": 0,
+    "credentials_failed": false
+  }
+}

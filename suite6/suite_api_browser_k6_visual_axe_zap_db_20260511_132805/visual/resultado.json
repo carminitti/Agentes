@@ -1,0 +1,80 @@
+{
+  "executor": "visual",
+  "environment": "https://webaim.org + https://pokeapi.co",
+  "credentials_failed": false,
+  "generated_files": null,
+  "results": [
+    {
+      "id": "TC-VISUAL-S6-001",
+      "title": "Regressao visual do artigo de contraste de cores do WebAIM",
+      "status": "passed",
+      "duration_ms": 4100,
+      "browser": "chromium",
+      "baseline_status": "baseline_created",
+      "diff_percent": 0.0,
+      "screenshot_path": "baselines/webaim-contrast.png",
+      "steps": [
+        {
+          "step": "Acessar pagina WebAIM contrast",
+          "status": "passed"
+        },
+        {
+          "step": "Ocultar elementos dinamicos e capturar screenshot",
+          "status": "passed"
+        },
+        {
+          "step": "Comparar com baseline",
+          "status": "passed"
+        }
+      ],
+      "logs": [
+        "[NAV] Acessando https://webaim.org/articles/contrast/ (headed)",
+        "[ACTION] Aguardando elemento 'main, article'",
+        "[ACTION] Ocultando banners de cookie via evaluate()",
+        "[VISUAL] Baseline criado: webaim-contrast.png. Marcar para validacao manual.",
+        "[ASSERT] Baseline criado (primeira execucao) -> PASSED",
+        "-> STATUS: PASSED"
+      ],
+      "error": null
+    },
+    {
+      "id": "TC-VISUAL-S6-002",
+      "title": "Regressao visual da homepage da documentacao PokeAPI",
+      "status": "passed",
+      "duration_ms": 3300,
+      "browser": "chromium",
+      "baseline_status": "baseline_created",
+      "diff_percent": 0.0,
+      "screenshot_path": "baselines/pokeapi-home.png",
+      "steps": [
+        {
+          "step": "Acessar homepage PokeAPI",
+          "status": "passed"
+        },
+        {
+          "step": "Capturar screenshot acima da dobra",
+          "status": "passed"
+        },
+        {
+          "step": "Comparar com baseline",
+          "status": "passed"
+        }
+      ],
+      "logs": [
+        "[NAV] Acessando https://pokeapi.co (headed)",
+        "[ACTION] Aguardando elemento 'main, .landing'",
+        "[VISUAL] Baseline criado: pokeapi-home.png. Marcar para validacao manual.",
+        "[ASSERT] Baseline criado (primeira execucao) -> PASSED",
+        "-> STATUS: PASSED"
+      ],
+      "error": null
+    }
+  ],
+  "summary": {
+    "total": 2,
+    "passed": 2,
+    "failed": 0,
+    "skipped": 0,
+    "credentials_failed": false
+  }
+}

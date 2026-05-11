@@ -1,0 +1,58 @@
+[2026-05-11 08:48:24] === executor-seguranca -- inicio ===
+[2026-05-11 08:48:24] Ambientes: swapi.dev, restful-booker.herokuapp.com
+[2026-05-11 08:48:24] [TC-SEC-001] Headers seguranca SWAPI
+[2026-05-11 08:48:24]   [CHECK] GET https://swapi.dev/api/ -> 200
+[2026-05-11 08:48:24]   [CHECK] Strict-Transport-Security: presente 
+[2026-05-11 08:48:24]   [CHECK] X-Content-Type-Options: AUSENTE (warning -- API publica) 
+[2026-05-11 08:48:24]   [CHECK] X-Frame-Options: presente 
+[2026-05-11 08:48:24]   [CHECK] Content-Security-Policy: AUSENTE (warning -- API publica) 
+[2026-05-11 08:48:24]   [CHECK] Server header: "nginx/1.16.1" -> FALHOU
+[2026-05-11 08:48:24]   -> STATUS: FAILED
+[2026-05-11 08:48:24] [TC-SEC-002] Endpoints sensiveis SWAPI
+[2026-05-11 08:48:24]   [CHECK] GET /admin -> 200 FALHOU
+[2026-05-11 08:48:24]   [CHECK] GET /.env -> 404 OK
+[2026-05-11 08:48:24]   [CHECK] GET /.git -> 404 OK
+[2026-05-11 08:48:24]   [CHECK] GET /debug -> 404 OK
+[2026-05-11 08:48:24]   [CHECK] GET /config -> 404 OK
+[2026-05-11 08:48:24]   [CHECK] GET /swagger -> 404 OK
+[2026-05-11 08:48:24]   [CHECK] GET /api-docs -> 404 OK
+[2026-05-11 08:48:24]   -> STATUS: FAILED
+[2026-05-11 08:48:24] [TC-SEC-003] CORS SWAPI
+[2026-05-11 08:48:24]   [CHECK] CORS GET: Access-Control-Allow-Origin = "*"
+[2026-05-11 08:48:24]   [CHECK] CORS OPTIONS: Access-Control-Allow-Origin = "*"
+[2026-05-11 08:48:24]   [CHECK] CORS aceita origem maliciosa -> warning (API publica de teste)
+[2026-05-11 08:48:24]   -> STATUS: WARNING
+[2026-05-11 08:48:24] [TC-SEC-004] RB endpoint protegido 403
+[2026-05-11 08:48:24]   [CHECK] DELETE /booking/1 sem auth -> 403 OK
+[2026-05-11 08:48:24]   -> STATUS: PASSED
+[2026-05-11 08:48:24] [TC-SEC-005] RB token invalido rejeitado
+[2026-05-11 08:48:24]   [CHECK] DELETE com token invalido -> 403 OK
+[2026-05-11 08:48:24]   -> STATUS: PASSED
+[2026-05-11 08:48:24] [TC-SEC-006] Headers seguranca Restful-Booker
+[2026-05-11 08:48:24]   [CHECK] Strict-Transport-Security: AUSENTE (medium) 
+[2026-05-11 08:48:24]   [CHECK] X-Content-Type-Options: AUSENTE (medium) 
+[2026-05-11 08:48:24]   [CHECK] X-Frame-Options: AUSENTE (medium) 
+[2026-05-11 08:48:24]   [CHECK] Content-Security-Policy: AUSENTE (medium) 
+[2026-05-11 08:48:24]   -> STATUS: FAILED
+[2026-05-11 08:48:24] [TC-SEC-007] CORS preflight Restful-Booker
+[2026-05-11 08:48:24]   [CHECK] OPTIONS CORS: Access-Control-Allow-Origin = ""
+[2026-05-11 08:48:24]   [CHECK] ACAO != * : OK
+[2026-05-11 08:48:24]   [CHECK] ACAO nao contem malicious : OK
+[2026-05-11 08:48:24]   -> STATUS: PASSED
+[2026-05-11 08:48:24] [TC-SEC-008] Endpoints sensiveis Restful-Booker
+[2026-05-11 08:48:24]   [CHECK] GET /admin -> 404 OK
+[2026-05-11 08:48:24]   [CHECK] GET /.env -> 404 OK
+[2026-05-11 08:48:24]   [CHECK] GET /debug -> 404 OK
+[2026-05-11 08:48:24]   [CHECK] GET /actuator -> 404 OK
+[2026-05-11 08:48:24]   [CHECK] GET /metrics -> 404 OK
+[2026-05-11 08:48:24]   [CHECK] GET /swagger -> 404 OK
+[2026-05-11 08:48:24]   -> STATUS: PASSED
+[2026-05-11 08:48:24] [TC-SEC-009] Resposta GET sem campos sensiveis
+[2026-05-11 08:48:24]   [CHECK] GET /booking/1 -> 200 OK
+[2026-05-11 08:48:24]   [CHECK] campo "password" na resposta: ausente (OK)
+[2026-05-11 08:48:24]   [CHECK] campo "cpf" na resposta: ausente (OK)
+[2026-05-11 08:48:24]   [CHECK] campo "ssn" na resposta: ausente (OK)
+[2026-05-11 08:48:24]   [CHECK] campo "credit_card" na resposta: ausente (OK)
+[2026-05-11 08:48:24]   [CHECK] campo "secret" na resposta: ausente (OK)
+[2026-05-11 08:48:24]   -> STATUS: PASSED
+[2026-05-11 08:48:24] === Fim: 5 passou, 3 falhou, 1 warning ===

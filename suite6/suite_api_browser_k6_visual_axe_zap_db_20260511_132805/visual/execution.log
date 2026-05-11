@@ -1,0 +1,5 @@
+[2026-05-11 13:44:49] === executor-visual -- inicio ===
+[2026-05-11 13:44:49] Modo: headed, threshold=2%
+[2026-05-11 13:44:49] [TC-VISUAL-S6-001] -> PASSED (baseline_status=baseline_created)
+[2026-05-11 13:44:49] [TC-VISUAL-S6-002] -> PASSED (baseline_status=baseline_created)
+[2026-05-11 13:44:49] === Fim: 2 passou, 0 falhou ===

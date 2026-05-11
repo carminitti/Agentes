@@ -1,0 +1,193 @@
+{
+  "executor": "security",
+  "environment": "fakestoreapi.com + reqres.in",
+  "environment_type": "public_test_api",
+  "credentials_failed": false,
+  "results": [
+    {
+      "id": "TC-SEC-S3-001",
+      "title": "Headers de seguranca e CORS na FakeStore API",
+      "status": "warning",
+      "checks": [
+        {
+          "check": "X-Content-Type-Options em /products",
+          "result": "warning",
+          "actual": "ausente"
+        },
+        {
+          "check": "X-Frame-Options em /products",
+          "result": "warning",
+          "actual": "ausente"
+        },
+        {
+          "check": "Strict-Transport-Security em /products",
+          "result": "warning",
+          "actual": "ausente"
+        },
+        {
+          "check": "Content-Security-Policy em /products",
+          "result": "warning",
+          "actual": "ausente"
+        },
+        {
+          "check": "Server sem versao em /products",
+          "result": "passed",
+          "actual": "cloudflare"
+        },
+        {
+          "check": "CORS origin malicious em /products",
+          "result": "warning",
+          "actual": "*"
+        },
+        {
+          "check": "X-Content-Type-Options em /products/1",
+          "result": "warning",
+          "actual": "ausente"
+        },
+        {
+          "check": "X-Frame-Options em /products/1",
+          "result": "warning",
+          "actual": "ausente"
+        },
+        {
+          "check": "Strict-Transport-Security em /products/1",
+          "result": "warning",
+          "actual": "ausente"
+        },
+        {
+          "check": "Content-Security-Policy em /products/1",
+          "result": "warning",
+          "actual": "ausente"
+        },
+        {
+          "check": "Server sem versao em /products/1",
+          "result": "passed",
+          "actual": "cloudflare"
+        },
+        {
+          "check": "CORS origin malicious em /products/1",
+          "result": "warning",
+          "actual": "*"
+        },
+        {
+          "check": "X-Content-Type-Options em /users",
+          "result": "warning",
+          "actual": "ausente"
+        },
+        {
+          "check": "X-Frame-Options em /users",
+          "result": "warning",
+          "actual": "ausente"
+        },
+        {
+          "check": "Strict-Transport-Security em /users",
+          "result": "warning",
+          "actual": "ausente"
+        },
+        {
+          "check": "Content-Security-Policy em /users",
+          "result": "warning",
+          "actual": "ausente"
+        },
+        {
+          "check": "Server sem versao em /users",
+          "result": "passed",
+          "actual": "cloudflare"
+        },
+        {
+          "check": "CORS origin malicious em /users",
+          "result": "warning",
+          "actual": "*"
+        }
+      ],
+      "severity": "low",
+      "note": "API publica de teste - comportamento esperado",
+      "logs": [
+        "[ENV] environment_type: public_test_api",
+        "[CHECK] GET /products -> 200",
+        "[CHECK] X-Content-Type-Options em /products: AUSENTE - warning",
+        "[CHECK] X-Frame-Options em /products: AUSENTE - warning",
+        "[CHECK] Strict-Transport-Security em /products: AUSENTE - warning",
+        "[CHECK] Content-Security-Policy em /products: AUSENTE - warning",
+        "[CHECK] Server em /products: \"cloudflare\" - passed",
+        "[CHECK] CORS /products ACAO=* - warning",
+        "[CHECK] GET /products/1 -> 200",
+        "[CHECK] X-Content-Type-Options em /products/1: AUSENTE - warning",
+        "[CHECK] X-Frame-Options em /products/1: AUSENTE - warning",
+        "[CHECK] Strict-Transport-Security em /products/1: AUSENTE - warning",
+        "[CHECK] Content-Security-Policy em /products/1: AUSENTE - warning",
+        "[CHECK] Server em /products/1: \"cloudflare\" - passed",
+        "[CHECK] CORS /products/1 ACAO=* - warning",
+        "[CHECK] GET /users -> 200",
+        "[CHECK] X-Content-Type-Options em /users: AUSENTE - warning",
+        "[CHECK] X-Frame-Options em /users: AUSENTE - warning",
+        "[CHECK] Strict-Transport-Security em /users: AUSENTE - warning",
+        "[CHECK] Content-Security-Policy em /users: AUSENTE - warning",
+        "[CHECK] Server em /users: \"cloudflare\" - passed",
+        "[CHECK] CORS /users ACAO=* - warning"
+      ],
+      "error": null
+    },
+    {
+      "id": "TC-SEC-S3-002",
+      "title": "Protecao de endpoints no Reqres.in",
+      "status": "warning",
+      "checks": [
+        {
+          "check": "GET /users retorna 200 (publica)",
+          "result": "warning",
+          "actual": 401
+        },
+        {
+          "check": "GET /unknown retorna 200 (publica)",
+          "result": "warning",
+          "actual": 401
+        },
+        {
+          "check": "POST /register sem body retorna 400 ou 422",
+          "result": "warning",
+          "actual": 401
+        },
+        {
+          "check": "Sem stack trace em /register",
+          "result": "passed",
+          "actual": "limpa"
+        },
+        {
+          "check": "POST /login invalido retorna 400",
+          "result": "warning",
+          "actual": 401
+        },
+        {
+          "check": "Sem stack trace em /login erro",
+          "result": "passed",
+          "actual": "limpa"
+        }
+      ],
+      "severity": null,
+      "note": "API publica de teste - comportamento esperado",
+      "logs": [
+        "[ENV] environment_type: public_test_api",
+        "[CHECK] GET /users -> 401 inesperado",
+        "[CHECK] GET /unknown -> 401 inesperado",
+        "[CHECK] POST /register sem body -> 401 inesperado",
+        "[CHECK] Stack trace /register: nenhum ok",
+        "[CHECK] POST /login invalido -> 401 inesperado",
+        "[CHECK] Stack trace /login erro: nenhum ok"
+      ],
+      "error": null
+    }
+  ],
+  "ssl_warning": null,
+  "summary": {
+    "total": 2,
+    "passed": 0,
+    "failed": 0,
+    "warning": 2,
+    "by_severity": {
+      "high": 0,
+      "medium": 0,
+      "low": 0
+    }
+  }
+}

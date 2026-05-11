@@ -39,6 +39,7 @@ Se essa seção estiver presente:
 - `auth` null ou ausente → não defina `USER_EMAIL`/`USER_PASSWORD` no `.env` e não inclua `AUTH_REQUIRED`; o `globalSetup` retornará imediatamente sem tentar auth
 - `suite_dir` → se presente, use `[suite_dir]/browser/` como diretório de artefatos; crie com `fs.mkdirSync`
 - `headed` → se `true`, defina `HEADED=true` no `.env`; se `false` ou ausente, não defina (padrão headless)
+- `screenshot_all` → se `true`, defina `SCREENSHOT_ALL=true` no `.env`; se `false` ou ausente, não defina (padrão: evidências apenas para falhas)
 - `code_output_dir` → se presente, crie o diretório `tmp_browser_[timestamp]` dentro desse caminho em vez da raiz do projeto
 - `environment_notes` → aplique as regras abaixo conforme palavras-chave:
   - Contém `certificado`, `SSL`, `autoassinado` ou `self-signed` → adicione `ignoreHTTPSErrors: true` no `playwright.config.ts`
@@ -434,8 +435,8 @@ Para cada conjunto de testes:
        ignoreHTTPSErrors: true,
        baseURL: process.env.BASE_URL,
        trace: 'retain-on-failure',
-       screenshot: 'on',
-       video: 'on',
+       screenshot: process.env.SCREENSHOT_ALL === 'true' ? 'on' : 'only-on-failure',
+       video: process.env.SCREENSHOT_ALL === 'true' ? 'on' : 'retain-on-failure',
      },
    });
    ```
@@ -520,9 +521,10 @@ Durante a execução, colete um log de cada ação relevante realizada por cada 
 
 ## Persistência obrigatória em disco
 
-**Inclua `SUITE_DIR` no `.env` gerado** (quando `suite_dir` vier no contexto):
+**Inclua `SUITE_DIR` e `SCREENSHOT_ALL` no `.env` gerado** (quando presentes no contexto):
 ```
 SUITE_DIR=suite_browser_20260511_100000
+SCREENSHOT_ALL=true   # apenas quando screenshot_all: true no contexto; omita quando false
 ```
 
 Ao final de cada execução, grave os artefatos no diretório correto:

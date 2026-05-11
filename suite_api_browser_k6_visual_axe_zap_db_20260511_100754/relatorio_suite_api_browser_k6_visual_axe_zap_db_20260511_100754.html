@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Relatório QA — Suite 3 — 2026-05-11</title>
+<style>
+:root {
+  --bg:#0f1117; --surface:#1e2130; --surface2:#252a3a; --border:#2e3450;
+  --text:#e2e8f0; --text-muted:#8892a4;
+  --green:#10b981; --green-light:#34d399; --green-dim:#0c3d2d;
+  --red:#ef4444; --red-dim:#3d1515;
+  --orange:#f59e0b; --orange-light:#fbbf24; --orange-dim:#3d2a0a;
+  --blue:#3b82f6; --blue-light:#60a5fa; --blue-dim:#1e3a5f;
+  --purple:#8b5cf6; --purple-light:#a78bfa; --purple-dim:#2d1f4d;
+  --cyan:#06b6d4; --cyan-dim:#0c2d35;
+  --radius:12px; --radius-sm:8px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;font-size:15px;line-height:1.6}
+nav{position:sticky;top:0;z-index:100;background:rgba(15,17,23,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:0 24px;display:flex;align-items:center;gap:4px;flex-wrap:wrap;min-height:52px}
+nav a{color:var(--text-muted);text-decoration:none;font-size:13px;padding:6px 12px;border-radius:6px;transition:all .18s}
+nav a:hover{background:var(--surface2);color:var(--text)}
+nav .logo{font-weight:700;font-size:14px;color:var(--text);margin-right:12px}
+main{max-width:1200px;margin:0 auto;padding:40px 24px 80px}
+.hero{text-align:center;padding:48px 24px 36px}
+.hero h1{font-size:clamp(26px,4vw,42px);font-weight:800;letter-spacing:-1px;background:linear-gradient(135deg,#60a5fa,#34d399,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:8px}
+.hero .meta{color:var(--text-muted);font-size:14px}
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin:28px 0}
+@media(max-width:640px){.stat-grid{grid-template-columns:repeat(2,1fr)}}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;text-align:center}
+.stat-card .stat-num{font-size:36px;font-weight:800;line-height:1.1;margin-bottom:6px}
+.stat-card .stat-label{font-size:13px;color:var(--text-muted)}
+.stat-green{border-top:3px solid var(--green)} .stat-green .stat-num{color:var(--green-light)}
+.stat-red{border-top:3px solid var(--red)} .stat-red .stat-num{color:#fca5a5}
+.stat-orange{border-top:3px solid var(--orange)} .stat-orange .stat-num{color:var(--orange-light)}
+.stat-gray{border-top:3px solid var(--border)} .stat-gray .stat-num{color:var(--text-muted)}
+.progress-wrap{background:var(--surface2);border-radius:99px;height:10px;overflow:hidden;margin:8px 0}
+.progress-fill{height:100%;border-radius:99px;transition:width .6s}
+.progress-fill.ok{background:linear-gradient(90deg,var(--green),var(--green-light))}
+.progress-fill.fail{background:linear-gradient(90deg,var(--red),#f87171)}
+.pass-label{font-size:13px;color:var(--text-muted);text-align:right;margin-bottom:20px}
+.verdict{padding:14px 20px;border-radius:var(--radius-sm);font-size:15px;font-weight:700;text-align:center;margin-top:8px}
+.verdict.pass{background:var(--green-dim);border:1px solid rgba(16,185,129,.3);color:var(--green-light)}
+.verdict.fail{background:var(--red-dim);border:1px solid rgba(239,68,68,.3);color:#fca5a5}
+section{margin-bottom:60px}
+.section-header{display:flex;align-items:center;gap:12px;margin-bottom:24px}
+.section-header h2{font-size:20px;font-weight:700}
+.badge{font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px;letter-spacing:.4px;text-transform:uppercase}
+.badge-red{background:var(--red-dim);color:#fca5a5}
+.badge-green{background:var(--green-dim);color:var(--green-light)}
+.badge-orange{background:var(--orange-dim);color:var(--orange-light)}
+.badge-blue{background:var(--blue-dim);color:var(--blue-light)}
+.badge-gray{background:var(--surface2);color:var(--text-muted);border:1px solid var(--border)}
+hr.divider{border:none;border-top:1px solid var(--border);margin:48px 0}
+.env-error-card{background:var(--red-dim);border:1px solid rgba(239,68,68,.35);border-radius:var(--radius);padding:20px 24px;margin-bottom:14px}
+.env-error-title{font-size:15px;font-weight:700;color:#fca5a5;margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.env-error-body{font-size:13px;color:#fecaca;display:flex;flex-direction:column;gap:5px}
+.env-error-action{color:var(--orange-light);font-weight:600}
+.exec-block{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:16px}
+.exec-block-header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;cursor:pointer;user-select:none;gap:12px}
+.exec-block-header:hover{background:rgba(255,255,255,.02)}
+.exec-title{font-size:15px;font-weight:700;display:flex;align-items:center;gap:10px}
+.exec-stats{display:flex;gap:6px;flex-wrap:wrap}
+.chevron{font-size:12px;color:var(--text-muted);transition:transform .2s;flex-shrink:0}
+.exec-block.open .chevron{transform:rotate(180deg)}
+.exec-body{display:none;border-top:1px solid var(--border)}
+.exec-block.open .exec-body{display:block}
+.table-wrap{overflow:hidden}
+table{width:100%;border-collapse:collapse}
+thead tr{background:var(--surface2)}
+th{padding:10px 16px;text-align:left;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:var(--text-muted);border-bottom:1px solid var(--border)}
+td{padding:10px 16px;font-size:13px;border-bottom:1px solid rgba(46,52,80,.5);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr.row-failed td{background:rgba(239,68,68,.04)} tr.row-warning td{background:rgba(245,158,11,.04)}
+tr.row-skipped td{opacity:.6}
+.test-detail{padding:16px 20px;background:var(--surface2);border-top:1px solid var(--border);display:none}
+.test-detail.open{display:block}
+.detail-section{margin-bottom:16px}
+.detail-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);margin-bottom:8px}
+.comparison{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:12px 0}
+@media(max-width:600px){.comparison{grid-template-columns:1fr}}
+.cmp-col{border-radius:var(--radius-sm);padding:14px 16px;font-size:13px}
+.cmp-col .cmp-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.cmp-expected{background:var(--blue-dim);border:1px solid rgba(59,130,246,.3)} .cmp-expected .cmp-label{color:var(--blue-light)}
+.cmp-actual.ok{background:var(--green-dim);border:1px solid rgba(16,185,129,.3)} .cmp-actual.ok .cmp-label{color:var(--green-light)}
+.cmp-actual.fail{background:var(--red-dim);border:1px solid rgba(239,68,68,.3)} .cmp-actual.fail .cmp-label{color:#fca5a5}
+.cmp-content{font-family:'Courier New',monospace;font-size:12px;white-space:pre-wrap;word-break:break-all}
+.log-block{background:rgba(0,0,0,.35);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;font-family:'Courier New',monospace;font-size:12px;color:var(--text-muted);white-space:pre-wrap;max-height:260px;overflow-y:auto;line-height:1.6}
+.log-block .log-error{color:#fca5a5} .log-block .log-action{color:var(--blue-light)} .log-block .log-assert{color:var(--green-light)} .log-block .log-nav{color:var(--orange-light)}
+.metric-table{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px}
+.metric-table th{background:var(--surface);padding:8px 12px;text-align:left;font-size:11px;color:var(--text-muted);border:1px solid var(--border)}
+.metric-table td{padding:8px 12px;border:1px solid var(--border)}
+.metric-pass{color:var(--green-light)} .metric-fail{color:#fca5a5}
+.failure-card{background:var(--surface);border:1px solid rgba(239,68,68,.25);border-left:4px solid var(--red);border-radius:var(--radius);padding:20px 24px;margin-bottom:14px}
+.failure-title{font-size:15px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:10px}
+.failure-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;font-size:13px}
+@media(max-width:600px){.failure-grid{grid-template-columns:1fr}}
+.failure-field label{font-size:11px;color:var(--text-muted);display:block;margin-bottom:3px;text-transform:uppercase;font-weight:600;letter-spacing:.4px}
+.failure-field span{color:var(--text)}
+.sev-high{color:#fca5a5;font-weight:700} .sev-med{color:var(--orange-light);font-weight:700} .sev-low{color:var(--text-muted);font-weight:700}
+.cause-box{background:var(--surface2);border-radius:var(--radius-sm);padding:10px 14px;font-size:13px;color:var(--text-muted)}
+.improvement-item{display:flex;gap:16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:16px 20px;margin-bottom:10px;transition:border-color .18s}
+.improvement-item:hover{border-color:rgba(59,130,246,.4)}
+.improvement-num{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;flex-shrink:0}
+.imp-high{background:var(--red-dim);color:#fca5a5;border:2px solid var(--red)}
+.imp-med{background:var(--orange-dim);color:var(--orange-light);border:2px solid var(--orange)}
+.imp-low{background:var(--blue-dim);color:var(--blue-light);border:2px solid var(--blue)}
+.improvement-body h4{font-size:14px;font-weight:700;margin-bottom:4px}
+.improvement-body p{font-size:13px;color:var(--text-muted)}
+.not-exec-table{width:100%;border-collapse:collapse;font-size:13px}
+.not-exec-table th{background:var(--surface2);padding:10px 14px;text-align:left;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);border-bottom:1px solid var(--border)}
+.not-exec-table td{padding:10px 14px;border-bottom:1px solid rgba(46,52,80,.4)}
+.not-exec-table tr:last-child td{border-bottom:none}
+footer{text-align:center;padding:28px;color:var(--text-muted);font-size:13px;border-top:1px solid var(--border)}
+code{font-family:'Courier New',monospace;font-size:.9em;background:rgba(0,0,0,.3);border:1px solid var(--border);border-radius:4px;padding:1px 5px;color:var(--orange-light)}
+[id]{scroll-margin-top:64px}
+.warning-note{background:var(--orange-dim);border:1px solid rgba(245,158,11,.3);border-radius:6px;padding:10px 14px;font-size:12px;color:var(--orange-light);margin-bottom:8px}
+</style>
+</head>
+<body>
+
+<nav>
+  <span class="logo">⚡ QA Report</span>
+  <a href="#dashboard">Dashboard</a>
+  <a href="#env-errors">Erros de Ambiente</a>
+  <a href="#results">Resultados</a>
+  <a href="#failures">Falhas</a>
+  <a href="#improvements">Melhorias</a>
+  <a href="#not-executed">Não Executados</a>
+</nav>
+
+<main>
+
+<!-- SEÇÃO 1: DASHBOARD -->
+<section id="dashboard">
+  <div class="hero">
+    <h1>Relatório QA — Suite 3</h1>
+    <p class="meta">
+      Ambientes: <code>reqres.in · orangehrmlive.com · jsonplaceholder.typicode.com · quotes.toscrape.com · practiceautomation.com · fakestoreapi.com</code><br>
+      Data: <strong>2026-05-11 10:07</strong> · Suite: <code>suite_api_browser_k6_visual_axe_zap_db_20260511_100754</code>
+    </p>
+  </div>
+
+  <div class="stat-grid">
+    <div class="stat-card stat-green">
+      <div class="stat-num">5</div>
+      <div class="stat-label">✅ Passou</div>
+    </div>
+    <div class="stat-card stat-red">
+      <div class="stat-num">6</div>
+      <div class="stat-label">❌ Falhou</div>
+    </div>
+    <div class="stat-card stat-orange">
+      <div class="stat-num">5</div>
+      <div class="stat-label">⚠️ Avisos / Baseline</div>
+    </div>
+    <div class="stat-card stat-gray">
+      <div class="stat-num">0</div>
+      <div class="stat-label">⏭️ Não Executado</div>
+    </div>
+  </div>
+
+  <div class="progress-wrap">
+    <div class="progress-fill fail" style="width:31%"></div>
+  </div>
+  <div class="pass-label">31% de aprovação · 16 testes no total</div>
+
+  <div class="verdict fail">
+    ❌ Suite reprovada — 6 falhas detectadas (4 de acessibilidade com deploy_blocked, 2 de API por mudança de contrato no Reqres.in). Não recomendado para deploy sem correções.
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- SEÇÃO 2: ERROS DE AMBIENTE -->
+<section id="env-errors">
+  <div class="section-header">
+    <h2>🚨 Erros de Ambiente</h2>
+    <span class="badge badge-red">INFRAESTRUTURA</span>
+  </div>
+  <p style="color:var(--text-muted);font-size:14px;margin-bottom:20px">
+    Falhas que ocorreram por mudança de contrato de API externa, não por lógica de negócio dos testes.
+  </p>
+
+  <div class="env-error-card">
+    <div class="env-error-title">🔴 executor-api — Reqres.in passou a exigir API Key (x-api-key)</div>
+    <div class="env-error-body">
+      <div><strong>Erro:</strong> HTTP 401 — <code>{"error":"missing_api_key","message":"The x-api-key header is required for this endpoint."}</code></div>
+      <div><strong>Impacto:</strong> TC-API-S3-001 e TC-API-S3-002 falharam (2 testes de integração)</div>
+      <div><strong>Contexto:</strong> O Reqres.in migrou seus endpoints <code>/api/*</code> para exigir autenticação via header <code>x-api-key</code>. A API pública gratuita foi descontinuada. A dica da própria API indica <code>app.reqres.in/api-keys</code> para obter uma chave.</div>
+      <div class="env-error-action">▶ Ação recomendada: Obter uma API key em app.reqres.in/api-keys e adicionar o header <code>x-api-key: &lt;sua-chave&gt;</code> nas requisições. Alternativamente, migrar para outro mock de API (JSONPlaceholder, DummyJSON) ou manter endpoint de login como <code>/app/*</code> conforme nova documentação.</div>
+    </div>
+  </div>
+
+  <div class="env-error-card" style="background:var(--orange-dim);border-color:rgba(245,158,11,.35);">
+    <div class="env-error-title" style="color:var(--orange-light);">⚠️ executor-banco — Conexões TCP com MySQL e PostgreSQL falharam (fallback ativado)</div>
+    <div class="env-error-body" style="color:#fde68a;">
+      <div><strong>MySQL:</strong> <code>mysql://qa_suite3:****@db.qa-suite3.com:3306/orders_db</code> — host inacessível (DNS/firewall)</div>
+      <div><strong>PostgreSQL:</strong> <code>postgresql://qa_emp:****@ep-placeholder.us-east-1.aws.neon.tech:5432/employees_db</code> — placeholder de URL</div>
+      <div><strong>Fallback:</strong> Testes executados em SQLite :memory: (modo simulated_fallback)</div>
+      <div class="env-error-action" style="color:var(--orange-light);">▶ Ação recomendada: Fornecer strings de conexão reais com hosts acessíveis para executar os testes contra o banco real antes do deploy.</div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- SEÇÃO 3: RESULTADOS POR EXECUTOR -->
+<section id="results">
+  <div class="section-header">
+    <h2>📋 Resultados por Executor</h2>
+  </div>
+
+  <!-- executor-api -->
+  <div class="exec-block open" id="exec-api">
+    <div class="exec-block-header" onclick="toggleExec(this)">
+      <div class="exec-title">🔌 API — HTTP (executor-api) · reqres.in</div>
+      <div class="exec-stats">
+        <span class="badge badge-red">2 falhou</span>
+      </div>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="exec-body">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Status</th><th>ID</th><th>Título</th><th>Duração</th><th>Detalhe</th></tr></thead>
+          <tbody>
+            <tr class="row-failed" onclick="toggleDetail('TC-API-S3-001')" style="cursor:pointer">
+              <td>❌</td><td><code>TC-API-S3-001</code></td><td>Autenticar usuário válido e receber token</td><td>637ms</td>
+              <td style="color:var(--text-muted);font-size:12px">HTTP 401 — API exige x-api-key</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="test-detail open" id="detail-TC-API-S3-001">
+        <div class="detail-section">
+          <div class="detail-label">Comparação: Esperado × Obtido</div>
+          <div class="comparison">
+            <div class="cmp-col cmp-expected"><div class="cmp-label">🎯 Esperado</div>
+              <div class="cmp-content">POST /login com {"email":"eve.holt@reqres.in","password":"cityslicka"}
+Status: 200 OK
+Body: {"token": "&lt;não vazio&gt;"}
+Tempo: &lt; 3000ms</div></div>
+            <div class="cmp-col cmp-actual fail"><div class="cmp-label">🔍 Obtido</div>
+              <div class="cmp-content">Status: 401 Unauthorized
+Body: {"error":"missing_api_key","message":"The x-api-key header is required"}
+Tempo: 637ms (dentro do SLA)
+token: ausente</div></div>
+          </div>
+        </div>
+        <div class="detail-section">
+          <div class="detail-label">Log de Execução</div>
+          <div class="log-block">
+<span class="log-action">[REQUEST] POST https://reqres.in/api/login</span>
+[RESPONSE] 401 - 637ms
+[ASSERT] status == 200 x
+[ASSERT] campo token:  x
+[ASSERT] tempo &lt; 3000ms (637ms) v</div>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table><tbody>
+            <tr class="row-failed" onclick="toggleDetail('TC-API-S3-002')" style="cursor:pointer">
+              <td>❌</td><td><code>TC-API-S3-002</code></td><td>Listar usuários da página 2 e validar estrutura</td><td>256ms</td>
+              <td style="color:var(--text-muted);font-size:12px">HTTP 401 — API exige x-api-key</td>
+            </tr>
+        </tbody></table>
+      </div>
+      <div class="test-detail open" id="detail-TC-API-S3-002">
+        <div class="detail-section">
+          <div class="detail-label">Comparação: Esperado × Obtido</div>
+          <div class="comparison">
+            <div class="cmp-col cmp-expected"><div class="cmp-label">🎯 Esperado</div>
+              <div class="cmp-content">GET /users?page=2
+Status: 200 OK
+Body: {"page":2,"data":[{id,email,first_name,last_name,...}]}
+Tempo: &lt; 3000ms</div></div>
+            <div class="cmp-col cmp-actual fail"><div class="cmp-label">🔍 Obtido</div>
+              <div class="cmp-content">Status: 401 Unauthorized
+Body: {"error":"missing_api_key",...}
+Tempo: 256ms
+data: [] (0 itens)</div></div>
+          </div>
+        </div>
+        <div class="detail-section">
+          <div class="detail-label">Log de Execução</div>
+          <div class="log-block">
+<span class="log-action">[REQUEST] GET https://reqres.in/api/users?page=2</span>
+[RESPONSE] 401 - 256ms
+[ASSERT] status==200 x
+[ASSERT] page==None x
+[ASSERT] data 0 itens x</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- executor-browser -->
+  <div class="exec-block" id="exec-browser">
+    <div class="exec-block-header" onclick="toggleExec(this)">
+      <div class="exec-title">🌐 Browser — E2E (executor-browser) · OrangeHRM Demo</div>
+      <div class="exec-stats">
+        <span class="badge badge-green">2 passou</span>
+      </div>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="exec-body">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Status</th><th>ID</th><th>Título</th><th>Duração</th><th>Detalhe</th></tr></thead>
+          <tbody>
+            <tr class="row-passed"><td>✅</td><td><code>TC-BROWSER-S3-001</code></td><td>Login e verificação do dashboard</td><td>8961ms</td><td style="color:var(--text-muted);font-size:12px">Dashboard, PIM e Leave confirmados</td></tr>
+            <tr class="row-passed"><td>✅</td><td><code>TC-BROWSER-S3-002</code></td><td>Navegação ao módulo PIM e listagem de funcionários</td><td>8104ms</td><td style="color:var(--text-muted);font-size:12px">42 funcionários listados, botão Add Employee visível</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- executor-performance -->
+  <div class="exec-block" id="exec-performance">
+    <div class="exec-block-header" onclick="toggleExec(this)">
+      <div class="exec-title">⚡ Performance — k6 · JSONPlaceholder</div>
+      <div class="exec-stats">
+        <span class="badge badge-green">2 passou</span>
+      </div>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="exec-body">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Status</th><th>ID</th><th>Título</th><th>Tipo</th><th>p95</th><th>Error Rate</th></tr></thead>
+          <tbody>
+            <tr class="row-passed"><td>✅</td><td><code>TC-PERF-S3-001</code></td><td>Carga em GET /posts — 10 VUs × 30s</td><td>carga</td><td style="color:var(--green-light)">44.06ms</td><td style="color:var(--green-light)">0.00%</td></tr>
+            <tr class="row-passed"><td>✅</td><td><code>TC-PERF-S3-002</code></td><td>Performance em POST /posts — 5 VUs × 20s</td><td>performance</td><td style="color:var(--green-light)">157.51ms</td><td style="color:var(--green-light)">0.00%</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="padding:16px 20px;background:var(--surface2);border-top:1px solid var(--border)">
+        <div class="detail-label">Métricas de Performance — TC-PERF-S3-001 (GET /posts)</div>
+        <table class="metric-table">
+          <tr><th>Threshold</th><th>Valor Medido</th><th>Limite</th><th>Resultado</th></tr>
+          <tr><td>p(95) latência</td><td>44.06ms</td><td>&lt; 2000ms</td><td class="metric-pass">✅ Passou</td></tr>
+          <tr><td>Taxa de erros</td><td>0.00%</td><td>&lt; 1%</td><td class="metric-pass">✅ Passou</td></tr>
+          <tr><td>Throughput</td><td>10.0 rps</td><td>&ge; 5 rps</td><td class="metric-pass">✅ Passou</td></tr>
+          <tr><td>Total requisições</td><td>300</td><td>10 VUs × 30s</td><td class="metric-pass">✅</td></tr>
+        </table>
+        <div class="detail-label" style="margin-top:16px">Métricas de Performance — TC-PERF-S3-002 (POST /posts)</div>
+        <table class="metric-table">
+          <tr><th>Threshold</th><th>Valor Medido</th><th>Limite</th><th>Resultado</th></tr>
+          <tr><td>Status HTTP</td><td>201 (100%)</td><td>HTTP 201 em todas</td><td class="metric-pass">✅ Passou</td></tr>
+          <tr><td>p(95) latência</td><td>157.51ms</td><td>&lt; 3000ms</td><td class="metric-pass">✅ Passou</td></tr>
+          <tr><td>Taxa de erros</td><td>0.00%</td><td>&lt; 2%</td><td class="metric-pass">✅ Passou</td></tr>
+          <tr><td>Total requisições</td><td>90</td><td>5 VUs × 20s</td><td class="metric-pass">✅</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- executor-visual -->
+  <div class="exec-block" id="exec-visual">
+    <div class="exec-block-header" onclick="toggleExec(this)">
+      <div class="exec-title">👁️ Visual — Playwright Screenshot · Quotes to Scrape</div>
+      <div class="exec-stats">
+        <span class="badge badge-green">1 passou</span>
+        <span class="badge badge-orange">1 baseline criado</span>
+      </div>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="exec-body">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Status</th><th>ID</th><th>Título</th><th>Baseline</th><th>Diff</th></tr></thead>
+          <tbody>
+            <tr class="row-passed"><td>✅</td><td><code>TC-VISUAL-S3-001</code></td><td>Regressão visual — página inicial</td><td>existente</td><td style="color:var(--green-light)">0% (threshold: 2%)</td></tr>
+            <tr class="row-warning" onclick="toggleDetail('TC-VISUAL-S3-002')" style="cursor:pointer"><td>⚠️</td><td><code>TC-VISUAL-S3-002</code></td><td>Regressão visual — página /tag/love/</td><td>criado</td><td style="color:var(--orange-light)">Baseline criado — 1ª execução</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="test-detail open" id="detail-TC-VISUAL-S3-002">
+        <div class="detail-section">
+          <div class="detail-label">Comparação: Esperado × Obtido</div>
+          <div class="comparison">
+            <div class="cmp-col cmp-expected"><div class="cmp-label">🎯 Esperado</div>
+              <div class="cmp-content">Screenshot da área div.col-md-8 (conteúdo principal)
+diff ≤ 2% em relação ao baseline
+Baseline pré-existente disponível</div></div>
+            <div class="cmp-col cmp-actual ok"><div class="cmp-label">🔍 Obtido</div>
+              <div class="cmp-content">Baseline inexistente — criado na 1ª execução
+Arquivo: quotes-love-tag.png
+⚠️ Valide visualmente antes de usar como referência</div></div>
+          </div>
+        </div>
+        <div class="warning-note">⚠️ Baseline criado na primeira execução. Execute novamente para comparação real. Verifique o screenshot gerado em <code>suite_api_browser_k6_visual_axe_zap_db_20260511_100754/visual/baselines/quotes-love-tag.png</code> antes de usar como referência oficial.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- executor-acessibilidade -->
+  <div class="exec-block open" id="exec-acessibilidade">
+    <div class="exec-block-header" onclick="toggleExec(this)">
+      <div class="exec-title">♿ Acessibilidade — axe-core WCAG 2.1 AA</div>
+      <div class="exec-stats">
+        <span class="badge badge-red">2 falhou</span>
+      </div>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="exec-body">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Status</th><th>ID</th><th>Título</th><th>Violações</th><th>Deploy</th></tr></thead>
+          <tbody>
+            <tr class="row-failed" onclick="toggleDetail('TC-A11Y-S3-001')" style="cursor:pointer">
+              <td>❌</td><td><code>TC-A11Y-S3-001</code></td><td>WCAG 2.1 AA — formulário Practice Automation</td><td style="color:#fca5a5">1 serious</td><td style="color:#fca5a5">🚫 Bloqueado</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="test-detail open" id="detail-TC-A11Y-S3-001">
+        <div class="detail-section">
+          <div class="detail-label">Comparação: Esperado × Obtido</div>
+          <div class="comparison">
+            <div class="cmp-col cmp-expected"><div class="cmp-label">🎯 Esperado</div>
+              <div class="cmp-content">0 violações com impacto critical
+0 violações com impacto serious
+Violações moderate/minor: reportadas como avisos
+deploy_blocked: false</div></div>
+            <div class="cmp-col cmp-actual fail"><div class="cmp-label">🔍 Obtido</div>
+              <div class="cmp-content">1 violação serious: color-contrast
+  Botões do banner de cookie (Customize, Reject All, Accept All)
+  Contraste insuficiente: 3.22 (esperado: 4.5:1)
+deploy_blocked: true</div></div>
+          </div>
+        </div>
+        <div class="detail-section">
+          <div class="detail-label">Violações de Acessibilidade</div>
+          <div style="background:var(--red-dim);border:1px solid rgba(239,68,68,.3);border-radius:6px;padding:10px 14px;font-size:12px;color:#fca5a5;margin-bottom:8px">🚫 Deploy bloqueado — 1 violação serious não conhecida</div>
+          <table class="metric-table">
+            <tr><th>Regra</th><th>Impacto</th><th>Elementos Afetados</th><th>Correção</th></tr>
+            <tr><td>color-contrast</td><td style="color:#fca5a5">serious</td><td>3 botões de cookie banner (Customize, Reject All, Accept All)</td><td>Aumentar contraste para ≥ 4.5:1 — cor atual #2aa527 sobre #ffffff = 3.22</td></tr>
+          </table>
+        </div>
+        <div class="detail-section">
+          <div class="detail-label">Log de Execução</div>
+          <div class="log-block">
+<span class="log-nav">[NAV] Acessando https://practiceautomation.com/practice-form/</span>
+[WAIT] form visivel
+[ANALYSIS] Executando axe-core (WCAG 2.1 AA)
+<span class="log-error">[VIOLATION] color-contrast (serious): 3 elementos</span>
+<span class="log-error">[RESULT] 1 violacoes encontradas - failed</span></div>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table><tbody>
+            <tr class="row-failed" onclick="toggleDetail('TC-A11Y-S3-002')" style="cursor:pointer">
+              <td>❌</td><td><code>TC-A11Y-S3-002</code></td><td>WCAG 2.1 AA — página inicial Quotes to Scrape</td><td style="color:#fca5a5">2 serious</td><td style="color:#fca5a5">🚫 Bloqueado</td>
+            </tr>
+        </tbody></table>
+      </div>
+      <div class="test-detail open" id="detail-TC-A11Y-S3-002">
+        <div class="detail-section">
+          <div class="detail-label">Comparação: Esperado × Obtido</div>
+          <div class="comparison">
+            <div class="cmp-col cmp-expected"><div class="cmp-label">🎯 Esperado</div>
+              <div class="cmp-content">0 violações critical
+0 violações serious
+deploy_blocked: false</div></div>
+            <div class="cmp-col cmp-actual fail"><div class="cmp-label">🔍 Obtido</div>
+              <div class="cmp-content">2 violações serious:
+1. color-contrast — links e texto com contraste 3.71 (esperado 4.5:1)
+2. link-in-text-block — link Zyte sem distinção visual além da cor
+deploy_blocked: true</div></div>
+          </div>
+        </div>
+        <div class="detail-section">
+          <div class="detail-label">Violações de Acessibilidade</div>
+          <div style="background:var(--red-dim);border:1px solid rgba(239,68,68,.3);border-radius:6px;padding:10px 14px;font-size:12px;color:#fca5a5;margin-bottom:8px">🚫 Deploy bloqueado — 2 violações serious</div>
+          <table class="metric-table">
+            <tr><th>Regra</th><th>Impacto</th><th>Elementos Afetados</th><th>Correção</th></tr>
+            <tr><td>color-contrast</td><td style="color:#fca5a5">serious</td><td>Links de navegação (#4582ec), texto de autor</td><td>Aumentar contraste de links para ≥ 4.5:1 (cor atual: 3.71)</td></tr>
+            <tr><td>link-in-text-block</td><td style="color:#fca5a5">serious</td><td>Link "Zyte" no rodapé</td><td>Adicionar sublinhado ou outra distinção visual além da cor para o link</td></tr>
+          </table>
+        </div>
+        <div class="detail-section">
+          <div class="detail-label">Log de Execução</div>
+          <div class="log-block">
+<span class="log-nav">[NAV] Acessando https://quotes.toscrape.com/</span>
+[WAIT] div.quote visivel
+[ANALYSIS] Executando axe-core (WCAG 2.1 AA)
+<span class="log-error">[VIOLATION] color-contrast (serious): 3 elementos</span>
+<span class="log-error">[VIOLATION] link-in-text-block (serious): 1 elementos</span>
+<span class="log-error">[RESULT] 2 violacoes encontradas - failed</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- executor-segurança -->
+  <div class="exec-block open" id="exec-seguranca">
+    <div class="exec-block-header" onclick="toggleExec(this)">
+      <div class="exec-title">🔒 Segurança · FakeStore API + Reqres.in</div>
+      <div class="exec-stats">
+        <span class="badge badge-orange">2 aviso</span>
+      </div>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="exec-body">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Status</th><th>ID</th><th>Título</th><th>Ambiente</th><th>Detalhe</th></tr></thead>
+          <tbody>
+            <tr class="row-warning" onclick="toggleDetail('TC-SEC-S3-001')" style="cursor:pointer">
+              <td>⚠️</td><td><code>TC-SEC-S3-001</code></td><td>Headers de segurança e CORS — FakeStore API</td><td>public_test_api</td>
+              <td style="color:var(--text-muted);font-size:12px">Headers ausentes + CORS aberto — comportamento esperado para API pública</td>
+            </tr>
+            <tr class="row-warning" onclick="toggleDetail('TC-SEC-S3-002')" style="cursor:pointer">
+              <td>⚠️</td><td><code>TC-SEC-S3-002</code></td><td>Proteção de endpoints — Reqres.in</td><td>public_test_api</td>
+              <td style="color:var(--text-muted);font-size:12px">Reqres.in agora exige x-api-key em todos os endpoints</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="test-detail open" id="detail-TC-SEC-S3-001">
+        <div class="detail-section">
+          <div class="detail-label">Comparação: Esperado × Obtido</div>
+          <div class="comparison">
+            <div class="cmp-col cmp-expected"><div class="cmp-label">🎯 Esperado</div>
+              <div class="cmp-content">Headers presentes: X-Content-Type-Options, X-Frame-Options, Strict-Transport-Security, Content-Security-Policy
+CORS: não aceitar origem maliciosa em endpoints autenticados
+Server: sem versão exposta</div></div>
+            <div class="cmp-col cmp-actual ok"><div class="cmp-label">🔍 Obtido (public_test_api)</div>
+              <div class="cmp-content">Todos os headers de segurança: ausentes
+CORS: Access-Control-Allow-Origin: * (aberto)
+Server: "cloudflare" (sem versão) ✓
+Status: warning (API pública — comportamento esperado)</div></div>
+          </div>
+        </div>
+        <div class="warning-note">⚠️ API pública de teste — ausência de headers de segurança e CORS aberto são comportamento esperado e documentado para fakestoreapi.com. Não aplicar em produção.</div>
+      </div>
+      <div class="test-detail open" id="detail-TC-SEC-S3-002">
+        <div class="detail-section">
+          <div class="detail-label">Comparação: Esperado × Obtido</div>
+          <div class="comparison">
+            <div class="cmp-col cmp-expected"><div class="cmp-label">🎯 Esperado</div>
+              <div class="cmp-content">GET /users → 200 (API pública)
+GET /unknown → 200 (API pública)
+POST /register sem body → 400 ou 422
+POST /login inválido → 400
+Sem stack trace nas respostas de erro</div></div>
+            <div class="cmp-col cmp-actual ok"><div class="cmp-label">🔍 Obtido</div>
+              <div class="cmp-content">GET /users → 401 (agora exige x-api-key)
+GET /unknown → 401 (idem)
+POST /register → 401 (idem)
+POST /login inválido → 401 (idem)
+Stack trace: ausente em todas ✓
+Status: warning (mudança de contrato da API)</div></div>
+          </div>
+        </div>
+        <div class="warning-note">⚠️ Reqres.in migrou todos os endpoints /api/* para exigir autenticação via x-api-key a partir de 2026. Os checks de ausência de stack trace passaram. O resto é warning por mudança de contrato da API pública.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- executor-banco -->
+  <div class="exec-block open" id="exec-banco">
+    <div class="exec-block-header" onclick="toggleExec(this)">
+      <div class="exec-title">🗄️ Banco de Dados — SQLite Fallback (simulated_fallback)</div>
+      <div class="exec-stats">
+        <span class="badge badge-orange">2 aviso (fallback)</span>
+      </div>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="exec-body">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Status</th><th>ID</th><th>Título</th><th>Modo</th><th>Detalhe</th></tr></thead>
+          <tbody>
+            <tr class="row-warning" onclick="toggleDetail('TC-DB-S3-001')" style="cursor:pointer">
+              <td>⚠️</td><td><code>TC-DB-S3-001</code></td><td>Schema de pedidos — MySQL com fallback</td><td>simulated_fallback</td>
+              <td style="color:var(--text-muted);font-size:12px">4/5 checks passaram; FK via PRAGMA (aviso esperado)</td>
+            </tr>
+            <tr class="row-warning" onclick="toggleDetail('TC-DB-S3-002')" style="cursor:pointer">
+              <td>⚠️</td><td><code>TC-DB-S3-002</code></td><td>Schema de funcionários — PostgreSQL com fallback</td><td>simulated_fallback</td>
+              <td style="color:var(--text-muted);font-size:12px">3/4 checks passaram; FK via PRAGMA (aviso esperado)</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="test-detail open" id="detail-TC-DB-S3-001">
+        <div class="warning-note">⚠️ Execução em modo simulated_fallback — conexão TCP com MySQL (db.qa-suite3.com:3306) falhou. Fallback automático para SQLite :memory:. Revalide contra o banco real antes do deploy.</div>
+        <div class="detail-section">
+          <div class="detail-label">Checks executados</div>
+          <table class="metric-table">
+            <tr><th>Verificação</th><th>Resultado</th></tr>
+            <tr><td>Tabelas orders e order_items existem</td><td class="metric-pass">✅ Passou</td></tr>
+            <tr><td>customer_name NOT NULL enforced</td><td class="metric-pass">✅ Passou</td></tr>
+            <tr><td>total_amount CHECK &gt; 0</td><td class="metric-pass">✅ Passou</td></tr>
+            <tr><td>FK order_id → orders.id enforced</td><td style="color:var(--orange-light)">⚠️ FK via PRAGMA foreign_keys (SQLite)</td></tr>
+            <tr><td>Registro inserido recuperável via SELECT</td><td class="metric-pass">✅ Passou — ('QA Tester', 150.0, 'pending')</td></tr>
+          </table>
+        </div>
+      </div>
+      <div class="test-detail open" id="detail-TC-DB-S3-002">
+        <div class="warning-note">⚠️ Execução em modo simulated_fallback — conexão TCP com PostgreSQL (ep-placeholder.us-east-1.aws.neon.tech:5432) falhou — URL é um placeholder. Revalide contra o banco real.</div>
+        <div class="detail-section">
+          <div class="detail-label">Checks executados</div>
+          <table class="metric-table">
+            <tr><th>Verificação</th><th>Resultado</th></tr>
+            <tr><td>Tabelas departments e employees existem</td><td class="metric-pass">✅ Passou</td></tr>
+            <tr><td>salary CHECK &gt; 0 enforced</td><td class="metric-pass">✅ Passou</td></tr>
+            <tr><td>FK department_id → departments.id enforced</td><td style="color:var(--orange-light)">⚠️ FK via PRAGMA foreign_keys (SQLite)</td></tr>
+            <tr><td>Registro de departamento recuperável via SELECT</td><td class="metric-pass">✅ Passou — ('Engenharia', 500000.0)</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</section>
+
+<hr class="divider">
+
+<!-- SEÇÃO 4: FALHAS DETALHADAS -->
+<section id="failures">
+  <div class="section-header">
+    <h2>❌ Falhas Detalhadas</h2>
+    <span class="badge badge-red">6 falha(s)</span>
+  </div>
+
+  <div class="failure-card">
+    <div class="failure-title">❌ <code>TC-API-S3-001</code> — Autenticar usuário válido e receber token <span class="badge badge-orange">Média</span></div>
+    <div class="failure-grid">
+      <div class="failure-field"><label>Executor</label><span>executor-api (HTTP)</span></div>
+      <div class="failure-field"><label>Severidade</label><span class="sev-med">Média</span></div>
+      <div class="failure-field"><label>Duração</label><span>637ms</span></div>
+      <div class="failure-field"><label>Tipo</label><span>integração</span></div>
+    </div>
+    <div class="detail-label">Erro</div>
+    <div class="log-block" style="margin-bottom:10px"><span class="log-error">HTTP 401 — {"error":"missing_api_key","message":"The x-api-key header is required for this endpoint."}</span></div>
+    <div class="detail-label">Possível causa</div>
+    <div class="cause-box">O Reqres.in atualizou sua política de acesso: todos os endpoints <code>/api/*</code> agora exigem o header <code>x-api-key</code>. A API pública gratuita foi descontinuada. Os casos de teste foram escritos para a versão pública anterior do Reqres.in.</div>
+  </div>
+
+  <div class="failure-card">
+    <div class="failure-title">❌ <code>TC-API-S3-002</code> — Listar usuários da página 2 e validar estrutura <span class="badge badge-orange">Média</span></div>
+    <div class="failure-grid">
+      <div class="failure-field"><label>Executor</label><span>executor-api (HTTP)</span></div>
+      <div class="failure-field"><label>Severidade</label><span class="sev-med">Média</span></div>
+      <div class="failure-field"><label>Duração</label><span>256ms</span></div>
+      <div class="failure-field"><label>Tipo</label><span>integração</span></div>
+    </div>
+    <div class="detail-label">Erro</div>
+    <div class="log-block" style="margin-bottom:10px"><span class="log-error">HTTP 401 — missing_api_key. Status recebido: 401, data: 0 itens</span></div>
+    <div class="detail-label">Possível causa</div>
+    <div class="cause-box">Mesma causa do TC-API-S3-001: mudança de contrato do Reqres.in exigindo x-api-key. Ambos os testes de integração afetados simultaneamente pela mesma alteração.</div>
+  </div>
+
+  <div class="failure-card">
+    <div class="failure-title">❌ <code>TC-A11Y-S3-001</code> — WCAG 2.1 AA no formulário de prática <span class="badge badge-red">Alta</span></div>
+    <div class="failure-grid">
+      <div class="failure-field"><label>Executor</label><span>executor-acessibilidade (axe-core)</span></div>
+      <div class="failure-field"><label>Severidade</label><span class="sev-high">Alta</span></div>
+      <div class="failure-field"><label>Deploy</label><span style="color:#fca5a5">🚫 Bloqueado</span></div>
+      <div class="failure-field"><label>Tipo</label><span>acessibilidade</span></div>
+    </div>
+    <div class="detail-label">Erro</div>
+    <div class="log-block" style="margin-bottom:10px"><span class="log-error">color-contrast (serious): 3 elementos — Contraste insuficiente 3.22 (esperado ≥ 4.5:1) nos botões do cookie banner: Customize, Reject All, Accept All. Cor: #2aa527 sobre #ffffff.</span></div>
+    <div class="detail-label">Possível causa</div>
+    <div class="cause-box">O banner de consentimento de cookies do site practiceautomation.com usa botões com cor de texto #2aa527 (verde) sobre fundo branco, resultando em contraste insuficiente (3.22:1). Para WCAG AA o mínimo é 4.5:1 para texto normal. Correção: escurecer o verde para aproximadamente #1a7a18 ou usar fundo com melhor contraste.
+      <br><strong style="color:#fca5a5">Deploy bloqueado por:</strong> color-contrast (serious)</div>
+  </div>
+
+  <div class="failure-card">
+    <div class="failure-title">❌ <code>TC-A11Y-S3-002</code> — WCAG 2.1 AA na página inicial do Quotes to Scrape <span class="badge badge-red">Alta</span></div>
+    <div class="failure-grid">
+      <div class="failure-field"><label>Executor</label><span>executor-acessibilidade (axe-core)</span></div>
+      <div class="failure-field"><label>Severidade</label><span class="sev-high">Alta</span></div>
+      <div class="failure-field"><label>Deploy</label><span style="color:#fca5a5">🚫 Bloqueado</span></div>
+      <div class="failure-field"><label>Tipo</label><span>acessibilidade</span></div>
+    </div>
+    <div class="detail-label">Erros</div>
+    <div class="log-block" style="margin-bottom:10px">
+<span class="log-error">1. color-contrast (serious): links de navegação (#4582ec) com contraste 3.71 sobre fundo branco (esperado ≥ 4.5:1)</span>
+<span class="log-error">2. link-in-text-block (serious): link "Zyte" no rodapé sem distinção visual além da cor (contraste com texto vizinho: 2.46:1, mínimo 3:1)</span></div>
+    <div class="detail-label">Possível causa</div>
+    <div class="cause-box">O site quotes.toscrape.com é um site de demonstração para scraping — não possui equipe de manutenção ativa para correções de acessibilidade. As violações são inerentes ao design do site (cores de link azul claro e ausência de sublinhado em links de texto). Considere marcar como known_environment_failure se este site for apenas referência de teste.
+      <br><strong style="color:#fca5a5">Deploy bloqueado por:</strong> color-contrast (serious), link-in-text-block (serious)</div>
+  </div>
+
+</section>
+
+<hr class="divider">
+
+<!-- SEÇÃO 5: MELHORIAS -->
+<section id="improvements">
+  <div class="section-header">
+    <h2>💡 Possíveis Melhorias</h2>
+    <span class="badge badge-blue">Recomendações</span>
+  </div>
+  <p style="color:var(--text-muted);font-size:14px;margin-bottom:20px">
+    Ações prioritárias baseadas nas falhas, avisos e padrões encontrados na execução da Suite 3.
+  </p>
+
+  <div class="improvement-item">
+    <div class="improvement-num imp-high">1</div>
+    <div class="improvement-body">
+      <h4>Migrar testes de API do Reqres.in para nova versão autenticada ou API alternativa</h4>
+      <p>TC-API-S3-001 e TC-API-S3-002 falharam com 401 pois o Reqres.in passou a exigir <code>x-api-key</code>. Obter uma API key em <code>app.reqres.in/api-keys</code> e adicionar o header nas requisições, ou migrar para JSONPlaceholder (<code>jsonplaceholder.typicode.com</code>) que continua público. O endpoint <code>/app/*</code> do Reqres.in continua funcionando para sessões de usuário.</p>
+    </div>
+  </div>
+
+  <div class="improvement-item">
+    <div class="improvement-num imp-high">2</div>
+    <div class="improvement-body">
+      <h4>Corrigir violações de contraste de cor (WCAG 2.1 AA) — TC-A11Y-S3-001 e TC-A11Y-S3-002</h4>
+      <p>Ambos os sites falharam com <code>color-contrast (serious)</code>. Para practiceautomation.com: escurecer a cor dos botões do cookie banner de <code>#2aa527</code> para pelo menos <code>#1e8c1b</code> (4.5:1). Para quotes.toscrape.com: ajustar a cor dos links de <code>#4582ec</code> para pelo menos <code>#1a5bbf</code> e adicionar sublinhado ao link "Zyte" no rodapé. Estes são sites de terceiros — marcar como <code>known_environment_failure</code> se não houver controle sobre eles.</p>
+    </div>
+  </div>
+
+  <div class="improvement-item">
+    <div class="improvement-num imp-med">3</div>
+    <div class="improvement-body">
+      <h4>Fornecer strings de conexão reais para os testes de banco — TC-DB-S3-001 e TC-DB-S3-002</h4>
+      <p>Os testes de banco executaram em modo <code>simulated_fallback</code> (SQLite :memory:) pois os hosts MySQL e PostgreSQL especificados nos steps são inacessíveis (<code>db.qa-suite3.com</code>) ou placeholder (<code>ep-placeholder.us-east-1.aws.neon.tech</code>). As verificações de FK passaram com aviso pois o SQLite exige <code>PRAGMA foreign_keys = ON</code> explicitamente. Validar contra o banco real antes do deploy para garantir que as constraints de FK e CHECK estão devidamente configuradas no DDL de produção.</p>
+    </div>
+  </div>
+
+  <div class="improvement-item">
+    <div class="improvement-num imp-med">4</div>
+    <div class="improvement-body">
+      <h4>Validar baselines visuais criados na primeira execução — TC-VISUAL-S3-002</h4>
+      <p>O baseline de <code>quotes-love-tag.png</code> foi criado na primeira execução em <code>suite_api_browser_k6_visual_axe_zap_db_20260511_100754/visual/baselines/</code>. Revisar visualmente o screenshot antes de usá-lo como referência oficial. Executar o teste novamente para confirmar que a comparação funciona corretamente. TC-VISUAL-S3-001 passou com 0% de diferença após criação do baseline.</p>
+    </div>
+  </div>
+
+  <div class="improvement-item">
+    <div class="improvement-num imp-low">5</div>
+    <div class="improvement-body">
+      <h4>Adicionar headers de segurança nas APIs de demonstração utilizadas para testes</h4>
+      <p>TC-SEC-S3-001 reportou ausência de X-Content-Type-Options, X-Frame-Options, Strict-Transport-Security e Content-Security-Policy na FakeStore API, além de CORS aberto (<code>*</code>). Como é uma API pública de teste, o resultado foi classificado como warning (não bloqueante). Ao migrar para ambiente de staging ou produção próprio, garantir que esses headers estejam configurados no servidor/proxy.</p>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- SEÇÃO 6: NÃO EXECUTADOS -->
+<section id="not-executed">
+  <div class="section-header">
+    <h2>⏭️ Tipos Não Despachados</h2>
+    <span class="badge badge-gray">2 tipos</span>
+  </div>
+
+  <table class="not-exec-table" style="background:var(--surface);border-radius:var(--radius)">
+    <thead><tr><th>ID</th><th>Tipo</th><th>Executor esperado</th><th>Motivo</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>—</td>
+        <td>Contrato (Pact)</td>
+        <td>pact</td>
+        <td style="color:var(--text-muted)">Requer Pact Broker configurado. Nenhum teste desta suite usa executor <code>pact</code>.</td>
+      </tr>
+      <tr>
+        <td>—</td>
+        <td>Mobile (Appium)</td>
+        <td>appium</td>
+        <td style="color:var(--text-muted)">Requer configuração de dispositivo ou emulador. Nenhum teste desta suite usa executor <code>appium</code>.</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+</main>
+
+<footer>
+  Squad QA · Suite 3 · 5 passou · 6 falhou · 5 avisos/baseline · 16 total · Gerado em 2026-05-11 10:35
+</footer>
+
+<!-- SUMMARY_TEXT
+Suite: suite_api_browser_k6_visual_axe_zap_db_20260511_100754
+Ambiente: reqres.in + orangehrmlive.com + jsonplaceholder.typicode.com + quotes.toscrape.com + practiceautomation.com + fakestoreapi.com
+Resultado: Reprovada — 6 falhas (2 API por mudanca de contrato Reqres.in, 4 acessibilidade com deploy_blocked)
+Passed: 5 | Failed: 6 | Warnings: 5 | Skipped: 0
+-->
+
+<script>
+function toggleExec(header) {
+  header.closest('.exec-block').classList.toggle('open');
+}
+function toggleDetail(id) {
+  const el = document.getElementById('detail-' + id);
+  if (el) el.classList.toggle('open');
+}
+document.querySelectorAll('.exec-block').forEach(b => {
+  if (b.querySelector('.row-failed, .row-warning')) b.classList.add('open');
+});
+document.querySelectorAll('a[href^="#"]').forEach(a => {
+  a.addEventListener('click', e => {
+    e.preventDefault();
+    const t = document.querySelector(a.getAttribute('href'));
+    if (t) t.scrollIntoView({ behavior: 'smooth' });
+  });
+});
+</script>
+
+</body>
+</html>

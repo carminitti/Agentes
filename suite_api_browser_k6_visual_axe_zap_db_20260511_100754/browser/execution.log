@@ -1,0 +1,7 @@
+[2026-05-11 13:16:16] === executor-browser - inicio ===
+[2026-05-11 13:16:16] Ambiente: https://opensource-demo.orangehrmlive.com
+[2026-05-11 13:16:16] [TC-BROWSER-S3-001] inicio
+[2026-05-11 13:16:25] [TC-BROWSER-S3-001] -> STATUS: PASSED
+[2026-05-11 13:16:25] [TC-BROWSER-S3-002] inicio
+[2026-05-11 13:16:33] [TC-BROWSER-S3-002] -> STATUS: PASSED
+[2026-05-11 13:16:33] === Fim: 2 passou, 0 falhou ===

@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python *)",
+      "Bash(python3 *)",
+      "PowerShell(Test-Path *)",
+      "Bash(git push *)",
+      "PowerShell(cmd /c \"dir C:\\\\Users\\\\gabriel.carminitti\\\\Documents\\\\ /b\")",
+      "PowerShell(cd \"C:\\\\Users\\\\gabriel.carminitti\\\\Documents\\\\claude\\\\agentes\"; powershell -ExecutionPolicy Bypass -File .\\\\install.ps1 2>&1 | Select-Object -Last 15)",
+      "Bash(node run_browser_tests.js)",
+      "Bash(node run_visual_tests.js)",
+      "Bash(node run_a11y_tests.js)",
+      "PowerShell(cd \"C:\\\\Users\\\\gabriel.carminitti\\\\Documents\\\\claude\\\\agentes\"; powershell -ExecutionPolicy Bypass -File .\\\\install.ps1)"
+    ]
+  },
+  "mcpServers": {
+    "qa-squad": {
+      "command": "python",
+      "args": [
+        "C:\\Users\\gabriel.carminitti\\Documents\\claude\\agentes\\mcp_server\\server.py"
+      ]
+    }
+  }
+}

@@ -1,0 +1,98 @@
+{
+  "executor": "acessibilidade",
+  "environment": "https://www.w3.org/WAI/demos/bad/after/",
+  "credentials_failed": false,
+  "generated_files": null,
+  "results": [
+    {
+      "id": "TC-A11Y-S6-001",
+      "title": "Conformidade WCAG 2.1 AA na homepage acessivel do W3C BAD demo",
+      "status": "passed",
+      "duration_ms": 4200,
+      "browser": "chromium",
+      "deploy_blocked": false,
+      "details": {
+        "url": "https://www.w3.org/WAI/demos/bad/after/home.html",
+        "wcag_level": "WCAG 2.1 AA",
+        "tags": [
+          "wcag2a",
+          "wcag2aa",
+          "wcag21aa"
+        ],
+        "violations_critical": 0,
+        "violations_serious": 0,
+        "violations_moderate": 0,
+        "violations_minor": 0
+      },
+      "steps": [
+        {
+          "step": "Acessar pagina W3C WAI BAD after/home",
+          "status": "passed"
+        },
+        {
+          "step": "Executar analise axe-core WCAG 2.1 AA",
+          "status": "passed"
+        }
+      ],
+      "logs": [
+        "[NAV] Acessando https://www.w3.org/WAI/demos/bad/after/home.html (headed)",
+        "[A11Y] axe-core injetado via CDN (4.8.0)",
+        "[A11Y] Analise executada com tags: wcag2a, wcag2aa, wcag21aa",
+        "[ASSERT] Violacoes critical: 0 (esperado: 0) OK",
+        "[ASSERT] Violacoes serious: 0 (esperado: 0) OK",
+        "[ASSERT] deploy_blocked: false OK",
+        "-> STATUS: PASSED"
+      ],
+      "error": null
+    },
+    {
+      "id": "TC-A11Y-S6-002",
+      "title": "Conformidade WCAG 2.1 AA na pagina de survey acessivel do W3C BAD demo",
+      "status": "passed",
+      "duration_ms": 3100,
+      "browser": "chromium",
+      "deploy_blocked": false,
+      "details": {
+        "url": "https://www.w3.org/WAI/demos/bad/after/survey.html",
+        "wcag_level": "WCAG 2.1 AA",
+        "tags": [
+          "wcag2a",
+          "wcag2aa",
+          "wcag21aa"
+        ],
+        "violations_critical": 0,
+        "violations_serious": 0,
+        "violations_moderate": 0,
+        "violations_minor": 0
+      },
+      "steps": [
+        {
+          "step": "Acessar pagina W3C WAI BAD after/survey",
+          "status": "passed"
+        },
+        {
+          "step": "Executar analise axe-core WCAG 2.1 AA",
+          "status": "passed"
+        }
+      ],
+      "logs": [
+        "[NAV] Acessando https://www.w3.org/WAI/demos/bad/after/survey.html (headed)",
+        "[A11Y] axe-core injetado via CDN (4.8.0)",
+        "[A11Y] Analise executada com tags: wcag2a, wcag2aa, wcag21aa",
+        "[ASSERT] Violacoes critical: 0 (esperado: 0) OK",
+        "[ASSERT] Violacoes serious: 0 (esperado: 0) OK",
+        "[ASSERT] Violacoes moderate/minor reportadas apenas como avisos OK",
+        "[ASSERT] deploy_blocked: false OK",
+        "-> STATUS: PASSED"
+      ],
+      "error": null
+    }
+  ],
+  "summary": {
+    "total": 2,
+    "passed": 2,
+    "failed": 0,
+    "skipped": 0,
+    "credentials_failed": false
+  }
+}

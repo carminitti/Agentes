@@ -1,0 +1,130 @@
+{
+  "executor": "banco",
+  "environment": "sqlite://:memory:",
+  "credentials_failed": false,
+  "generated_files": null,
+  "results": [
+    {
+      "id": "TC-DB-S6-001",
+      "title": "Integridade do schema de e-learning (courses, students, enrollments)",
+      "status": "passed",
+      "duration_ms": 1,
+      "mode": "simulated",
+      "details": {
+        "connection": "sqlite://:memory:",
+        "validations": [
+          {
+            "check": "tabela 'courses' existe",
+            "result": "passed"
+          },
+          {
+            "check": "tabela 'students' existe",
+            "result": "passed"
+          },
+          {
+            "check": "tabela 'enrollments' existe",
+            "result": "passed"
+          },
+          {
+            "check": "CHECK duration_hours > 0 rejeitou valor 0",
+            "result": "passed"
+          },
+          {
+            "check": "CHECK max_students > 0 rejeitou valor 0",
+            "result": "passed"
+          },
+          {
+            "check": "curso recuperavel via SELECT com mesmos valores",
+            "result": "passed"
+          },
+          {
+            "check": "CHECK progress_percent rejeitou valor 101",
+            "result": "passed"
+          },
+          {
+            "check": "FK course_id invalido rejeitado",
+            "result": "passed"
+          }
+        ]
+      },
+      "logs": [
+        "[DB] Schema criado com sucesso",
+        "[ASSERT] tabela 'courses' existe OK",
+        "[ASSERT] tabela 'students' existe OK",
+        "[ASSERT] tabela 'enrollments' existe OK",
+        "[ASSERT] CHECK duration_hours > 0 rejeitou valor 0 OK",
+        "[ASSERT] CHECK max_students > 0 rejeitou valor 0 OK",
+        "[DB] Curso inserido ID=1",
+        "[ASSERT] curso recuperavel via SELECT com mesmos valores OK",
+        "[ASSERT] CHECK progress_percent rejeitou valor 101 OK",
+        "[ASSERT] FK course_id invalido rejeitado OK",
+        "-> STATUS: PASSED"
+      ],
+      "error": null
+    },
+    {
+      "id": "TC-DB-S6-002",
+      "title": "Integridade do schema de saude (patients, doctors, appointments)",
+      "status": "passed",
+      "duration_ms": 0,
+      "mode": "simulated",
+      "details": {
+        "connection": "sqlite://:memory:",
+        "validations": [
+          {
+            "check": "tabela 'doctors' existe",
+            "result": "passed"
+          },
+          {
+            "check": "tabela 'patients' existe",
+            "result": "passed"
+          },
+          {
+            "check": "tabela 'appointments' existe",
+            "result": "passed"
+          },
+          {
+            "check": "UNIQUE crm rejeitou duplicata",
+            "result": "passed"
+          },
+          {
+            "check": "UNIQUE cpf rejeitou duplicata",
+            "result": "passed"
+          },
+          {
+            "check": "CHECK status rejeitou valor 'invalid'",
+            "result": "passed"
+          },
+          {
+            "check": "FK patient_id invalido rejeitado",
+            "result": "passed"
+          },
+          {
+            "check": "medico recuperavel via SELECT com mesmos valores",
+            "result": "passed"
+          }
+        ]
+      },
+      "logs": [
+        "[DB] Schema de saude criado com sucesso",
+        "[ASSERT] tabela 'doctors' existe OK",
+        "[ASSERT] tabela 'patients' existe OK",
+        "[ASSERT] tabela 'appointments' existe OK",
+        "[ASSERT] UNIQUE crm rejeitou duplicata OK",
+        "[ASSERT] UNIQUE cpf rejeitou duplicata OK",
+        "[ASSERT] CHECK status rejeitou valor 'invalid' OK",
+        "[ASSERT] FK patient_id invalido rejeitado OK",
+        "[ASSERT] medico recuperavel via SELECT com mesmos valores OK",
+        "-> STATUS: PASSED"
+      ],
+      "error": null
+    }
+  ],
+  "summary": {
+    "total": 2,
+    "passed": 2,
+    "failed": 0,
+    "skipped": 0,
+    "credentials_failed": false
+  }
+}

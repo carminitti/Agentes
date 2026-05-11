@@ -1,0 +1,13 @@
+{
+  "name": "tmp_browser_1778263268",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "test": "npx playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.44.0",
+    "@faker-js/faker": "^8.4.1",
+    "dotenv": "^16.4.5"
+  }
+}

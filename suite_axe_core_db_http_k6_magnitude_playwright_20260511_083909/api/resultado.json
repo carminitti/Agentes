@@ -1,0 +1,739 @@
+{
+  "executor": "api",
+  "environment": "swapi.dev|api.nasa.gov|dummyjson.com|restful-booker.herokuapp.com",
+  "credentials_failed": false,
+  "generated_files": null,
+  "results": [
+    {
+      "id": "TC-API-001",
+      "title": "Buscar personagem por ID",
+      "status": "passed",
+      "duration_ms": 926,
+      "details": {
+        "method": "GET",
+        "url": "https://swapi.dev/api/people/1/",
+        "status_code": 200,
+        "validations": [
+          {
+            "check": "status in [200]",
+            "result": "passed"
+          },
+          {
+            "check": "field_equals:name:Luke Skywalker",
+            "result": "passed"
+          },
+          {
+            "check": "field_equals:birth_year:19BBY",
+            "result": "passed"
+          },
+          {
+            "check": "field_equals:gender:male",
+            "result": "passed"
+          },
+          {
+            "check": "field_not_empty:homeworld:None",
+            "result": "passed"
+          },
+          {
+            "check": "array_not_empty:films:None",
+            "result": "passed"
+          }
+        ]
+      },
+      "logs": [
+        "[REQUEST] GET https://swapi.dev/api/people/1/",
+        "[RESPONSE] 200 -- 926ms",
+        "[ASSERT] status 200 esperado=[200] OK",
+        "[ASSERT] field_equals name=Luke Skywalker: got=Luke Skywalker OK",
+        "[ASSERT] field_equals birth_year=19BBY: got=19BBY OK",
+        "[ASSERT] field_equals gender=male: got=male OK",
+        "[ASSERT] field_not_empty homeworld=None: got=https://swapi.dev/api/planets/1/ OK",
+        "[ASSERT] array_not_empty films=None: got=['https://swapi.dev/api/films/1/', 'https://swapi.dev/api/films/2/', 'https://sw OK"
+      ],
+      "error": null
+    },
+    {
+      "id": "TC-API-002",
+      "title": "ID inexistente 404",
+      "status": "passed",
+      "duration_ms": 879,
+      "details": {
+        "method": "GET",
+        "url": "https://swapi.dev/api/people/9999/",
+        "status_code": 404,
+        "validations": [
+          {
+            "check": "status in [404]",
+            "result": "passed"
+          },
+          {
+            "check": "contains:detail:Not found",
+            "result": "passed"
+          }
+        ]
+      },
+      "logs": [
+        "[REQUEST] GET https://swapi.dev/api/people/9999/",
+        "[RESPONSE] 404 -- 879ms",
+        "[ASSERT] status 404 esperado=[404] OK",
+        "[ASSERT] contains detail=Not found: got=Not found OK"
+      ],
+      "error": null
+    },
+    {
+      "id": "TC-API-003",
+      "title": "Listar filmes",
+      "status": "passed",
+      "duration_ms": 1155,
+      "details": {
+        "method": "GET",
+        "url": "https://swapi.dev/api/films/",
+        "status_code": 200,
+        "validations": [
+          {
+            "check": "status in [200]",
+            "result": "passed"
+          },
+          {
+            "check": "field_gt:count:0",
+            "result": "passed"
+          },
+          {
+            "check": "array_not_empty:results:None",
+            "result": "passed"
+          }
+        ]
+      },
+      "logs": [
+        "[REQUEST] GET https://swapi.dev/api/films/",
+        "[RESPONSE] 200 -- 1155ms",
+        "[ASSERT] status 200 esperado=[200] OK",
+        "[ASSERT] field_gt count=0: got=6 OK",
+        "[ASSERT] array_not_empty results=None: got=[{'title': 'A New Hope', 'episode_id': 4, 'opening_crawl': \"It is a period of ci OK"
+      ],
+      "error": null
+    },
+    {
+      "id": "TC-API-004",
+      "title": "Busca X-wing",
+      "status": "passed",
+      "duration_ms": 872,
+      "details": {
+        "method": "GET",
+        "url": "https://swapi.dev/api/starships/?search=X-wing",
+        "status_code": 200,
+        "validations": [
+          {
+            "check": "status in [200]",
+            "result": "passed"
+          },
+          {
+            "check": "field_gt:count:0",
+            "result": "passed"
+          },
+          {
+            "check": "array_not_empty:results:None",
+            "result": "passed"
+          }
+        ]
+      },
+      "logs": [
+        "[REQUEST] GET https://swapi.dev/api/starships/?search=X-wing",
+        "[RESPONSE] 200 -- 872ms",
+        "[ASSERT] status 200 esperado=[200] OK",
+        "[ASSERT] field_gt count=0: got=1 OK",
+        "[ASSERT] array_not_empty results=None: got=[{'name': 'X-wing', 'model': 'T-65 X-wing', 'manufacturer': 'Incom Corporation', OK"
+      ],
+      "error": null
+    },
+    {
+      "id": "TC-API-005",
+      "title": "Busca inexistente",
+      "status": "passed",
+      "duration_ms": 876,
+      "details": {
+        "method": "GET",
+        "url": "https://swapi.dev/api/starships/?search=TERMOINEXISTENTEXXX",
+        "status_code": 200,
+        "validations": [
+          {
+            "check": "status in [200]",
+            "result": "passed"
+          },
+          {
+            "check": "field_equals_0:count:None",
+            "result": "passed"
+          },
+          {
+            "check": "array_empty:results:None",
+            "result": "passed"
+          }
+        ]
+      },
+      "logs": [
+        "[REQUEST] GET https://swapi.dev/api/starships/?search=TERMOINEXISTENTEXXX",
+        "[RESPONSE] 200 -- 876ms",
+        "[ASSERT] status 200 esperado=[200] OK",
+        "[ASSERT] field_equals_0 count=None: got=0 OK",
+        "[ASSERT] array_empty results=None: got=[] OK"
+      ],
+      "error": null
+    },
+    {
+      "id": "TC-API-006",
+      "title": "Planeta Tatooine",
+      "status": "passed",
+      "duration_ms": 894,
+      "details": {
+        "method": "GET",
+        "url": "https://swapi.dev/api/planets/1/",
+        "status_code": 200,
+        "validations": [
+          {
+            "check": "status in [200]",
+            "result": "passed"
+          },
+          {
+            "check": "field_equals:name:Tatooine",
+            "result": "passed"
+          },
+          {
+            "check": "field_not_empty:climate:None",
+            "result": "passed"
+          },
+          {
+            "check": "field_not_empty:terrain:None",
+            "result": "passed"
+          },
+          {
+            "check": "field_not_empty:population:None",
+            "result": "passed"
+          }
+        ]
+      },
+      "logs": [
+        "[REQUEST] GET https://swapi.dev/api/planets/1/",
+        "[RESPONSE] 200 -- 894ms",
+        "[ASSERT] status 200 esperado=[200] OK",
+        "[ASSERT] field_equals name=Tatooine: got=Tatooine OK",
+        "[ASSERT] field_not_empty climate=None: got=arid OK",
+        "[ASSERT] field_not_empty terrain=None: got=desert OK",
+        "[ASSERT] field_not_empty population=None: got=200000 OK"
+      ],
+      "error": null
+    },
+    {
+      "id": "TC-API-007",
+      "title": "APOD com DEMO_KEY",
+      "status": "passed",
+      "duration_ms": 931,
+      "details": {
+        "method": "GET",
+        "url": "https://api.nasa.gov/planetary/apod?api_key=DEMO_KEY",
+        "status_code": 200,
+        "validations": [
+          {
+            "check": "status in [200]",
+            "result": "passed"
+          },
+          {
+            "check": "field_not_empty:title:None",
+            "result": "passed"
+          },
+          {
+            "check": "field_not_empty:url:None",
+            "result": "passed"
+          },
+          {
+            "check": "field_not_empty:explanation:None",
+            "result": "passed"
+          }
+        ]
+      },
+      "logs": [
+        "[REQUEST] GET https://api.nasa.gov/planetary/apod?api_key=DEMO_KEY",
+        "[RESPONSE] 200 -- 931ms",
+        "[ASSERT] status 200 esperado=[200] OK",
+        "[ASSERT] field_not_empty title=None: got=Moon Setting Behind Teide Volcano OK",
+        "[ASSERT] field_not_empty url=None: got=https://www.youtube.com/embed/afHfMMC-MJE?rel=0 OK",
+        "[ASSERT] field_not_empty explanation=None: got=These people are not in danger. What is coming down from the left is just the Mo OK"
+      ],
+      "error": null
+    },
+    {
+      "id": "TC-API-008",
+      "title": "APOD data especifica",
+      "status": "passed",
+      "duration_ms": 1105,
+      "details": {
+        "method": "GET",
+        "url": "https://api.nasa.gov/planetary/apod?api_key=DEMO_KEY&date=2024-07-04",
+        "status_code": 200,
+        "validations": [
+          {
+            "check": "status in [200]",
+            "result": "passed"
+          },
+          {
+            "check": "field_equals:date:2024-07-04",
+            "result": "passed"
+          },
+          {
+            "check": "field_not_empty:title:None",
+            "result": "passed"
+          }
+        ]
+      },
+      "logs": [
+        "[REQUEST] GET https://api.nasa.gov/planetary/apod?api_key=DEMO_KEY&date=2024-07-04",
+        "[RESPONSE] 200 -- 1105ms",
+        "[ASSERT] status 200 esperado=[200] OK",
+        "[ASSERT] field_equals date=2024-07-04: got=2024-07-04 OK",
+        "[ASSERT] field_not_empty title=None: got=A Beautiful Trifid OK"
+      ],
+      "error": null
+    },
+    {
+      "id": "TC-API-009",
+      "title": "APOD sem API key",
+      "status": "passed",
+      "duration_ms": 805,
+      "details": {
+        "method": "GET",
+        "url": "https://api.nasa.gov/planetary/apod",
+        "status_code": 403,
+        "validations": [
+          {
+            "check": "status in [400, 403]",
+            "result": "passed"
+          },
+          {
+            "check": "body_contains:None:api_key",
+            "result": "passed"
+          }
+        ]
+      },
+      "logs": [
+        "[REQUEST] GET https://api.nasa.gov/planetary/apod",
+        "[RESPONSE] 403 -- 805ms",
+        "[ASSERT] status 403 esperado=[400, 403] OK",
+        "[ASSERT] body_contains None=api_key: got={'error': {'code': 'API_KEY_MISSING', 'message': 'No api_key was supplied. Get o OK"
+      ],
+      "error": null
+    },
+    {
+      "id": "TC-API-010",
+      "title": "NEO feed",
+      "status": "passed",
+      "duration_ms": 1212,
+      "details": {
+        "method": "GET",
+        "url": "https://api.nasa.gov/neo/rest/v1/feed?start_date=2024-01-01&end_date=2024-01-07&api_key=DEMO_KEY",
+        "status_code": 200,
+        "validations": [
+          {
+            "check": "status in [200]",
+            "result": "passed"
+          },
+          {
+            "check": "field_gt:element_count:0",
+            "result": "passed"
+          },
+          {
+            "check": "field_not_empty:near_earth_objects:None",
+            "result": "passed"
+          }
+        ]
+      },
+      "logs": [
+        "[REQUEST] GET https://api.nasa.gov/neo/rest/v1/feed?start_date=2024-01-01&end_date=2024-01-07&api_key=DEMO_KEY",
+        "[RESPONSE] 200 -- 1210ms",
+        "[ASSERT] status 200 esperado=[200] OK",
+        "[ASSERT] field_gt element_count=0: got=45 OK",
+        "[ASSERT] field_not_empty near_earth_objects=None: got={'2024-01-02': [{'links': {'self': 'http://api.nasa.gov/neo/rest/v1/neo/2415949? OK"
+      ],
+      "error": null
+    },
+    {
+      "id": "TC-API-011",
+      "title": "Login DummyJSON",
+      "status": "failed",
+      "duration_ms": 257,
+      "details": {
+        "method": "POST",
+        "url": "https://dummyjson.com/auth/login",
+        "status_code": 400,
+        "validations": [
+          {
+            "check": "status in [200]",
+            "result": "failed"
+          },
+          {
+            "check": "field_not_empty:token:None",
+            "result": "failed"
+          },
+          {
+            "check": "field_not_empty:refreshToken:None",
+            "result": "failed"
+          },
+          {
+            "check": "field_gt:id:0",
+            "result": "failed"
+          },
+          {
+            "check": "field_equals:username:kminchelle",
+            "result": "failed"
+          }
+        ]
+      },
+      "logs": [
+        "[REQUEST] POST https://dummyjson.com/auth/login",
+        "[RESPONSE] 400 -- 257ms",
+        "[ASSERT] status 400 esperado=[200] FALHOU",
+        "[ASSERT] field_not_empty token=None: got=None FALHOU",
+        "[ASSERT] field_not_empty refreshToken=None: got=None FALHOU",
+        "[ASSERT] field_gt id=0: got=None FALHOU",
+        "[ASSERT] field_equals username=kminchelle: got=None FALHOU"
+      ],
+      "error": "Esperado status [200], recebido 400"
+    },
+    {
+      "id": "TC-API-012",
+      "title": "Login senha errada",
+      "status": "passed",
+      "duration_ms": 292,
+      "details": {
+        "method": "POST",
+        "url": "https://dummyjson.com/auth/login",
+        "status_code": 400,
+        "validations": [
+          {
+            "check": "status in [400, 401]",
+            "result": "passed"
+          }
+        ]
+      },
+      "logs": [
+        "[REQUEST] POST https://dummyjson.com/auth/login",
+        "[RESPONSE] 400 -- 292ms",
+        "[ASSERT] status 400 esperado=[400, 401] OK"
+      ],
+      "error": null
+    },
+    {
+      "id": "TC-API-013",
+      "title": "Perfil autenticado",
+      "status": "skipped",
+      "duration_ms": 0,
+      "details": {},
+      "logs": [
+        "[SKIP] Token nao obtido"
+      ],
+      "error": "Login falhou"
+    },
+    {
+      "id": "TC-API-014",
+      "title": "Rota protegida sem token",
+      "status": "passed",
+      "duration_ms": 287,
+      "details": {
+        "method": "GET",
+        "url": "https://dummyjson.com/auth/me",
+        "status_code": 401,
+        "validations": [
+          {
+            "check": "status in [401]",
+            "result": "passed"
+          }
+        ]
+      },
+      "logs": [
+        "[REQUEST] GET https://dummyjson.com/auth/me",
+        "[RESPONSE] 401 -- 287ms",
+        "[ASSERT] status 401 esperado=[401] OK"
+      ],
+      "error": null
+    },
+    {
+      "id": "TC-API-015",
+      "title": "Criar produto",
+      "status": "skipped",
+      "duration_ms": 0,
+      "details": {},
+      "logs": [
+        "[SKIP] Token nao obtido"
+      ],
+      "error": "Login falhou"
+    },
+    {
+      "id": "TC-API-016",
+      "title": "PATCH produto",
+      "status": "skipped",
+      "duration_ms": 0,
+      "details": {},
+      "logs": [
+        "[SKIP] Token nao obtido"
+      ],
+      "error": "Login falhou"
+    },
+    {
+      "id": "TC-API-017",
+      "title": "Listar produtos publico",
+      "status": "passed",
+      "duration_ms": 287,
+      "details": {
+        "method": "GET",
+        "url": "https://dummyjson.com/products?limit=5",
+        "status_code": 200,
+        "validations": [
+          {
+            "check": "status in [200]",
+            "result": "passed"
+          },
+          {
+            "check": "array_length:products:5",
+            "result": "passed"
+          },
+          {
+            "check": "field_gt:total:0",
+            "result": "passed"
+          }
+        ]
+      },
+      "logs": [
+        "[REQUEST] GET https://dummyjson.com/products?limit=5",
+        "[RESPONSE] 200 -- 286ms",
+        "[ASSERT] status 200 esperado=[200] OK",
+        "[ASSERT] array_length products=5: got=[{'id': 1, 'title': 'Essence Mascara Lash Princess', 'description': 'The Essence OK",
+        "[ASSERT] field_gt total=0: got=194 OK"
+      ],
+      "error": null
+    },
+    {
+      "id": "TC-API-018",
+      "title": "Gerar token Restful-Booker",
+      "status": "passed",
+      "duration_ms": 622,
+      "details": {
+        "method": "POST",
+        "url": "https://restful-booker.herokuapp.com/auth",
+        "status_code": 200,
+        "validations": [
+          {
+            "check": "status in [200]",
+            "result": "passed"
+          },
+          {
+            "check": "field_not_empty:token:None",
+            "result": "passed"
+          }
+        ]
+      },
+      "logs": [
+        "[REQUEST] POST https://restful-booker.herokuapp.com/auth",
+        "[RESPONSE] 200 -- 622ms",
+        "[ASSERT] status 200 esperado=[200] OK",
+        "[ASSERT] field_not_empty token=None: got=6a95c9abed7421d OK"
+      ],
+      "error": null
+    },
+    {
+      "id": "TC-API-019",
+      "title": "Credenciais incorretas",
+      "status": "passed",
+      "duration_ms": 570,
+      "details": {
+        "method": "POST",
+        "url": "https://restful-booker.herokuapp.com/auth",
+        "status_code": 200,
+        "validations": [
+          {
+            "check": "status in [200]",
+            "result": "passed"
+          },
+          {
+            "check": "contains:reason:Bad credentials",
+            "result": "passed"
+          }
+        ]
+      },
+      "logs": [
+        "[REQUEST] POST https://restful-booker.herokuapp.com/auth",
+        "[RESPONSE] 200 -- 570ms",
+        "[ASSERT] status 200 esperado=[200] OK",
+        "[ASSERT] contains reason=Bad credentials: got=Bad credentials OK"
+      ],
+      "error": null
+    },
+    {
+      "id": "TC-API-020",
+      "title": "Listar reservas",
+      "status": "passed",
+      "duration_ms": 642,
+      "details": {
+        "method": "GET",
+        "url": "https://restful-booker.herokuapp.com/booking",
+        "status_code": 200,
+        "validations": [
+          {
+            "check": "status in [200]",
+            "result": "passed"
+          },
+          {
+            "check": "is_array:None:None",
+            "result": "passed"
+          }
+        ]
+      },
+      "logs": [
+        "[REQUEST] GET https://restful-booker.herokuapp.com/booking",
+        "[RESPONSE] 200 -- 641ms",
+        "[ASSERT] status 200 esperado=[200] OK",
+        "[ASSERT] is_array None=None: got=[{'bookingid': 1}, {'bookingid': 2}, {'bookingid': 3}, {'bookingid': 4}, {'booki OK"
+      ],
+      "error": null
+    },
+    {
+      "id": "TC-API-021",
+      "title": "Criar reserva",
+      "status": "passed",
+      "duration_ms": 593,
+      "details": {
+        "method": "POST",
+        "url": "https://restful-booker.herokuapp.com/booking",
+        "status_code": 200,
+        "validations": [
+          {
+            "check": "status in [200]",
+            "result": "passed"
+          },
+          {
+            "check": "field_gt:bookingid:0",
+            "result": "passed"
+          }
+        ]
+      },
+      "logs": [
+        "[REQUEST] POST https://restful-booker.herokuapp.com/booking",
+        "[RESPONSE] 200 -- 593ms",
+        "[ASSERT] status 200 esperado=[200] OK",
+        "[ASSERT] field_gt bookingid=0: got=1020 OK"
+      ],
+      "error": null
+    },
+    {
+      "id": "TC-API-022",
+      "title": "Ler reserva por ID",
+      "status": "skipped",
+      "duration_ms": 0,
+      "details": {},
+      "logs": [
+        "[SKIP] booking_id nao obtido"
+      ],
+      "error": "Create falhou"
+    },
+    {
+      "id": "TC-API-023",
+      "title": "PUT reserva",
+      "status": "skipped",
+      "duration_ms": 0,
+      "details": {},
+      "logs": [
+        "[SKIP] Token ou booking_id indisponivel"
+      ],
+      "error": "Dependencia nao disponivel"
+    },
+    {
+      "id": "TC-API-024",
+      "title": "PATCH reserva Basic",
+      "status": "skipped",
+      "duration_ms": 0,
+      "details": {},
+      "logs": [
+        "[SKIP] booking_id indisponivel"
+      ],
+      "error": "Dependencia nao disponivel"
+    },
+    {
+      "id": "TC-API-025",
+      "title": "DELETE reserva",
+      "status": "skipped",
+      "duration_ms": 0,
+      "details": {},
+      "logs": [
+        "[SKIP] Token ou booking_id indisponivel"
+      ],
+      "error": "Dependencia nao disponivel"
+    },
+    {
+      "id": "TC-API-026",
+      "title": "Reserva deletada nao existe",
+      "status": "skipped",
+      "duration_ms": 0,
+      "details": {},
+      "logs": [
+        "[SKIP] booking_id indisponivel"
+      ],
+      "error": "Dependencia nao disponivel"
+    },
+    {
+      "id": "TC-API-027",
+      "title": "DELETE sem token 403",
+      "status": "passed",
+      "duration_ms": 646,
+      "details": {
+        "method": "DELETE",
+        "url": "https://restful-booker.herokuapp.com/booking/1",
+        "status_code": 403,
+        "validations": [
+          {
+            "check": "status in [403]",
+            "result": "passed"
+          }
+        ]
+      },
+      "logs": [
+        "[REQUEST] DELETE https://restful-booker.herokuapp.com/booking/1",
+        "[RESPONSE] 403 -- 646ms",
+        "[ASSERT] status 403 esperado=[403] OK"
+      ],
+      "error": null
+    },
+    {
+      "id": "TC-API-028",
+      "title": "Filtrar reservas",
+      "status": "passed",
+      "duration_ms": 625,
+      "details": {
+        "method": "GET",
+        "url": "https://restful-booker.herokuapp.com/booking?firstname=QA&lastname=Squad",
+        "status_code": 200,
+        "validations": [
+          {
+            "check": "status in [200]",
+            "result": "passed"
+          },
+          {
+            "check": "is_array:None:None",
+            "result": "passed"
+          }
+        ]
+      },
+      "logs": [
+        "[REQUEST] GET https://restful-booker.herokuapp.com/booking?firstname=QA&lastname=Squad",
+        "[RESPONSE] 200 -- 625ms",
+        "[ASSERT] status 200 esperado=[200] OK",
+        "[ASSERT] is_array None=None: got=[{'bookingid': 1020}] OK"
+      ],
+      "error": null
+    }
+  ],
+  "summary": {
+    "total": 28,
+    "passed": 19,
+    "failed": 1,
+    "skipped": 8,
+    "error": 0,
+    "credentials_failed": false
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "name": "qa-browser-suite5",
+  "version": "1.0.0",
+  "devDependencies": {
+    "@playwright/test": "^1.44.0",
+    "@faker-js/faker": "^8.0.0",
+    "dotenv": "^16.0.0",
+    "typescript": "^5.0.0"
+  }
+}

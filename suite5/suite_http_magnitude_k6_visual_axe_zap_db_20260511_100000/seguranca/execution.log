@@ -1,0 +1,42 @@
+[2026-05-11 11:24:17] === executor-seguranca — inicio ===
+[2026-05-11 11:24:17] Tipo: public_test_api
+
+[2026-05-11 11:24:17] [TC-SEC-S5-001] Headers de seguranca e exposicao de informacoes na PokeAPI
+[2026-05-11 11:24:17]   [CHECK] /pokemon/1 Content-Type: text/html — FALHOU
+[2026-05-11 11:24:17]   [CHECK] /pokemon/1 Server: 'Cato' — ok
+[2026-05-11 11:24:17]   [CHECK] /pokemon/1 Strict-Transport-Security: ausente — aviso (opcional)
+[2026-05-11 11:24:17]   [CHECK] /pokemon/1 X-Frame-Options: ausente — aviso (opcional)
+[2026-05-11 11:24:17]   [CHECK] /pokemon/1 Content-Security-Policy: ausente — aviso (opcional)
+[2026-05-11 11:24:17]   [CHECK] /type/1 Content-Type: text/html — FALHOU
+[2026-05-11 11:24:17]   [CHECK] /type/1 Server: 'Cato' — ok
+[2026-05-11 11:24:17]   [CHECK] /type/1 Strict-Transport-Security: ausente — aviso (opcional)
+[2026-05-11 11:24:17]   [CHECK] /type/1 X-Frame-Options: ausente — aviso (opcional)
+[2026-05-11 11:24:17]   [CHECK] /type/1 Content-Security-Policy: ausente — aviso (opcional)
+[2026-05-11 11:24:17]   [CHECK] /ability/1 Content-Type: text/html — FALHOU
+[2026-05-11 11:24:17]   [CHECK] /ability/1 Server: 'Cato' — ok
+[2026-05-11 11:24:17]   [CHECK] /ability/1 Strict-Transport-Security: ausente — aviso (opcional)
+[2026-05-11 11:24:17]   [CHECK] /ability/1 X-Frame-Options: ausente — aviso (opcional)
+[2026-05-11 11:24:17]   [CHECK] /ability/1 Content-Security-Policy: ausente — aviso (opcional)
+[2026-05-11 11:24:17]   [CHECK] Admin endpoint retornou 403 — ok
+[2026-05-11 11:24:17]   [RESULT] TC-SEC-S5-001 — failed
+[2026-05-11 11:24:17]   -> STATUS: FAILED
+
+[2026-05-11 11:24:17] [TC-SEC-S5-002] Headers de seguranca e CORS na Nationalize API
+[2026-05-11 11:24:17]   [CHECK] /?name=james status: 200 — ok
+[2026-05-11 11:24:17]   [CHECK] /?name=james Content-Type: application/json; charset=utf-8 — ok
+[2026-05-11 11:24:17]   [CHECK] /?name=james Server: 'nginx/1.16.1' — WARNING
+[2026-05-11 11:24:17]   [CHECK] /?name=james CORS ACAO: '*' — aviso (API publica)
+[2026-05-11 11:24:17]   [CHECK] /?name=james Strict-Transport-Security: ausente — aviso
+[2026-05-11 11:24:17]   [CHECK] /?name=james X-Frame-Options: ausente — aviso
+[2026-05-11 11:24:17]   [CHECK] /?name=james Content-Security-Policy: ausente — aviso
+[2026-05-11 11:24:17]   [CHECK] /?name=maria status: 200 — ok
+[2026-05-11 11:24:17]   [CHECK] /?name=maria Content-Type: application/json; charset=utf-8 — ok
+[2026-05-11 11:24:17]   [CHECK] /?name=maria Server: 'nginx/1.16.1' — WARNING
+[2026-05-11 11:24:17]   [CHECK] /?name=maria CORS ACAO: '*' — aviso (API publica)
+[2026-05-11 11:24:17]   [CHECK] /?name=maria Strict-Transport-Security: ausente — aviso
+[2026-05-11 11:24:17]   [CHECK] /?name=maria X-Frame-Options: ausente — aviso
+[2026-05-11 11:24:17]   [CHECK] /?name=maria Content-Security-Policy: ausente — aviso
+[2026-05-11 11:24:17]   [RESULT] TC-SEC-S5-002 — warning
+[2026-05-11 11:24:17]   -> STATUS: WARNING
+
+[2026-05-11 11:24:17] === Fim: 0 passou, 1 falhou, 1 aviso ===

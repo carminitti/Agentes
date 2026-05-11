@@ -1,0 +1,346 @@
+{
+  "executor": "security",
+  "environment": "swapi.dev|restful-booker.herokuapp.com",
+  "environment_type": "mixed (public_test_api + production)",
+  "credentials_failed": false,
+  "ssl_warning": "Certificado SSL invalido detectado. Execucao com verify=False.",
+  "generated_files": null,
+  "results": [
+    {
+      "id": "TC-SEC-001",
+      "title": "Headers seguranca SWAPI",
+      "status": "failed",
+      "checks": [
+        {
+          "check": "Strict-Transport-Security presente",
+          "result": "passed",
+          "actual": "max-age=15768000",
+          "note": null
+        },
+        {
+          "check": "X-Content-Type-Options presente",
+          "result": "warning",
+          "actual": "AUSENTE",
+          "note": "API publica de teste -- comportamento esperado"
+        },
+        {
+          "check": "X-Frame-Options presente",
+          "result": "passed",
+          "actual": "SAMEORIGIN",
+          "note": null
+        },
+        {
+          "check": "Content-Security-Policy presente",
+          "result": "warning",
+          "actual": "AUSENTE",
+          "note": "API publica de teste -- comportamento esperado"
+        },
+        {
+          "check": "Server sem versao detalhada",
+          "result": "failed",
+          "actual": "nginx/1.16.1"
+        }
+      ],
+      "severity": null,
+      "note": null,
+      "logs": [
+        "[CHECK] GET https://swapi.dev/api/ -> 200",
+        "[CHECK] Strict-Transport-Security: presente ",
+        "[CHECK] X-Content-Type-Options: AUSENTE (warning -- API publica) ",
+        "[CHECK] X-Frame-Options: presente ",
+        "[CHECK] Content-Security-Policy: AUSENTE (warning -- API publica) ",
+        "[CHECK] Server header: \"nginx/1.16.1\" -> FALHOU"
+      ],
+      "error": "Header Server revela versao: nginx/1.16.1",
+      "duration_ms": 1308
+    },
+    {
+      "id": "TC-SEC-002",
+      "title": "Endpoints sensiveis SWAPI",
+      "status": "failed",
+      "checks": [
+        {
+          "check": "GET /admin retorna 401/403/404",
+          "result": "failed",
+          "actual": 200
+        },
+        {
+          "check": "GET /.env retorna 401/403/404",
+          "result": "passed",
+          "actual": 404
+        },
+        {
+          "check": "GET /.git retorna 401/403/404",
+          "result": "passed",
+          "actual": 404
+        },
+        {
+          "check": "GET /debug retorna 401/403/404",
+          "result": "passed",
+          "actual": 404
+        },
+        {
+          "check": "GET /config retorna 401/403/404",
+          "result": "passed",
+          "actual": 404
+        },
+        {
+          "check": "GET /swagger retorna 401/403/404",
+          "result": "passed",
+          "actual": 404
+        },
+        {
+          "check": "GET /api-docs retorna 401/403/404",
+          "result": "passed",
+          "actual": 404
+        }
+      ],
+      "severity": "medium",
+      "note": null,
+      "logs": [
+        "[CHECK] GET /admin -> 200 FALHOU",
+        "[CHECK] GET /.env -> 404 OK",
+        "[CHECK] GET /.git -> 404 OK",
+        "[CHECK] GET /debug -> 404 OK",
+        "[CHECK] GET /config -> 404 OK",
+        "[CHECK] GET /swagger -> 404 OK",
+        "[CHECK] GET /api-docs -> 404 OK"
+      ],
+      "error": "Endpoint /admin retornou 200",
+      "duration_ms": 9486
+    },
+    {
+      "id": "TC-SEC-003",
+      "title": "CORS SWAPI",
+      "status": "warning",
+      "checks": [
+        {
+          "check": "CORS rejeita origem maliciosa",
+          "result": "warning",
+          "actual": "*",
+          "note": "API publica de teste -- comportamento esperado"
+        }
+      ],
+      "severity": null,
+      "note": "API publica de teste -- CORS aberto e esperado",
+      "logs": [
+        "[CHECK] CORS GET: Access-Control-Allow-Origin = \"*\"",
+        "[CHECK] CORS OPTIONS: Access-Control-Allow-Origin = \"*\"",
+        "[CHECK] CORS aceita origem maliciosa -> warning (API publica de teste)"
+      ],
+      "error": null,
+      "duration_ms": 2426
+    },
+    {
+      "id": "TC-SEC-004",
+      "title": "RB endpoint protegido 403",
+      "status": "passed",
+      "checks": [
+        {
+          "check": "DELETE /booking/1 sem auth retorna 403",
+          "result": "passed",
+          "actual": 403
+        }
+      ],
+      "severity": null,
+      "note": null,
+      "logs": [
+        "[CHECK] DELETE /booking/1 sem auth -> 403 OK"
+      ],
+      "error": null,
+      "duration_ms": 1171
+    },
+    {
+      "id": "TC-SEC-005",
+      "title": "RB token invalido rejeitado",
+      "status": "passed",
+      "checks": [
+        {
+          "check": "DELETE com token invalido retorna 403",
+          "result": "passed",
+          "actual": 403
+        }
+      ],
+      "severity": null,
+      "note": null,
+      "logs": [
+        "[CHECK] DELETE com token invalido -> 403 OK"
+      ],
+      "error": null,
+      "duration_ms": 1161
+    },
+    {
+      "id": "TC-SEC-006",
+      "title": "Headers seguranca Restful-Booker",
+      "status": "failed",
+      "checks": [
+        {
+          "check": "Strict-Transport-Security presente",
+          "result": "failed",
+          "actual": "AUSENTE",
+          "severity": "medium"
+        },
+        {
+          "check": "X-Content-Type-Options presente",
+          "result": "failed",
+          "actual": "AUSENTE",
+          "severity": "medium"
+        },
+        {
+          "check": "X-Frame-Options presente",
+          "result": "failed",
+          "actual": "AUSENTE",
+          "severity": "medium"
+        },
+        {
+          "check": "Content-Security-Policy presente",
+          "result": "failed",
+          "actual": "AUSENTE",
+          "severity": "medium"
+        }
+      ],
+      "severity": "medium",
+      "note": null,
+      "logs": [
+        "[CHECK] Strict-Transport-Security: AUSENTE (medium) ",
+        "[CHECK] X-Content-Type-Options: AUSENTE (medium) ",
+        "[CHECK] X-Frame-Options: AUSENTE (medium) ",
+        "[CHECK] Content-Security-Policy: AUSENTE (medium) "
+      ],
+      "error": "Header Strict-Transport-Security ausente",
+      "duration_ms": 1333
+    },
+    {
+      "id": "TC-SEC-007",
+      "title": "CORS preflight Restful-Booker",
+      "status": "passed",
+      "checks": [
+        {
+          "check": "ACAO nao e wildcard",
+          "result": "passed",
+          "actual": ""
+        },
+        {
+          "check": "ACAO nao aceita origem maliciosa",
+          "result": "passed",
+          "actual": ""
+        }
+      ],
+      "severity": null,
+      "note": null,
+      "logs": [
+        "[CHECK] OPTIONS CORS: Access-Control-Allow-Origin = \"\"",
+        "[CHECK] ACAO != * : OK",
+        "[CHECK] ACAO nao contem malicious : OK"
+      ],
+      "error": null,
+      "duration_ms": 870
+    },
+    {
+      "id": "TC-SEC-008",
+      "title": "Endpoints sensiveis Restful-Booker",
+      "status": "passed",
+      "checks": [
+        {
+          "check": "GET /admin retorna 401/403/404",
+          "result": "passed",
+          "actual": 404
+        },
+        {
+          "check": "GET /.env retorna 401/403/404",
+          "result": "passed",
+          "actual": 404
+        },
+        {
+          "check": "GET /debug retorna 401/403/404",
+          "result": "passed",
+          "actual": 404
+        },
+        {
+          "check": "GET /actuator retorna 401/403/404",
+          "result": "passed",
+          "actual": 404
+        },
+        {
+          "check": "GET /metrics retorna 401/403/404",
+          "result": "passed",
+          "actual": 404
+        },
+        {
+          "check": "GET /swagger retorna 401/403/404",
+          "result": "passed",
+          "actual": 404
+        }
+      ],
+      "severity": null,
+      "note": null,
+      "logs": [
+        "[CHECK] GET /admin -> 404 OK",
+        "[CHECK] GET /.env -> 404 OK",
+        "[CHECK] GET /debug -> 404 OK",
+        "[CHECK] GET /actuator -> 404 OK",
+        "[CHECK] GET /metrics -> 404 OK",
+        "[CHECK] GET /swagger -> 404 OK"
+      ],
+      "error": null,
+      "duration_ms": 7218
+    },
+    {
+      "id": "TC-SEC-009",
+      "title": "Resposta GET sem campos sensiveis",
+      "status": "passed",
+      "checks": [
+        {
+          "check": "status 200 ou 404",
+          "result": "passed",
+          "actual": 200
+        },
+        {
+          "check": "campo \"password\" ausente",
+          "result": "passed"
+        },
+        {
+          "check": "campo \"cpf\" ausente",
+          "result": "passed"
+        },
+        {
+          "check": "campo \"ssn\" ausente",
+          "result": "passed"
+        },
+        {
+          "check": "campo \"credit_card\" ausente",
+          "result": "passed"
+        },
+        {
+          "check": "campo \"secret\" ausente",
+          "result": "passed"
+        }
+      ],
+      "severity": null,
+      "note": null,
+      "logs": [
+        "[CHECK] GET /booking/1 -> 200 OK",
+        "[CHECK] campo \"password\" na resposta: ausente (OK)",
+        "[CHECK] campo \"cpf\" na resposta: ausente (OK)",
+        "[CHECK] campo \"ssn\" na resposta: ausente (OK)",
+        "[CHECK] campo \"credit_card\" na resposta: ausente (OK)",
+        "[CHECK] campo \"secret\" na resposta: ausente (OK)"
+      ],
+      "error": null,
+      "duration_ms": 805
+    }
+  ],
+  "summary": {
+    "total": 9,
+    "passed": 5,
+    "failed": 3,
+    "warning": 1,
+    "error": 0,
+    "by_severity": {
+      "high": 0,
+      "medium": 2,
+      "low": 0
+    },
+    "credentials_failed": false
+  }
+}

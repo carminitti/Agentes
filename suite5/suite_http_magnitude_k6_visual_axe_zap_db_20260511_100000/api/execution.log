@@ -1,0 +1,26 @@
+[2026-05-11 11:07:27] === executor-api — início ===
+[2026-05-11 11:07:27] Ambiente: https://restcountries.com/v3.1 + http://api.open-notify.org
+
+[2026-05-11 11:07:27] [TC-API-S5-001] Consultar dados do Brasil na Countries REST API
+[2026-05-11 11:07:27]   [REQUEST] GET https://restcountries.com/v3.1/name/brazil
+[2026-05-11 11:07:27]   [RESPONSE] 200 OK — 783ms
+[2026-05-11 11:07:27]   [ASSERT] status == 200 ✓
+[2026-05-11 11:07:27]   [ASSERT] ok() == true ✓
+[2026-05-11 11:07:27]   [ASSERT] response is array ✓
+[2026-05-11 11:07:27]   [ASSERT] name.common == Brazil ✓
+[2026-05-11 11:07:27]   [ASSERT] population > 0 ✓
+[2026-05-11 11:07:27]   [ASSERT] currencies has BRL ✓
+[2026-05-11 11:07:27]   [ASSERT] tempo de resposta 783ms < 4000ms ✓
+[2026-05-11 11:07:27]   [CONTRACT] Schema Zod válido ✓
+[2026-05-11 11:07:27]   -> STATUS: PASSED
+
+[2026-05-11 11:07:27] [TC-API-S5-002] Consultar posição atual da ISS via Open Notify
+[2026-05-11 11:07:27]   [REQUEST] GET http://api.open-notify.org/iss-now.json
+[2026-05-11 11:07:27]   [RESPONSE] 200 OK — 7862ms
+[2026-05-11 11:07:27]   [ASSERT] status == 200 ✓
+[2026-05-11 11:07:27]   [ASSERT] ok() == true ✓
+[2026-05-11 11:07:27]   [ASSERT] tempo de resposta 7862ms < 4000ms — FALHOU
+[2026-05-11 11:07:27]   [ERROR] Expected: < 4000 | Received: 7862
+[2026-05-11 11:07:27]   -> STATUS: FAILED
+
+[2026-05-11 11:07:27] === Fim: 1 passou, 1 falhou ===

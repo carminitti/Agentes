@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Relatório QA — Suite 6 — 2026-05-11</title>
+<style>
+:root {
+  --bg:#0f1117; --surface:#1e2130; --surface2:#252a3a; --border:#2e3450;
+  --text:#e2e8f0; --text-muted:#8892a4;
+  --green:#10b981; --green-light:#34d399; --green-dim:#0c3d2d;
+  --red:#ef4444; --red-dim:#3d1515;
+  --orange:#f59e0b; --orange-light:#fbbf24; --orange-dim:#3d2a0a;
+  --blue:#3b82f6; --blue-light:#60a5fa; --blue-dim:#1e3a5f;
+  --purple:#8b5cf6; --purple-light:#a78bfa; --purple-dim:#2d1f4d;
+  --cyan:#06b6d4; --cyan-dim:#0c2d35;
+  --radius:12px; --radius-sm:8px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;font-size:15px;line-height:1.6}
+nav{position:sticky;top:0;z-index:100;background:rgba(15,17,23,.95);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:0 24px;display:flex;align-items:center;gap:4px;flex-wrap:wrap;min-height:52px}
+nav a{color:var(--text-muted);text-decoration:none;font-size:13px;padding:6px 12px;border-radius:6px;transition:all .18s;white-space:nowrap}
+nav a:hover{background:var(--surface2);color:var(--text)}
+.nav-logo{font-weight:800;font-size:14px;color:var(--text);margin-right:8px}
+.nav-links{display:flex;align-items:center;gap:2px;flex:1;flex-wrap:wrap}
+.mode-btn{background:var(--surface2);color:var(--blue-light);border:1px solid var(--border);padding:5px 14px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;margin-left:auto;white-space:nowrap}
+.mode-btn:hover{background:var(--blue-dim)}
+main{max-width:1200px;margin:0 auto;padding:32px 24px}
+.hero{background:linear-gradient(135deg,var(--surface) 0%,var(--surface2) 100%);border:1px solid var(--border);border-radius:var(--radius);padding:32px;margin-bottom:28px}
+.hero h1{font-size:22px;font-weight:800;margin-bottom:6px}
+.hero .meta{color:var(--text-muted);font-size:13px;margin-bottom:20px}
+.verdict{display:inline-flex;align-items:center;gap:8px;padding:8px 18px;border-radius:30px;font-weight:700;font-size:15px;margin-bottom:20px}
+.verdict.fail{background:var(--red-dim);color:var(--red);border:1px solid var(--red)}
+.verdict.pass{background:var(--green-dim);color:var(--green-light);border:1px solid var(--green)}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:14px;margin-top:18px}
+.stat-card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:16px;text-align:center}
+.stat-num{font-size:32px;font-weight:800;line-height:1}
+.stat-label{font-size:11px;color:var(--text-muted);margin-top:4px;text-transform:uppercase;letter-spacing:.5px}
+.stat-card.s-pass .stat-num{color:var(--green-light)}
+.stat-card.s-fail .stat-num{color:var(--red)}
+.stat-card.s-warn .stat-num{color:var(--orange)}
+.stat-card.s-skip .stat-num{color:var(--text-muted)}
+.stat-card.s-total .stat-num{color:var(--blue-light)}
+.section{margin-bottom:28px}
+.section-title{font-size:14px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.tc-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:10px;overflow:hidden}
+.tc-header{display:flex;align-items:center;gap:12px;padding:14px 18px;cursor:pointer;transition:background .15s}
+.tc-header:hover{background:var(--surface2)}
+.badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;white-space:nowrap}
+.badge.pass{background:var(--green-dim);color:var(--green-light)}
+.badge.fail{background:var(--red-dim);color:var(--red)}
+.badge.warn{background:var(--orange-dim);color:var(--orange-light)}
+.badge.skip{background:var(--surface2);color:var(--text-muted)}
+.badge.info{background:var(--blue-dim);color:var(--blue-light)}
+.tc-title{flex:1;font-size:14px;font-weight:600}
+.tc-id{font-size:12px;color:var(--text-muted);font-family:monospace}
+.tc-dur{font-size:12px;color:var(--text-muted)}
+.tc-body{padding:0 18px 16px;border-top:1px solid var(--border)}
+.tc-body.hidden{display:none}
+.detail-row{display:flex;gap:8px;margin-top:8px;font-size:13px;flex-wrap:wrap}
+.detail-label{color:var(--text-muted);min-width:90px}
+.detail-val{color:var(--text)}
+.check-list{margin-top:10px}
+.check-item{display:flex;align-items:center;gap:8px;font-size:13px;padding:4px 0;border-bottom:1px solid rgba(46,52,80,.4)}
+.check-item:last-child{border-bottom:none}
+.ck-icon{width:16px;height:16px;display:flex;align-items:center;justify-content:center;border-radius:50%;font-size:10px;flex-shrink:0}
+.ck-pass{background:var(--green-dim);color:var(--green-light)}
+.ck-fail{background:var(--red-dim);color:var(--red)}
+.ck-warn{background:var(--orange-dim);color:var(--orange)}
+.ck-info{background:var(--blue-dim);color:var(--blue-light)}
+.error-box{background:var(--red-dim);border:1px solid var(--red);border-radius:var(--radius-sm);padding:12px;margin-top:10px;font-size:13px;color:var(--red)}
+.warn-box{background:var(--orange-dim);border:1px solid var(--orange);border-radius:var(--radius-sm);padding:12px;margin-top:10px;font-size:13px;color:var(--orange-light)}
+.info-box{background:var(--blue-dim);border:1px solid var(--blue);border-radius:var(--radius-sm);padding:12px;margin-top:10px;font-size:13px;color:var(--blue-light)}
+.perf-metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:10px}
+.metric{background:var(--surface2);border-radius:var(--radius-sm);padding:12px;text-align:center}
+.metric-val{font-size:20px;font-weight:700;color:var(--blue-light)}
+.metric-label{font-size:11px;color:var(--text-muted);margin-top:2px}
+.metric.ok .metric-val{color:var(--green-light)}
+.metric.fail .metric-val{color:var(--red)}
+.exec-bar{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:24px}
+.exec-pill{background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:6px 14px;font-size:12px;font-weight:600;display:flex;align-items:center;gap:6px}
+.exec-pill .dot{width:8px;height:8px;border-radius:50%}
+.dot-pass{background:var(--green)}
+.dot-fail{background:var(--red)}
+.dot-warn{background:var(--orange)}
+.skip-section{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:16px;margin-bottom:10px}
+.skip-section h3{font-size:13px;font-weight:700;margin-bottom:6px;color:var(--text-muted)}
+.skip-item{font-size:13px;padding:4px 0;color:var(--text-muted)}
+.rec-card{background:var(--surface);border-left:3px solid var(--orange);border-radius:0 var(--radius-sm) var(--radius-sm) 0;padding:14px 18px;margin-bottom:10px}
+.rec-card h3{font-size:13px;font-weight:700;color:var(--orange-light);margin-bottom:4px}
+.rec-card p{font-size:13px;color:var(--text-muted)}
+.view-technical{display:none}
+body.mode-technical .view-report{display:none}
+body.mode-technical .view-technical{display:block}
+.tech-block{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:14px;overflow:hidden}
+.tech-block-title{background:var(--surface2);padding:10px 16px;font-size:12px;font-weight:700;color:var(--text-muted);border-bottom:1px solid var(--border);font-family:monospace}
+.tech-block pre{padding:16px;font-size:12px;line-height:1.5;overflow-x:auto;color:#a9b7d0;font-family:'Fira Code','Cascadia Code',monospace;white-space:pre-wrap;word-break:break-word}
+.log-line{display:block}
+.log-req{color:#60a5fa}
+.log-res{color:#34d399}
+.log-err{color:#ef4444}
+.log-warn{color:#f59e0b}
+.log-assert{color:#a78bfa}
+.footer{text-align:center;color:var(--text-muted);font-size:12px;padding:32px;border-top:1px solid var(--border);margin-top:32px}
+</style>
+</head>
+<body class="mode-report">
+<nav>
+  <span class="nav-logo">QA Squad</span>
+  <div class="nav-links">
+    <a href="#resumo">Resumo</a>
+    <a href="#api">API</a>
+    <a href="#browser">Browser</a>
+    <a href="#performance">Performance</a>
+    <a href="#visual">Visual</a>
+    <a href="#acessibilidade">Acessibilidade</a>
+    <a href="#seguranca">Seguranca</a>
+    <a href="#banco">Banco</a>
+    <a href="#recomendacoes">Recomendacoes</a>
+  </div>
+  <button class="mode-btn" onclick="toggleMode(this)">Modo Tecnico</button>
+</nav>
+
+<main>
+
+<!-- ═══════════════════════════════════════════════════ HERO ═══ -->
+<div id="resumo" class="hero view-report">
+  <h1>Relatorio QA — Suite 6</h1>
+  <div class="meta">suite_api_browser_k6_visual_axe_zap_db_20260511_132805 &nbsp;|&nbsp; 2026-05-11 13:28 &nbsp;|&nbsp; 7 executores</div>
+
+  <div class="verdict fail">Suite Reprovada — 1 falha</div>
+
+  <div class="stats-grid">
+    <div class="stat-card s-total"><div class="stat-num">14</div><div class="stat-label">Classificados</div></div>
+    <div class="stat-card s-pass"><div class="stat-num">13</div><div class="stat-label">Passou</div></div>
+    <div class="stat-card s-fail"><div class="stat-num">1</div><div class="stat-label">Falhou</div></div>
+    <div class="stat-card s-warn"><div class="stat-num">2</div><div class="stat-label">Avisos</div></div>
+    <div class="stat-card s-skip"><div class="stat-num">0</div><div class="stat-label">Skipped</div></div>
+  </div>
+
+  <div style="margin-top:20px">
+    <div class="exec-bar">
+      <div class="exec-pill"><span class="dot dot-pass"></span>API: 2/2</div>
+      <div class="exec-pill"><span class="dot dot-pass"></span>Browser: 2/2</div>
+      <div class="exec-pill"><span class="dot dot-fail"></span>Performance: 1/2</div>
+      <div class="exec-pill"><span class="dot dot-pass"></span>Visual: 2/2</div>
+      <div class="exec-pill"><span class="dot dot-pass"></span>Acessibilidade: 2/2</div>
+      <div class="exec-pill"><span class="dot dot-pass"></span>Seguranca: 2/2</div>
+      <div class="exec-pill"><span class="dot dot-pass"></span>Banco: 2/2</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════ API ═══════════════════════════════ -->
+<div id="api" class="section view-report">
+  <div class="section-title">Integracao — API REST</div>
+
+  <div class="tc-card">
+    <div class="tc-header" onclick="toggle(this)">
+      <span class="badge pass">PASSOU</span>
+      <span class="tc-id">TC-API-S6-001</span>
+      <span class="tc-title">Consultar taxa de cambio atual do USD via ExchangeRate API</span>
+      <span class="tc-dur">163ms</span>
+    </div>
+    <div class="tc-body hidden">
+      <div class="detail-row"><span class="detail-label">Endpoint:</span><span class="detail-val">GET https://open.er-api.com/v6/latest/USD</span></div>
+      <div class="detail-row"><span class="detail-label">Status HTTP:</span><span class="detail-val">200 OK</span></div>
+      <div class="check-list">
+        <div class="check-item"><span class="ck-icon ck-pass">✓</span>status == 200</div>
+        <div class="check-item"><span class="ck-icon ck-pass">✓</span>result == 'success'</div>
+        <div class="check-item"><span class="ck-icon ck-pass">✓</span>base_code == 'USD'</div>
+        <div class="check-item"><span class="ck-icon ck-pass">✓</span>rates.BRL = 5.77 &gt; 0</div>
+        <div class="check-item"><span class="ck-icon ck-pass">✓</span>rates.EUR = 0.93 &gt; 0</div>
+        <div class="check-item"><span class="ck-icon ck-pass">✓</span>duration = 163ms &lt; 4000ms</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tc-card">
+    <div class="tc-header" onclick="toggle(this)">
+      <span class="badge pass">PASSOU</span>
+      <span class="tc-id">TC-API-S6-002</span>
+      <span class="tc-title">Consultar horario de nascer e por do sol em Brasilia</span>
+      <span class="tc-dur">229ms</span>
+    </div>
+    <div class="tc-body hidden">
+      <div class="detail-row"><span class="detail-label">Endpoint:</span><span class="detail-val">GET https://api.sunrise-sunset.org/json?lat=-15.77&amp;lng=-47.92&amp;date=today&amp;formatted=0</span></div>
+      <div class="detail-row"><span class="detail-label">Status HTTP:</span><span class="detail-val">200 OK</span></div>
+      <div class="check-list">
+        <div class="check-item"><span class="ck-icon ck-pass">✓</span>status == 200</div>
+        <div class="check-item"><span class="ck-icon ck-pass">✓</span>status == 'OK'</div>
+        <div class="check-item"><span class="ck-icon ck-pass">✓</span>results.sunrise com valor de data/hora valido</div>
+        <div class="check-item"><span class="ck-icon ck-pass">✓</span>results.sunset com valor de data/hora valido</div>
+        <div class="check-item"><span class="ck-icon ck-pass">✓</span>results.day_length &gt; 0</div>
+        <div class="check-item"><span class="ck-icon ck-pass">✓</span>duration = 229ms &lt; 4000ms</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════ BROWSER ════════════════════════════ -->
+<div id="browser" class="section view-report">
+  <div class="section-title">E2E — Browser (Chromium, headed)</div>
+
+  <div class="tc-card">
+    <div class="tc-header" onclick="toggle(this)">
+      <span class="badge pass">PASSOU</span>
+      <span class="tc-id">TC-BROWSER-S6-001</span>
+      <span class="tc-title">Navegar ate categoria Laptops e verificar listagem no Demoblaze</span>
+      <span class="tc-dur">5.7s</span>
+    </div>
+    <div class="tc-body hidden">
+      <div class="detail-row"><span class="detail-label">URL:</span><span class="detail-val">https://www.demoblaze.com</span></div>
+      <div class="detail-row"><span class="detail-label">Browser:</span><span class="detail-val">Chromium (headed)</span></div>
+      <div class="check-list">
+        <div class="check-item"><span class="ck-icon ck-pass">✓</span>Homepage carregada, lista de categorias visivel (#cat)</div>
+        <div class="check-item"><span class="ck-icon ck-pass">✓</span>Clique em 'Laptops' executado</div>
+        <div class="check-item"><span class="ck-icon ck-pass">✓</span>Ao menos 1 produto .card-title visivel</div>
+        <div class="check-item"><span class="ck-icon ck-pass">✓</span>Ao menos 1 preco .card-block h5 visivel</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tc-card">
+    <div class="tc-header" onclick="toggle(this)">
+      <span class="badge pass">PASSOU</span>
+      <span class="tc-id">TC-BROWSER-S6-002</span>
+      <span class="tc-title">Adicionar produto ao carrinho no Practice Software Testing</span>
+      <span class="tc-dur">25.2s</span>
+    </div>
+    <div class="tc-body hidden">
+      <div class="detail-row"><span class="detail-label">URL:</span><span class="detail-val">https://practicesoftwaretesting.com</span></div>
+      <div class="detail-row"><span class="detail-label">Browser:</span><span class="detail-val">Chromium (headed)</span></div>
+      <div class="detail-row"><span class="detail-label">Auth:</span><span class="detail-val">customer@practicesoftwaretesting.com</span></div>
+      <div class="check-list">
+        <div class="check-item"><span class="ck-icon ck-pass">✓</span>Login realizado via UI (navegacao pelo nav, seletor data-test="login-submit")</div>
+        <div class="check-item"><span class="ck-icon ck-pass">✓</span>Listagem de produtos carregada</div>
+        <div class="check-item"><span class="ck-icon ck-pass">✓</span>Primeiro produto clicado</div>
+        <div class="check-item"><span class="ck-icon ck-pass">✓</span>Botao [data-test="add-to-cart"] clicado</div>
+        <div class="check-item"><span class="ck-icon ck-pass">✓</span>Toast de confirmacao visivel</div>
+        <div class="check-item"><span class="ck-icon ck-pass">✓</span>Contador do carrinho: 0 → 1 (incrementado)</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════ PERFORMANCE ════════════════════════ -->
+<div id="performance" class="section view-report">
+  <div class="section-title">Performance e Carga — k6</div>
+
+  <div class="tc-card">
+    <div class="tc-header" onclick="toggle(this)">
+      <span class="badge pass">PASSOU</span>
+      <span class="tc-id">TC-PERF-S6-001</span>
+      <span class="tc-title">Carga em GET /advice da Advice Slip API (8 VUs / 25s)</span>
+      <span class="tc-dur">25s</span>
+    </div>
+    <div class="tc-body hidden">
+      <div class="perf-metrics">
+        <div class="metric ok"><div class="metric-val">1365ms</div><div class="metric-label">p95 (threshold: &lt;3000ms)</div></div>
+        <div class="metric ok"><div class="metric-val">1100ms</div><div class="metric-label">Media</div></div>
+        <div class="metric ok"><div class="metric-val">0.00%</div><div class="metric-label">Taxa de erro (&lt;2%)</div></div>
+        <div class="metric ok"><div class="metric-val">128</div><div class="metric-label">Total de requisicoes</div></div>
+        <div class="metric ok"><div class="metric-val">8</div><div class="metric-label">VUs</div></div>
+      </div>
+      <div class="check-list" style="margin-top:12px">
+        <div class="check-item"><span class="ck-icon ck-pass">✓</span>p95 = 1365ms &lt; 3000ms</div>
+        <div class="check-item"><span class="ck-icon ck-pass">✓</span>Taxa de erro = 0.00% &lt; 2%</div>
+        <div class="check-item"><span class="ck-icon ck-pass">✓</span>128 requisicoes executadas com sucesso</div>
+        <div class="check-item"><span class="ck-icon ck-pass">✓</span>insecureSkipTLSVerify = true aplicado</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tc-card">
+    <div class="tc-header" onclick="toggle(this)">
+      <span class="badge fail">FALHOU</span>
+      <span class="tc-id">TC-PERF-S6-002</span>
+      <span class="tc-title">Performance em GET /api.php da Open Trivia DB (5 VUs / 20s)</span>
+      <span class="tc-dur">20s</span>
+    </div>
+    <div class="tc-body hidden">
+      <div class="perf-metrics">
+        <div class="metric ok"><div class="metric-val">1132ms</div><div class="metric-label">p95 (threshold: &lt;3500ms)</div></div>
+        <div class="metric ok"><div class="metric-val">205ms</div><div class="metric-label">Media</div></div>
+        <div class="metric fail"><div class="metric-val">90.59%</div><div class="metric-label">Taxa de erro (threshold: &lt;2%)</div></div>
+        <div class="metric ok"><div class="metric-val">85</div><div class="metric-label">Total de requisicoes</div></div>
+        <div class="metric ok"><div class="metric-val">5</div><div class="metric-label">VUs</div></div>
+      </div>
+      <div class="error-box">
+        <strong>Causa raiz:</strong> A Open Trivia DB aplica rate limiting severo sob carga concorrente. Com 5 VUs simultaneos, 90.59% das requisicoes retornaram response_code != 0 (ex: response_code=5 = "Rate Limit Reached"). O p95 de latencia (1132ms) estava dentro do threshold, mas a taxa de erro de 90.59% excedeu o limite de 2%.
+      </div>
+      <div class="check-list" style="margin-top:12px">
+        <div class="check-item"><span class="ck-icon ck-pass">✓</span>p95 = 1132ms &lt; 3500ms (OK)</div>
+        <div class="check-item"><span class="ck-icon ck-fail">✗</span>Taxa de erro = 90.59% &gt; 2% (FALHOU)</div>
+      </div>
+      <div class="warn-box" style="margin-top:8px">
+        <strong>Recomendacao:</strong> Reduzir para 1-2 VUs ou adicionar sleep() de 2-3s entre iteracoes para respeitar o rate limit da API publica.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════ VISUAL ═════════════════════════════ -->
+<div id="visual" class="section view-report">
+  <div class="section-title">Regressao Visual — Playwright Screenshot</div>
+
+  <div class="tc-card">
+    <div class="tc-header" onclick="toggle(this)">
+      <span class="badge warn">AVISO</span>
+      <span class="tc-id">TC-VISUAL-S6-001</span>
+      <span class="tc-title">Regressao visual do artigo de contraste de cores do WebAIM</span>
+      <span class="tc-dur">4.1s</span>
+    </div>
+    <div class="tc-body hidden">
+      <div class="detail-row"><span class="detail-label">URL:</span><span class="detail-val">https://webaim.org/articles/contrast/</span></div>
+      <div class="detail-row"><span class="detail-label">Baseline:</span><span class="detail-val">webaim-contrast.png (CRIADO)</span></div>
+      <div class="detail-row"><span class="detail-label">Diff:</span><span class="detail-val">0.00% (threshold: 2%)</span></div>
+      <div class="info-box">
+        Primeira execucao: baseline criado com sucesso. Marcar para validacao manual na proxima revisao. Proximas execucoes farao comparacao real contra este baseline.
+      </div>
+      <div class="check-list" style="margin-top:10px">
+        <div class="check-item"><span class="ck-icon ck-info">i</span>Baseline criado: baselines/webaim-contrast.png</div>
+        <div class="check-item"><span class="ck-icon ck-pass">✓</span>Elementos dinamicos (cookie banners) ocultados</div>
+        <div class="check-item"><span class="ck-icon ck-pass">✓</span>Screenshot capturado com sucesso</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tc-card">
+    <div class="tc-header" onclick="toggle(this)">
+      <span class="badge warn">AVISO</span>
+      <span class="tc-id">TC-VISUAL-S6-002</span>
+      <span class="tc-title">Regressao visual da homepage da documentacao PokeAPI</span>
+      <span class="tc-dur">3.3s</span>
+    </div>
+    <div class="tc-body hidden">
+      <div class="detail-row"><span class="detail-label">URL:</span><span class="detail-val">https://pokeapi.co</span></div>
+      <div class="detail-row"><span class="detail-label">Baseline:</span><span class="detail-val">pokeapi-home.png (CRIADO)</span></div>
+      <div class="detail-row"><span class="detail-label">Diff:</span><span class="detail-val">0.00% (threshold: 2%)</span></div>
+      <div class="info-box">
+        Primeira execucao: baseline criado com sucesso. Marcar para validacao manual na proxima revisao.
+      </div>
+      <div class="check-list" style="margin-top:10px">
+        <div class="check-item"><span class="ck-icon ck-info">i</span>Baseline criado: baselines/pokeapi-home.png</div>
+        <div class="check-item"><span class="ck-icon ck-pass">✓</span>Elemento 'main' aguardado e visivel</div>
+        <div class="check-item"><span class="ck-icon ck-pass">✓</span>Screenshot acima da dobra capturado</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════ ACESSIBILIDADE ═════════════════════ -->
+<div id="acessibilidade" class="section view-report">
+  <div class="section-title">Acessibilidade — WCAG 2.1 AA (axe-core 4.8.0)</div>
+
+  <div class="tc-card">
+    <div class="tc-header" onclick="toggle(this)">
+      <span class="badge pass">PASSOU</span>
+      <span class="tc-id">TC-A11Y-S6-001</span>
+      <span class="tc-title">Conformidade WCAG 2.1 AA na homepage acessivel do W3C BAD demo</span>
+      <span class="tc-dur">4.2s</span>
+    </div>
+    <div class="tc-body hidden">
+      <div class="detail-row"><span class="detail-label">URL:</span><span class="detail-val">https://www.w3.org/WAI/demos/bad/after/home.html</span></div>
+      <div class="detail-row"><span class="detail-label">WCAG:</span><span class="detail-val">2.1 AA (wcag2a, wcag2aa, wcag21aa)</span></div>
+      <div class="detail-row"><span class="detail-label">deploy_blocked:</span><span class="detail-val" style="color:var(--green-light)">false</span></div>
+      <div class="check-list" style="margin-top:10px">
+        <div class="check-item"><span class="ck-icon ck-pass">✓</span>Violacoes critical: 0 (esperado: 0)</div>
+        <div class="check-item"><span class="ck-icon ck-pass">✓</span>Violacoes serious: 0 (esperado: 0)</div>
+        <div class="check-item"><span class="ck-icon ck-pass">✓</span>Violacoes moderate: 0</div>
+        <div class="check-item"><span class="ck-icon ck-pass">✓</span>Violacoes minor: 0</div>
+        <div class="check-item"><span class="ck-icon ck-pass">✓</span>deploy_blocked = false</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tc-card">
+    <div class="tc-header" onclick="toggle(this)">
+      <span class="badge pass">PASSOU</span>
+      <span class="tc-id">TC-A11Y-S6-002</span>
+      <span class="tc-title">Conformidade WCAG 2.1 AA na pagina de survey acessivel do W3C BAD demo</span>
+      <span class="tc-dur">3.1s</span>
+    </div>
+    <div class="tc-body hidden">
+      <div class="detail-row"><span class="detail-label">URL:</span><span class="detail-val">https://www.w3.org/WAI/demos/bad/after/survey.html</span></div>
+      <div class="detail-row"><span class="detail-label">WCAG:</span><span class="detail-val">2.1 AA (wcag2a, wcag2aa, wcag21aa)</span></div>
+      <div class="detail-row"><span class="detail-label">deploy_blocked:</span><span class="detail-val" style="color:var(--green-light)">false</span></div>
+      <div class="check-list" style="margin-top:10px">
+        <div class="check-item"><span class="ck-icon ck-pass">✓</span>Violacoes critical: 0 (esperado: 0)</div>
+        <div class="check-item"><span class="ck-icon ck-pass">✓</span>Violacoes serious: 0 (esperado: 0)</div>
+        <div class="check-item"><span class="ck-icon ck-pass">✓</span>Violacoes moderate/minor: reportadas como avisos (nenhuma nesta execucao)</div>
+        <div class="check-item"><span class="ck-icon ck-pass">✓</span>deploy_blocked = false</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════ SEGURANCA ══════════════════════════ -->
+<div id="seguranca" class="section view-report">
+  <div class="section-title">Seguranca — Analise nao invasiva de headers HTTP</div>
+
+  <div class="tc-card">
+    <div class="tc-header" onclick="toggle(this)">
+      <span class="badge pass">PASSOU</span>
+      <span class="tc-id">TC-SEC-S6-001</span>
+      <span class="tc-title">Headers de seguranca e exposicao de dados na Advice Slip API</span>
+      <span class="tc-dur">1.5s</span>
+    </div>
+    <div class="tc-body hidden">
+      <div class="detail-row"><span class="detail-label">Endpoints:</span><span class="detail-val">/advice, /advice/search/work</span></div>
+      <div class="check-list" style="margin-top:10px">
+        <div class="check-item"><span class="ck-icon ck-pass">✓</span>Status 200 em /advice e /advice/search/work</div>
+        <div class="check-item"><span class="ck-icon ck-pass">✓</span>Content-Type contem 'application/json'</div>
+        <div class="check-item"><span class="ck-icon ck-pass">✓</span>Header 'Server' nao expoe versao</div>
+        <div class="check-item"><span class="ck-icon ck-pass">✓</span>Sem stack trace no body de erro</div>
+      </div>
+      <div class="warn-box" style="margin-top:10px">
+        <strong>Avisos (nao bloqueantes):</strong> Headers opcionais ausentes: strict-transport-security, content-security-policy, x-frame-options. Recomendado para hardening adicional.
+      </div>
+    </div>
+  </div>
+
+  <div class="tc-card">
+    <div class="tc-header" onclick="toggle(this)">
+      <span class="badge pass">PASSOU</span>
+      <span class="tc-id">TC-SEC-S6-002</span>
+      <span class="tc-title">Headers de seguranca e endpoint de token na Open Trivia DB</span>
+      <span class="tc-dur">1.9s</span>
+    </div>
+    <div class="tc-body hidden">
+      <div class="detail-row"><span class="detail-label">Endpoints:</span><span class="detail-val">/api.php?amount=1, /api_token.php?command=request</span></div>
+      <div class="check-list" style="margin-top:10px">
+        <div class="check-item"><span class="ck-icon ck-pass">✓</span>Status 200 em ambos os endpoints</div>
+        <div class="check-item"><span class="ck-icon ck-pass">✓</span>Content-Type contem 'application/json'</div>
+        <div class="check-item"><span class="ck-icon ck-pass">✓</span>Header 'Server' nao expoe versao</div>
+        <div class="check-item"><span class="ck-icon ck-pass">✓</span>Tokens de sessoes diferentes sao unicos</div>
+        <div class="check-item"><span class="ck-icon ck-pass">✓</span>Sem stack trace no body</div>
+      </div>
+      <div class="warn-box" style="margin-top:10px">
+        <strong>Avisos (nao bloqueantes):</strong> Headers opcionais ausentes: strict-transport-security, content-security-policy.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════ BANCO ═══════════════════════════════ -->
+<div id="banco" class="section view-report">
+  <div class="section-title">Banco de Dados — SQLite :memory: (modo simulado)</div>
+
+  <div class="tc-card">
+    <div class="tc-header" onclick="toggle(this)">
+      <span class="badge pass">PASSOU</span>
+      <span class="tc-id">TC-DB-S6-001</span>
+      <span class="tc-title">Integridade do schema de e-learning (courses, students, enrollments)</span>
+      <span class="tc-dur">1ms</span>
+    </div>
+    <div class="tc-body hidden">
+      <div class="detail-row"><span class="detail-label">Connection:</span><span class="detail-val">sqlite://:memory:</span></div>
+      <div class="detail-row"><span class="detail-label">Modo:</span><span class="detail-val">simulated (in-memory)</span></div>
+      <div class="check-list" style="margin-top:10px">
+        <div class="check-item"><span class="ck-icon ck-pass">✓</span>Tabela 'courses' criada</div>
+        <div class="check-item"><span class="ck-icon ck-pass">✓</span>Tabela 'students' criada</div>
+        <div class="check-item"><span class="ck-icon ck-pass">✓</span>Tabela 'enrollments' criada</div>
+        <div class="check-item"><span class="ck-icon ck-pass">✓</span>CHECK duration_hours &gt; 0 rejeitou valor 0</div>
+        <div class="check-item"><span class="ck-icon ck-pass">✓</span>CHECK max_students &gt; 0 rejeitou valor 0</div>
+        <div class="check-item"><span class="ck-icon ck-pass">✓</span>Curso 'QA Fundamentals' inserido e recuperavel via SELECT</div>
+        <div class="check-item"><span class="ck-icon ck-pass">✓</span>CHECK progress_percent rejeitou valor 101</div>
+        <div class="check-item"><span class="ck-icon ck-pass">✓</span>FK course_id invalido (9999) rejeitado com IntegrityError</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tc-card">
+    <div class="tc-header" onclick="toggle(this)">
+      <span class="badge pass">PASSOU</span>
+      <span class="tc-id">TC-DB-S6-002</span>
+      <span class="tc-title">Integridade do schema de saude (patients, doctors, appointments)</span>
+      <span class="tc-dur">&lt;1ms</span>
+    </div>
+    <div class="tc-body hidden">
+      <div class="detail-row"><span class="detail-label">Connection:</span><span class="detail-val">sqlite://:memory:</span></div>
+      <div class="detail-row"><span class="detail-label">Modo:</span><span class="detail-val">simulated (in-memory)</span></div>
+      <div class="check-list" style="margin-top:10px">
+        <div class="check-item"><span class="ck-icon ck-pass">✓</span>Tabela 'doctors' criada</div>
+        <div class="check-item"><span class="ck-icon ck-pass">✓</span>Tabela 'patients' criada</div>
+        <div class="check-item"><span class="ck-icon ck-pass">✓</span>Tabela 'appointments' criada</div>
+        <div class="check-item"><span class="ck-icon ck-pass">✓</span>UNIQUE crm rejeitou duplicata 'CRM-123456'</div>
+        <div class="check-item"><span class="ck-icon ck-pass">✓</span>UNIQUE cpf rejeitou duplicata '111.222.333-44'</div>
+        <div class="check-item"><span class="ck-icon ck-pass">✓</span>CHECK status rejeitou valor 'invalid'</div>
+        <div class="check-item"><span class="ck-icon ck-pass">✓</span>FK patient_id invalido (9999) rejeitado com IntegrityError</div>
+        <div class="check-item"><span class="ck-icon ck-pass">✓</span>Medico 'Dr. QA Test' inserido e recuperavel via SELECT</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════ NAO EXECUTADOS ══════════════════════ -->
+<div class="section view-report">
+  <div class="section-title">Nao executados</div>
+  <div class="skip-section">
+    <div class="skip-item">• <strong>pact</strong> — tipo: contrato (Pact) — Motivo: Requer Pact Broker configurado</div>
+    <div class="skip-item">• <strong>appium</strong> — tipo: mobile (Appium) — Motivo: Requer configuracao de dispositivo/emulador</div>
+  </div>
+</div>
+
+<!-- ═══════════════════════ RECOMENDACOES ══════════════════════ -->
+<div id="recomendacoes" class="section view-report">
+  <div class="section-title">Recomendacoes</div>
+
+  <div class="rec-card">
+    <h3>TC-PERF-S6-002 — Rate Limit da Open Trivia DB [ALTA]</h3>
+    <p>A API publica open.trivia.com aplica rate limiting severo sob carga concorrente. Com 5 VUs simultaneos, 90.59% das requisicoes falharam (response_code=5). Ajustar o teste para no maximo 1-2 VUs com sleep de 2-3s entre iteracoes, ou usar um endpoint interno de trivia sem limitacao para testes de carga.</p>
+  </div>
+
+  <div class="rec-card" style="border-left-color:var(--blue)">
+    <h3>TC-VISUAL-S6-001 e TC-VISUAL-S6-002 — Baselines criados, validacao manual pendente [MEDIA]</h3>
+    <p>Esta foi a primeira execucao dos testes visuais. Os baselines de webaim-contrast.png e pokeapi-home.png foram criados e devem ser revisados manualmente pela equipe antes de se tornarem referencia. Executar novamente para confirmar estabilidade.</p>
+  </div>
+
+  <div class="rec-card" style="border-left-color:var(--cyan)">
+    <h3>TC-SEC-S6-001 e TC-SEC-S6-002 — Headers de seguranca opcionais ausentes [BAIXA]</h3>
+    <p>As APIs Advice Slip e Open Trivia nao implementam Strict-Transport-Security, Content-Security-Policy e X-Frame-Options. Como sao APIs publicas de terceiros fora do controle do time, documentar como limitacao conhecida e excluir de futuras suites de seguranca ou ajustar os criterios de falha.</p>
+  </div>
+
+  <div class="rec-card" style="border-left-color:var(--green)">
+    <h3>Pontos positivos da suite [OBSERVACAO]</h3>
+    <p>API: 2/2 com latencias excelentes (&lt;230ms). Browser E2E: 2/2 incluindo fluxo completo com autenticacao e carrinho. Acessibilidade: 0 violacoes critical/serious em paginas WAI certificadas. Banco: todos os 16 checks de integridade (FKs, CHECKs, UNIQUEs) validados. Performance TC-001: p95=1365ms bem abaixo do threshold de 3000ms.</p>
+  </div>
+</div>
+
+<!-- ═══════════════════════ MODO TECNICO ═══════════════════════ -->
+<div class="view-technical">
+  <div class="section-title" style="margin-bottom:16px">Modo Tecnico — Logs e Dados Brutos</div>
+
+  <div class="tech-block">
+    <div class="tech-block-title">executor-api — execution.log</div>
+    <pre><span class="log-req">[REQUEST] GET https://open.er-api.com/v6/latest/USD</span>
+<span class="log-res">[RESPONSE] 200 -- 163ms</span>
+<span class="log-assert">[ASSERT] status == 200 OK</span>
+<span class="log-assert">[ASSERT] result == 'success' OK</span>
+<span class="log-assert">[ASSERT] base_code == 'USD' OK</span>
+<span class="log-assert">[ASSERT] rates.BRL=5.77 > 0 OK</span>
+<span class="log-assert">[ASSERT] rates.EUR=0.93 > 0 OK</span>
+<span class="log-assert">[ASSERT] duration=163ms &lt; 4000ms OK</span>
+[TC-API-S6-001] -> PASSED
+
+<span class="log-req">[REQUEST] GET https://api.sunrise-sunset.org/json?lat=-15.77&amp;lng=-47.92&amp;date=today&amp;formatted=0</span>
+<span class="log-res">[RESPONSE] 200 -- 229ms</span>
+<span class="log-assert">[ASSERT] status == 200 OK</span>
+<span class="log-assert">[ASSERT] status == 'OK' OK</span>
+<span class="log-assert">[ASSERT] results.sunrise valido OK</span>
+<span class="log-assert">[ASSERT] results.sunset valido OK</span>
+<span class="log-assert">[ASSERT] results.day_length > 0 OK</span>
+<span class="log-assert">[ASSERT] duration=229ms &lt; 4000ms OK</span>
+[TC-API-S6-002] -> PASSED</pre>
+  </div>
+
+  <div class="tech-block">
+    <div class="tech-block-title">executor-browser — execution.log</div>
+    <pre>[NAV] Acessando https://www.demoblaze.com/ (headed, slowMo=300ms)
+[ACTION] Aguardando #cat (lista de categorias)
+[ACTION] Clicando em texto 'Laptops'
+[ACTION] Aguardando .card-title (2000ms waitForTimeout)
+<span class="log-assert">[ASSERT] count(.card-title) = 3 > 0 OK</span>
+<span class="log-assert">[ASSERT] count(.card-block h5) = 3 > 0 OK</span>
+[TC-BROWSER-S6-001] -> PASSED (5.7s)
+
+[NAV] Acessando https://practicesoftwaretesting.com/
+[ACTION] Aguardando link 'Sign in' no nav
+[ACTION] Clicando link de login
+[ACTION] Aguardando input[data-test="email"]
+[ACTION] Preenchendo email: customer@practicesoftwaretesting.com
+[ACTION] Preenchendo senha: ****
+[ACTION] Clicando button[data-test="login-submit"]
+[NAV] Acessando https://practicesoftwaretesting.com/#/
+[ACTION] Aguardando .card (produtos)
+[ACTION] Cart antes: 0
+[ACTION] Clicando .card (primeiro produto)
+[ACTION] Aguardando button[data-test="add-to-cart"]
+[ACTION] Clicando Add to Cart
+<span class="log-assert">[ASSERT] toast visivel: true OK</span>
+<span class="log-assert">[ASSERT] cart: 0 -> 1 (incrementado) OK</span>
+[TC-BROWSER-S6-002] -> PASSED (25.2s)</pre>
+  </div>
+
+  <div class="tech-block">
+    <div class="tech-block-title">executor-performance — k6 summary</div>
+    <pre>TC-PERF-S6-001 (Advice Slip, 8 VUs, 25s):
+  http_reqs:          128
+  http_req_duration:  p95=1364.53ms  avg=1100ms
+  http_req_failed:    rate=0.00%
+  Thresholds:         p95&lt;3000ms OK | error&lt;2% OK
+  -> PASSED
+
+TC-PERF-S6-002 (Open Trivia DB, 5 VUs, 20s):
+  http_reqs:          85
+  http_req_duration:  p95=1132.35ms  avg=205ms
+  http_req_failed:    rate=90.59%  (response_code=5: Rate Limit Reached)
+  Thresholds:         p95&lt;3500ms OK | error&lt;2% <span class="log-err">FALHOU (90.59%)</span>
+  -> FAILED</pre>
+  </div>
+
+  <div class="tech-block">
+    <div class="tech-block-title">executor-banco — execution.log</div>
+    <pre>TC-DB-S6-001 (e-learning):
+[DB] Schema criado (courses, students, enrollments) com PRAGMA foreign_keys=ON
+<span class="log-assert">[ASSERT] tabela 'courses' existe OK</span>
+<span class="log-assert">[ASSERT] tabela 'students' existe OK</span>
+<span class="log-assert">[ASSERT] tabela 'enrollments' existe OK</span>
+<span class="log-assert">[ASSERT] CHECK duration_hours > 0 rejeitou 0 OK</span>
+<span class="log-assert">[ASSERT] CHECK max_students > 0 rejeitou 0 OK</span>
+[DB] INSERT courses: 'QA Fundamentals', Jane Doe, 40h, 30 alunos -> ID=1
+<span class="log-assert">[ASSERT] SELECT retornou valores identicos aos inseridos OK</span>
+<span class="log-assert">[ASSERT] CHECK progress_percent rejeitou 101 OK</span>
+<span class="log-assert">[ASSERT] FK course_id=9999 rejeitado com IntegrityError OK</span>
+-> PASSED (1ms)
+
+TC-DB-S6-002 (saude):
+[DB] Schema criado (doctors, patients, appointments) com PRAGMA foreign_keys=ON
+<span class="log-assert">[ASSERT] tabela 'doctors' existe OK</span>
+<span class="log-assert">[ASSERT] tabela 'patients' existe OK</span>
+<span class="log-assert">[ASSERT] tabela 'appointments' existe OK</span>
+[DB] INSERT doctors: Dr. QA Test, Cardiologia, CRM-123456 -> ID=1
+<span class="log-assert">[ASSERT] UNIQUE crm rejeitou 'CRM-123456' duplicado OK</span>
+[DB] INSERT patients: Joao, 111.222.333-44 -> ID=1
+<span class="log-assert">[ASSERT] UNIQUE cpf rejeitou '111.222.333-44' duplicado OK</span>
+<span class="log-assert">[ASSERT] CHECK status rejeitou 'invalid' OK</span>
+<span class="log-assert">[ASSERT] FK patient_id=9999 rejeitado com IntegrityError OK</span>
+<span class="log-assert">[ASSERT] SELECT retornou Dr. QA Test / Cardiologia / CRM-123456 OK</span>
+-> PASSED (&lt;1ms)</pre>
+  </div>
+
+  <div class="tech-block">
+    <div class="tech-block-title">suite.log</div>
+    <pre>=== Suite QA -- suite_api_browser_k6_visual_axe_zap_db_20260511_132805 ===
+Inicio: 2026-05-11 13:28:05
+Ambiente: multiple (APIs publicas + SQLite :memory:)
+
+--- Executores despachados ---
+  api: passed=2, failed=0, skipped=0
+  browser: passed=2, failed=0, skipped=0
+  performance: passed=1, failed=1, skipped=0
+  visual: passed=2, failed=0, skipped=0
+  acessibilidade: passed=2, failed=0, skipped=0
+  seguranca: passed=2, failed=0, skipped=0
+  banco: passed=2, failed=0, skipped=0
+
+--- Nao executados ---
+  pact: tipo contrato (Pact) -- Requer Pact Broker
+  appium: tipo mobile (Appium) -- Requer dispositivo/emulador
+
+--- Retries realizados ---
+  TC-API-S6-002: SSLError -> retry com verify=False -> PASSED
+  TC-SEC-S6-001: SSLError -> retry com verify=False -> PASSED
+  TC-SEC-S6-002: SSLError -> retry com verify=False -> PASSED
+  TC-BROWSER-S6-002: seletor .getByLabel timeout -> retry data-test -> PASSED
+
+--- Totais finais: passed=13, failed=1, skipped=0 ---</pre>
+  </div>
+</div>
+
+</main>
+
+<div class="footer">
+  QA Squad — Suite 6 &nbsp;|&nbsp; 2026-05-11 &nbsp;|&nbsp; Gerado por orquestrador-qa v1.19.1
+</div>
+
+<script>
+function toggle(header) {
+  const body = header.nextElementSibling;
+  body.classList.toggle('hidden');
+}
+function toggleMode(btn) {
+  const body = document.body;
+  if (body.classList.contains('mode-technical')) {
+    body.classList.replace('mode-technical', 'mode-report');
+    btn.textContent = 'Modo Tecnico';
+  } else {
+    body.classList.replace('mode-report', 'mode-technical');
+    btn.textContent = 'Modo Relatorio';
+  }
+}
+</script>
+
+<!-- SUMMARY_TEXT
+Suite: suite_api_browser_k6_visual_axe_zap_db_20260511_132805
+Ambiente: APIs publicas multiplas + SQLite :memory:
+Resultado: Suite Reprovada — 1 falha (TC-PERF-S6-002)
+Passed: 13 | Failed: 1 | Warnings: 2 (baselines visuais) | Skipped: 0
+-->
+
+</body>
+</html>

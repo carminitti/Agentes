@@ -1,0 +1,24 @@
+[2026-05-11 11:22:23] === executor-performance — início ===
+[2026-05-11 11:22:23] Modo: k6
+
+[2026-05-11 11:22:23] [TC-PERF-S5-001] Carga em GET /breeds/image/random da Dog CEO API (6 VUs / 25s) (carga)
+[2026-05-11 11:22:23]   [CONFIG] 6 VUs, duracao 25s, tipo: carga
+[2026-05-11 11:22:23]   [RUN] Script iniciado (modo k6)
+[2026-05-11 11:22:23]   [METRIC] p50=226.87ms, p95=255.72ms, max=431.65ms
+[2026-05-11 11:22:23]   [METRIC] error_rate=0.0%, throughput=4.8 rps, total=125 requests
+[2026-05-11 11:22:23]   [THRESHOLD] p(95) < 2500ms ok (atual: 255.72ms)
+[2026-05-11 11:22:23]   [THRESHOLD] error rate < 1% ok (atual: 0.0%)
+[2026-05-11 11:22:23]   [THRESHOLD] checks 100% ok (375/375)
+[2026-05-11 11:22:23]   -> STATUS: PASSED
+
+[2026-05-11 11:22:23] [TC-PERF-S5-002] Performance em GET /v3.1/all da Countries REST (5 VUs / 20s) (performance)
+[2026-05-11 11:22:23]   [CONFIG] 5 VUs, duracao 20s, tipo: performance
+[2026-05-11 11:22:23]   [RUN] Script iniciado (modo k6)
+[2026-05-11 11:22:23]   [METRIC] p50=482.97ms, p95=753.12ms, max=800.32ms
+[2026-05-11 11:22:23]   [METRIC] error_rate=0.0%, throughput=3.27 rps, total=70 requests
+[2026-05-11 11:22:23]   [THRESHOLD] p(95) < 4000ms ok (atual: 753.12ms)
+[2026-05-11 11:22:23]   [THRESHOLD] error rate < 2% ok (atual: 0.0%)
+[2026-05-11 11:22:23]   [THRESHOLD] checks 100% ok (140/140)
+[2026-05-11 11:22:23]   -> STATUS: PASSED
+
+[2026-05-11 11:22:23] === Fim: 2 passou, 0 falhou ===

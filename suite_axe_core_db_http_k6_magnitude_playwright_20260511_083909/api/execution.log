@@ -1,0 +1,162 @@
+[2026-05-11 08:53:02] === executor-api -- inicio ===
+[2026-05-11 08:53:02] Ambientes: swapi.dev, api.nasa.gov, dummyjson.com, restful-booker.herokuapp.com
+[2026-05-11 08:53:02] [TC-API-001] Buscar personagem por ID
+[2026-05-11 08:53:02]   [REQUEST] GET https://swapi.dev/api/people/1/
+[2026-05-11 08:53:02]   [RESPONSE] 200 -- 926ms
+[2026-05-11 08:53:02]   [ASSERT] status 200 esperado=[200] OK
+[2026-05-11 08:53:02]   [ASSERT] field_equals name=Luke Skywalker: got=Luke Skywalker OK
+[2026-05-11 08:53:02]   [ASSERT] field_equals birth_year=19BBY: got=19BBY OK
+[2026-05-11 08:53:02]   [ASSERT] field_equals gender=male: got=male OK
+[2026-05-11 08:53:02]   [ASSERT] field_not_empty homeworld=None: got=https://swapi.dev/api/planets/1/ OK
+[2026-05-11 08:53:02]   [ASSERT] array_not_empty films=None: got=['https://swapi.dev/api/films/1/', 'https://swapi.dev/api/films/2/', 'https://sw OK
+[2026-05-11 08:53:02]   -> STATUS: PASSED
+[2026-05-11 08:53:02] [TC-API-002] ID inexistente 404
+[2026-05-11 08:53:02]   [REQUEST] GET https://swapi.dev/api/people/9999/
+[2026-05-11 08:53:02]   [RESPONSE] 404 -- 879ms
+[2026-05-11 08:53:02]   [ASSERT] status 404 esperado=[404] OK
+[2026-05-11 08:53:02]   [ASSERT] contains detail=Not found: got=Not found OK
+[2026-05-11 08:53:02]   -> STATUS: PASSED
+[2026-05-11 08:53:02] [TC-API-003] Listar filmes
+[2026-05-11 08:53:02]   [REQUEST] GET https://swapi.dev/api/films/
+[2026-05-11 08:53:02]   [RESPONSE] 200 -- 1155ms
+[2026-05-11 08:53:02]   [ASSERT] status 200 esperado=[200] OK
+[2026-05-11 08:53:02]   [ASSERT] field_gt count=0: got=6 OK
+[2026-05-11 08:53:02]   [ASSERT] array_not_empty results=None: got=[{'title': 'A New Hope', 'episode_id': 4, 'opening_crawl': "It is a period of ci OK
+[2026-05-11 08:53:02]   -> STATUS: PASSED
+[2026-05-11 08:53:02] [TC-API-004] Busca X-wing
+[2026-05-11 08:53:02]   [REQUEST] GET https://swapi.dev/api/starships/?search=X-wing
+[2026-05-11 08:53:02]   [RESPONSE] 200 -- 872ms
+[2026-05-11 08:53:02]   [ASSERT] status 200 esperado=[200] OK
+[2026-05-11 08:53:02]   [ASSERT] field_gt count=0: got=1 OK
+[2026-05-11 08:53:02]   [ASSERT] array_not_empty results=None: got=[{'name': 'X-wing', 'model': 'T-65 X-wing', 'manufacturer': 'Incom Corporation', OK
+[2026-05-11 08:53:02]   -> STATUS: PASSED
+[2026-05-11 08:53:02] [TC-API-005] Busca inexistente
+[2026-05-11 08:53:02]   [REQUEST] GET https://swapi.dev/api/starships/?search=TERMOINEXISTENTEXXX
+[2026-05-11 08:53:02]   [RESPONSE] 200 -- 876ms
+[2026-05-11 08:53:02]   [ASSERT] status 200 esperado=[200] OK
+[2026-05-11 08:53:02]   [ASSERT] field_equals_0 count=None: got=0 OK
+[2026-05-11 08:53:02]   [ASSERT] array_empty results=None: got=[] OK
+[2026-05-11 08:53:02]   -> STATUS: PASSED
+[2026-05-11 08:53:02] [TC-API-006] Planeta Tatooine
+[2026-05-11 08:53:02]   [REQUEST] GET https://swapi.dev/api/planets/1/
+[2026-05-11 08:53:02]   [RESPONSE] 200 -- 894ms
+[2026-05-11 08:53:02]   [ASSERT] status 200 esperado=[200] OK
+[2026-05-11 08:53:02]   [ASSERT] field_equals name=Tatooine: got=Tatooine OK
+[2026-05-11 08:53:02]   [ASSERT] field_not_empty climate=None: got=arid OK
+[2026-05-11 08:53:02]   [ASSERT] field_not_empty terrain=None: got=desert OK
+[2026-05-11 08:53:02]   [ASSERT] field_not_empty population=None: got=200000 OK
+[2026-05-11 08:53:02]   -> STATUS: PASSED
+[2026-05-11 08:53:02] [TC-API-007] APOD com DEMO_KEY
+[2026-05-11 08:53:02]   [REQUEST] GET https://api.nasa.gov/planetary/apod?api_key=DEMO_KEY
+[2026-05-11 08:53:02]   [RESPONSE] 200 -- 931ms
+[2026-05-11 08:53:02]   [ASSERT] status 200 esperado=[200] OK
+[2026-05-11 08:53:02]   [ASSERT] field_not_empty title=None: got=Moon Setting Behind Teide Volcano OK
+[2026-05-11 08:53:02]   [ASSERT] field_not_empty url=None: got=https://www.youtube.com/embed/afHfMMC-MJE?rel=0 OK
+[2026-05-11 08:53:02]   [ASSERT] field_not_empty explanation=None: got=These people are not in danger. What is coming down from the left is just the Mo OK
+[2026-05-11 08:53:02]   -> STATUS: PASSED
+[2026-05-11 08:53:02] [TC-API-008] APOD data especifica
+[2026-05-11 08:53:02]   [REQUEST] GET https://api.nasa.gov/planetary/apod?api_key=DEMO_KEY&date=2024-07-04
+[2026-05-11 08:53:02]   [RESPONSE] 200 -- 1105ms
+[2026-05-11 08:53:02]   [ASSERT] status 200 esperado=[200] OK
+[2026-05-11 08:53:02]   [ASSERT] field_equals date=2024-07-04: got=2024-07-04 OK
+[2026-05-11 08:53:02]   [ASSERT] field_not_empty title=None: got=A Beautiful Trifid OK
+[2026-05-11 08:53:02]   -> STATUS: PASSED
+[2026-05-11 08:53:02] [TC-API-009] APOD sem API key
+[2026-05-11 08:53:02]   [REQUEST] GET https://api.nasa.gov/planetary/apod
+[2026-05-11 08:53:02]   [RESPONSE] 403 -- 805ms
+[2026-05-11 08:53:02]   [ASSERT] status 403 esperado=[400, 403] OK
+[2026-05-11 08:53:02]   [ASSERT] body_contains None=api_key: got={'error': {'code': 'API_KEY_MISSING', 'message': 'No api_key was supplied. Get o OK
+[2026-05-11 08:53:02]   -> STATUS: PASSED
+[2026-05-11 08:53:02] [TC-API-010] NEO feed
+[2026-05-11 08:53:02]   [REQUEST] GET https://api.nasa.gov/neo/rest/v1/feed?start_date=2024-01-01&end_date=2024-01-07&api_key=DEMO_KEY
+[2026-05-11 08:53:02]   [RESPONSE] 200 -- 1210ms
+[2026-05-11 08:53:02]   [ASSERT] status 200 esperado=[200] OK
+[2026-05-11 08:53:02]   [ASSERT] field_gt element_count=0: got=45 OK
+[2026-05-11 08:53:02]   [ASSERT] field_not_empty near_earth_objects=None: got={'2024-01-02': [{'links': {'self': 'http://api.nasa.gov/neo/rest/v1/neo/2415949? OK
+[2026-05-11 08:53:02]   -> STATUS: PASSED
+[2026-05-11 08:53:02] [TC-API-011] Login DummyJSON
+[2026-05-11 08:53:02]   [REQUEST] POST https://dummyjson.com/auth/login
+[2026-05-11 08:53:02]   [RESPONSE] 400 -- 257ms
+[2026-05-11 08:53:02]   [ASSERT] status 400 esperado=[200] FALHOU
+[2026-05-11 08:53:02]   [ASSERT] field_not_empty token=None: got=None FALHOU
+[2026-05-11 08:53:02]   [ASSERT] field_not_empty refreshToken=None: got=None FALHOU
+[2026-05-11 08:53:02]   [ASSERT] field_gt id=0: got=None FALHOU
+[2026-05-11 08:53:02]   [ASSERT] field_equals username=kminchelle: got=None FALHOU
+[2026-05-11 08:53:02]   -> STATUS: FAILED
+[2026-05-11 08:53:02] [TC-API-012] Login senha errada
+[2026-05-11 08:53:02]   [REQUEST] POST https://dummyjson.com/auth/login
+[2026-05-11 08:53:02]   [RESPONSE] 400 -- 292ms
+[2026-05-11 08:53:02]   [ASSERT] status 400 esperado=[400, 401] OK
+[2026-05-11 08:53:02]   -> STATUS: PASSED
+[2026-05-11 08:53:02] [TC-API-013] Perfil autenticado
+[2026-05-11 08:53:02]   [SKIP] Token nao obtido
+[2026-05-11 08:53:02]   -> STATUS: SKIPPED
+[2026-05-11 08:53:02] [TC-API-014] Rota protegida sem token
+[2026-05-11 08:53:02]   [REQUEST] GET https://dummyjson.com/auth/me
+[2026-05-11 08:53:02]   [RESPONSE] 401 -- 287ms
+[2026-05-11 08:53:02]   [ASSERT] status 401 esperado=[401] OK
+[2026-05-11 08:53:02]   -> STATUS: PASSED
+[2026-05-11 08:53:02] [TC-API-015] Criar produto
+[2026-05-11 08:53:02]   [SKIP] Token nao obtido
+[2026-05-11 08:53:02]   -> STATUS: SKIPPED
+[2026-05-11 08:53:02] [TC-API-016] PATCH produto
+[2026-05-11 08:53:02]   [SKIP] Token nao obtido
+[2026-05-11 08:53:02]   -> STATUS: SKIPPED
+[2026-05-11 08:53:02] [TC-API-017] Listar produtos publico
+[2026-05-11 08:53:02]   [REQUEST] GET https://dummyjson.com/products?limit=5
+[2026-05-11 08:53:02]   [RESPONSE] 200 -- 286ms
+[2026-05-11 08:53:02]   [ASSERT] status 200 esperado=[200] OK
+[2026-05-11 08:53:02]   [ASSERT] array_length products=5: got=[{'id': 1, 'title': 'Essence Mascara Lash Princess', 'description': 'The Essence OK
+[2026-05-11 08:53:02]   [ASSERT] field_gt total=0: got=194 OK
+[2026-05-11 08:53:02]   -> STATUS: PASSED
+[2026-05-11 08:53:02] [TC-API-018] Gerar token Restful-Booker
+[2026-05-11 08:53:02]   [REQUEST] POST https://restful-booker.herokuapp.com/auth
+[2026-05-11 08:53:02]   [RESPONSE] 200 -- 622ms
+[2026-05-11 08:53:02]   [ASSERT] status 200 esperado=[200] OK
+[2026-05-11 08:53:02]   [ASSERT] field_not_empty token=None: got=6a95c9abed7421d OK
+[2026-05-11 08:53:02]   -> STATUS: PASSED
+[2026-05-11 08:53:02] [TC-API-019] Credenciais incorretas
+[2026-05-11 08:53:02]   [REQUEST] POST https://restful-booker.herokuapp.com/auth
+[2026-05-11 08:53:02]   [RESPONSE] 200 -- 570ms
+[2026-05-11 08:53:02]   [ASSERT] status 200 esperado=[200] OK
+[2026-05-11 08:53:02]   [ASSERT] contains reason=Bad credentials: got=Bad credentials OK
+[2026-05-11 08:53:02]   -> STATUS: PASSED
+[2026-05-11 08:53:02] [TC-API-020] Listar reservas
+[2026-05-11 08:53:02]   [REQUEST] GET https://restful-booker.herokuapp.com/booking
+[2026-05-11 08:53:02]   [RESPONSE] 200 -- 641ms
+[2026-05-11 08:53:02]   [ASSERT] status 200 esperado=[200] OK
+[2026-05-11 08:53:02]   [ASSERT] is_array None=None: got=[{'bookingid': 1}, {'bookingid': 2}, {'bookingid': 3}, {'bookingid': 4}, {'booki OK
+[2026-05-11 08:53:02]   -> STATUS: PASSED
+[2026-05-11 08:53:02] [TC-API-021] Criar reserva
+[2026-05-11 08:53:02]   [REQUEST] POST https://restful-booker.herokuapp.com/booking
+[2026-05-11 08:53:02]   [RESPONSE] 200 -- 593ms
+[2026-05-11 08:53:02]   [ASSERT] status 200 esperado=[200] OK
+[2026-05-11 08:53:02]   [ASSERT] field_gt bookingid=0: got=1020 OK
+[2026-05-11 08:53:02]   -> STATUS: PASSED
+[2026-05-11 08:53:02] [TC-API-022] Ler reserva por ID
+[2026-05-11 08:53:02]   [SKIP] booking_id nao obtido
+[2026-05-11 08:53:02]   -> STATUS: SKIPPED
+[2026-05-11 08:53:02] [TC-API-023] PUT reserva
+[2026-05-11 08:53:02]   [SKIP] Token ou booking_id indisponivel
+[2026-05-11 08:53:02]   -> STATUS: SKIPPED
+[2026-05-11 08:53:02] [TC-API-024] PATCH reserva Basic
+[2026-05-11 08:53:02]   [SKIP] booking_id indisponivel
+[2026-05-11 08:53:02]   -> STATUS: SKIPPED
+[2026-05-11 08:53:02] [TC-API-025] DELETE reserva
+[2026-05-11 08:53:02]   [SKIP] Token ou booking_id indisponivel
+[2026-05-11 08:53:02]   -> STATUS: SKIPPED
+[2026-05-11 08:53:02] [TC-API-026] Reserva deletada nao existe
+[2026-05-11 08:53:02]   [SKIP] booking_id indisponivel
+[2026-05-11 08:53:02]   -> STATUS: SKIPPED
+[2026-05-11 08:53:02] [TC-API-027] DELETE sem token 403
+[2026-05-11 08:53:02]   [REQUEST] DELETE https://restful-booker.herokuapp.com/booking/1
+[2026-05-11 08:53:02]   [RESPONSE] 403 -- 646ms
+[2026-05-11 08:53:02]   [ASSERT] status 403 esperado=[403] OK
+[2026-05-11 08:53:02]   -> STATUS: PASSED
+[2026-05-11 08:53:02] [TC-API-028] Filtrar reservas
+[2026-05-11 08:53:02]   [REQUEST] GET https://restful-booker.herokuapp.com/booking?firstname=QA&lastname=Squad
+[2026-05-11 08:53:02]   [RESPONSE] 200 -- 625ms
+[2026-05-11 08:53:02]   [ASSERT] status 200 esperado=[200] OK
+[2026-05-11 08:53:02]   [ASSERT] is_array None=None: got=[{'bookingid': 1020}] OK
+[2026-05-11 08:53:02]   -> STATUS: PASSED
+[2026-05-11 08:53:02] === Fim: 19 passou, 1 falhou, 8 skipped ===

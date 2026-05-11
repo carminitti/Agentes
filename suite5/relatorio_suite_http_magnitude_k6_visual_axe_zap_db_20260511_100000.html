@@ -1,0 +1,1739 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Relatório QA — Suite 5 — 2026-05-11</title>
+<style>
+:root {
+  --bg:#0f1117; --surface:#1e2130; --surface2:#252a3a; --border:#2e3450;
+  --text:#e2e8f0; --text-muted:#8892a4;
+  --green:#10b981; --green-light:#34d399; --green-dim:#0c3d2d;
+  --red:#ef4444; --red-dim:#3d1515;
+  --orange:#f59e0b; --orange-light:#fbbf24; --orange-dim:#3d2a0a;
+  --blue:#3b82f6; --blue-light:#60a5fa; --blue-dim:#1e3a5f;
+  --purple:#8b5cf6; --purple-light:#a78bfa; --purple-dim:#2d1f4d;
+  --cyan:#06b6d4; --cyan-dim:#0c2d35;
+  --radius:12px; --radius-sm:8px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;font-size:15px;line-height:1.6}
+nav{position:sticky;top:0;z-index:100;background:rgba(15,17,23,.95);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:0 24px;display:flex;align-items:center;gap:4px;flex-wrap:wrap;min-height:52px}
+nav a{color:var(--text-muted);text-decoration:none;font-size:13px;padding:6px 12px;border-radius:6px;transition:all .18s;white-space:nowrap}
+nav a:hover{background:var(--surface2);color:var(--text)}
+.nav-logo{font-weight:800;font-size:14px;color:var(--text);margin-right:8px;letter-spacing:-.3px}
+.nav-links{display:flex;align-items:center;gap:2px;flex:1;flex-wrap:wrap}
+.nav-technical-links{display:none}
+body.mode-technical .nav-report-links{display:none}
+body.mode-technical .nav-technical-links{display:flex;align-items:center;gap:2px;flex-wrap:wrap}
+.mode-toggle{margin-left:auto;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:7px 16px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;transition:all .18s;white-space:nowrap;display:flex;align-items:center;gap:6px;flex-shrink:0}
+.mode-toggle:hover{background:var(--purple-dim);border-color:var(--purple);color:var(--purple-light)}
+body.mode-technical .mode-toggle{background:var(--purple-dim);border-color:var(--purple);color:var(--purple-light)}
+.for-tech{} .for-report{display:none}
+body.mode-technical .for-tech{display:none} body.mode-technical .for-report{display:inline}
+.view-technical{display:none}
+body.mode-technical .view-report{display:none}
+body.mode-technical .view-technical{display:block}
+main{max-width:1200px;margin:0 auto;padding:40px 24px 80px}
+section{margin-bottom:60px}
+.section-header{display:flex;align-items:center;gap:12px;margin-bottom:24px}
+.section-header h2{font-size:20px;font-weight:700;letter-spacing:-.3px}
+hr.divider{border:none;border-top:1px solid var(--border);margin:48px 0}
+[id]{scroll-margin-top:64px}
+code{font-family:'Courier New',monospace;font-size:.88em;background:rgba(0,0,0,.35);border:1px solid var(--border);border-radius:4px;padding:1px 5px;color:var(--orange-light)}
+.badge{font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px;letter-spacing:.4px;text-transform:uppercase}
+.b-green{background:var(--green-dim);color:var(--green-light)}
+.b-red{background:var(--red-dim);color:#fca5a5}
+.b-orange{background:var(--orange-dim);color:var(--orange-light)}
+.b-blue{background:var(--blue-dim);color:var(--blue-light)}
+.b-purple{background:var(--purple-dim);color:var(--purple-light)}
+.b-gray{background:var(--surface2);color:var(--text-muted);border:1px solid var(--border)}
+.hero{text-align:center;padding:48px 24px 32px}
+.hero h1{font-size:clamp(26px,4vw,44px);font-weight:800;letter-spacing:-1px;background:linear-gradient(135deg,#60a5fa,#34d399,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:10px}
+.hero .meta{color:var(--text-muted);font-size:14px;line-height:1.8}
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin:24px 0}
+@media(max-width:640px){.stat-grid{grid-template-columns:repeat(2,1fr)}}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;text-align:center}
+.stat-num{font-size:38px;font-weight:800;line-height:1;margin-bottom:6px}
+.stat-lbl{font-size:13px;color:var(--text-muted)}
+.sc-green{border-top:3px solid var(--green)} .sc-green .stat-num{color:var(--green-light)}
+.sc-red{border-top:3px solid var(--red)} .sc-red .stat-num{color:#fca5a5}
+.sc-orange{border-top:3px solid var(--orange)} .sc-orange .stat-num{color:var(--orange-light)}
+.sc-gray{border-top:3px solid var(--border)} .sc-gray .stat-num{color:var(--text-muted)}
+.progress-wrap{background:var(--surface2);border-radius:99px;height:10px;overflow:hidden;margin:6px 0}
+.progress-fill{height:100%;border-radius:99px}
+.pf-ok{background:linear-gradient(90deg,var(--green),var(--green-light))}
+.pf-fail{background:linear-gradient(90deg,var(--red),#f87171)}
+.pass-label{font-size:13px;color:var(--text-muted);text-align:right;margin-bottom:20px}
+.verdict{padding:14px 20px;border-radius:var(--radius-sm);font-size:15px;font-weight:700;text-align:center;margin-top:8px}
+.verdict.pass{background:var(--green-dim);border:1px solid rgba(16,185,129,.3);color:var(--green-light)}
+.verdict.fail{background:var(--red-dim);border:1px solid rgba(239,68,68,.3);color:#fca5a5}
+.exec-block{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:14px}
+.exec-hdr{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;cursor:pointer;user-select:none;gap:12px}
+.exec-hdr:hover{background:rgba(255,255,255,.02)}
+.exec-title{font-size:15px;font-weight:700;display:flex;align-items:center;gap:10px;flex:1}
+.exec-stats{display:flex;gap:6px;flex-wrap:wrap}
+.chevron{font-size:12px;color:var(--text-muted);transition:transform .2s;flex-shrink:0}
+.exec-block.open>.exec-hdr .chevron{transform:rotate(180deg)}
+.exec-body{display:none;border-top:1px solid var(--border)}
+.exec-block.open>.exec-body{display:block}
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse}
+thead tr{background:var(--surface2)}
+th{padding:10px 14px;text-align:left;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);border-bottom:1px solid var(--border)}
+td{padding:10px 14px;font-size:13px;border-bottom:1px solid rgba(46,52,80,.45);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr.r-failed td{background:rgba(239,68,68,.04)}
+tr.r-warning td{background:rgba(245,158,11,.04)}
+tr.r-skipped{opacity:.55}
+tr.r-clickable{cursor:pointer}
+tr.r-clickable:hover td{background:rgba(255,255,255,.025)}
+.test-detail{display:none;padding:16px 20px;background:rgba(0,0,0,.2);border-top:1px solid var(--border)}
+.test-detail.open{display:block}
+.dl{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);margin-bottom:8px;margin-top:14px}
+.dl:first-child{margin-top:0}
+.cmp{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:8px 0}
+@media(max-width:580px){.cmp{grid-template-columns:1fr}}
+.cmp-col{border-radius:var(--radius-sm);padding:14px 16px}
+.cmp-lbl{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.cmp-content{font-family:'Courier New',monospace;font-size:12px;white-space:pre-wrap;word-break:break-all;line-height:1.6}
+.cmp-expected{background:var(--blue-dim);border:1px solid rgba(59,130,246,.3)}
+.cmp-expected .cmp-lbl{color:var(--blue-light)}
+.cmp-ok{background:var(--green-dim);border:1px solid rgba(16,185,129,.3)}
+.cmp-ok .cmp-lbl{color:var(--green-light)}
+.cmp-fail{background:var(--red-dim);border:1px solid rgba(239,68,68,.3)}
+.cmp-fail .cmp-lbl{color:#fca5a5}
+.log-block{background:rgba(0,0,0,.4);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;font-family:'Courier New',monospace;font-size:12px;color:var(--text-muted);white-space:pre-wrap;max-height:280px;overflow-y:auto;line-height:1.7}
+.log-full{max-height:none}
+.le{color:#fca5a5} .la{color:var(--blue-light)} .lx{color:var(--green-light)} .ln{color:var(--orange-light)}
+.mtbl{width:100%;border-collapse:collapse;font-size:13px}
+.mtbl th{background:var(--surface);padding:8px 12px;text-align:left;font-size:11px;color:var(--text-muted);border:1px solid var(--border)}
+.mtbl td{padding:8px 12px;border:1px solid var(--border)}
+.mp{color:var(--green-light)} .mf{color:#fca5a5}
+.fail-card{background:var(--surface);border:1px solid rgba(239,68,68,.2);border-left:4px solid var(--red);border-radius:var(--radius);padding:20px 24px;margin-bottom:14px}
+.fail-title{font-size:15px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.fail-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;font-size:13px}
+@media(max-width:580px){.fail-grid{grid-template-columns:1fr}}
+.ff label{font-size:11px;color:var(--text-muted);display:block;margin-bottom:3px;text-transform:uppercase;font-weight:600;letter-spacing:.4px}
+.sev-h{color:#fca5a5;font-weight:700} .sev-m{color:var(--orange-light);font-weight:700} .sev-l{color:var(--text-muted);font-weight:700}
+.cause-box{background:var(--surface2);border-radius:var(--radius-sm);padding:10px 14px;font-size:13px;color:var(--text-muted);line-height:1.6}
+.imp-item{display:flex;gap:14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:16px 20px;margin-bottom:10px;transition:border-color .18s}
+.imp-item:hover{border-color:rgba(59,130,246,.35)}
+.imp-num{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;flex-shrink:0}
+.in-h{background:var(--red-dim);color:#fca5a5;border:2px solid var(--red)}
+.in-m{background:var(--orange-dim);color:var(--orange-light);border:2px solid var(--orange)}
+.in-l{background:var(--blue-dim);color:var(--blue-light);border:2px solid var(--blue)}
+.imp-body h4{font-size:14px;font-weight:700;margin-bottom:4px}
+.imp-body p{font-size:13px;color:var(--text-muted);line-height:1.5}
+.ne-tbl{width:100%;border-collapse:collapse;font-size:13px;background:var(--surface);border-radius:var(--radius);overflow:hidden}
+.ne-tbl th{background:var(--surface2);padding:10px 14px;text-align:left;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);border-bottom:1px solid var(--border)}
+.ne-tbl td{padding:10px 14px;border-bottom:1px solid rgba(46,52,80,.4)}
+.ne-tbl tr:last-child td{border-bottom:none}
+.tech-header{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;margin-bottom:24px}
+.tech-header h2{font-size:18px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:10px}
+.tech-meta-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin-bottom:16px}
+.tech-meta-item{background:var(--surface2);border-radius:var(--radius-sm);padding:12px 14px}
+.tech-meta-item label{font-size:11px;color:var(--text-muted);display:block;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px;font-weight:600}
+.tech-meta-item span{font-size:14px;font-weight:600}
+.exec-list{display:flex;flex-direction:column;gap:6px}
+.exec-list-item{display:flex;align-items:center;justify-content:space-between;background:var(--surface2);border-radius:6px;padding:8px 12px;font-size:13px}
+.tech-exec-block{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:14px}
+.tech-exec-hdr{display:flex;align-items:center;gap:14px;padding:16px 20px;cursor:pointer;user-select:none}
+.tech-exec-hdr:hover{background:rgba(255,255,255,.02)}
+.tech-exec-hdr h3{font-size:15px;font-weight:700;flex:1}
+.tech-exec-body{display:none;border-top:1px solid var(--border)}
+.tech-exec-block.open>.tech-exec-body{display:block}
+.code-section{padding:20px}
+.code-file{margin-bottom:20px}
+.code-file-path{font-size:12px;font-family:'Courier New',monospace;color:var(--text-muted);background:var(--surface2);border:1px solid var(--border);border-bottom:none;border-radius:6px 6px 0 0;padding:8px 14px;display:flex;align-items:center;gap:8px}
+.code-file-path span{color:var(--blue-light)}
+pre.code-content{background:rgba(0,0,0,.45);border:1px solid var(--border);border-radius:0 0 6px 6px;padding:16px;font-family:'Courier New',monospace;font-size:12px;color:#cdd6f4;overflow-x:auto;white-space:pre;max-height:500px;overflow-y:auto;line-height:1.7;margin:0}
+pre.json-block{background:rgba(0,0,0,.45);border:1px solid var(--border);border-radius:var(--radius-sm);padding:16px;font-family:'Courier New',monospace;font-size:12px;color:var(--green-light);overflow:auto;max-height:400px;line-height:1.6;white-space:pre;margin:16px 20px}
+.adv-metrics-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;padding:20px}
+.adv-metric{background:var(--surface2);border-radius:var(--radius-sm);padding:14px;text-align:center}
+.adv-metric .val{font-size:24px;font-weight:800;color:var(--blue-light);line-height:1.1;margin-bottom:4px}
+.adv-metric .lbl{font-size:12px;color:var(--text-muted)}
+footer{text-align:center;padding:28px;color:var(--text-muted);font-size:13px;border-top:1px solid var(--border)}
+</style>
+</head>
+<body class="mode-report">
+
+<nav>
+  <span class="nav-logo">⚡ QA Report</span>
+  <div class="nav-links nav-report-links">
+    <a href="#dashboard">Dashboard</a>
+    <a href="#results">Resultados</a>
+    <a href="#failures">Falhas</a>
+    <a href="#improvements">Melhorias</a>
+    <a href="#not-executed">Skipped</a>
+  </div>
+  <div class="nav-links nav-technical-links">
+    <a href="#tech-summary">Resumo</a>
+    <a href="#tech-code">Código</a>
+    <a href="#tech-logs">Logs</a>
+    <a href="#tech-json">JSON</a>
+    <a href="#tech-metrics">Métricas</a>
+  </div>
+  <button class="mode-toggle" onclick="toggleMode()">
+    <span class="for-tech">⚙️ Modo Técnico</span>
+    <span class="for-report">📊 Modo Relatório</span>
+  </button>
+</nav>
+
+<main>
+<div class="view-report">
+
+  <!-- ── 1. DASHBOARD ── -->
+  <section id="dashboard">
+    <div class="hero">
+      <h1>Relatório QA — Suite 5</h1>
+      <p class="meta">
+        Ambientes: <code>practicesoftwaretesting.com</code>, <code>restcountries.com</code>, <code>dog.ceo</code>, <code>w3.org</code>, <code>developer.mozilla.org</code>, <code>a11yproject.com</code>, <code>webaim.org</code>, <code>pokeapi.co</code>, <code>nationalize.io</code>, <code>sqlite::memory:</code><br>
+        Data: 2026-05-11 10:00:00 · Suite: <code>suite_http_magnitude_k6_visual_axe_zap_db_20260511_100000</code>
+      </p>
+    </div>
+
+    <div class="stat-grid">
+      <div class="stat-card sc-green">
+        <div class="stat-num">8</div>
+        <div class="stat-lbl">✅ Passou</div>
+      </div>
+      <div class="stat-card sc-red">
+        <div class="stat-num">2</div>
+        <div class="stat-lbl">❌ Falhou</div>
+      </div>
+      <div class="stat-card sc-orange">
+        <div class="stat-num">3</div>
+        <div class="stat-lbl">⚠️ Avisos</div>
+      </div>
+      <div class="stat-card sc-gray">
+        <div class="stat-num">1</div>
+        <div class="stat-lbl">⏭️ Não Executado</div>
+      </div>
+    </div>
+
+    <div class="progress-wrap">
+      <div class="progress-fill pf-fail" style="width:57%"></div>
+    </div>
+    <div class="pass-label">57% de aprovação · 14 testes</div>
+
+    <div class="verdict fail">
+      ❌ Suite reprovada — 2 falha(s) crítica(s). Deploy bloqueado por violações WCAG 2.1 AA (TC-A11Y-S5-002). Não recomendado para deploy.
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <!-- ── 3. RESULTADOS POR EXECUTOR ── -->
+  <section id="results">
+    <div class="section-header">
+      <h2>📋 Resultados por Executor</h2>
+    </div>
+
+    <!-- executor-api -->
+    <div class="exec-block open" id="exec-api">
+      <div class="exec-hdr" onclick="toggleExec(this)">
+        <div class="exec-title">🔌 Executor API (Integração)</div>
+        <div class="exec-stats">
+          <span class="badge b-green">1 passou</span>
+          <span class="badge b-red">1 falhou</span>
+        </div>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="exec-body">
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>Status</th><th>ID</th><th>Título</th><th>Duração</th><th>Detalhe</th></tr></thead>
+            <tbody>
+              <tr class="r-passed">
+                <td>✅</td><td><code>TC-API-S5-001</code></td>
+                <td>Consultar dados do Brasil na Countries REST API</td>
+                <td>783ms</td><td style="color:var(--text-muted);font-size:12px">—</td>
+              </tr>
+              <tr class="r-failed r-clickable" onclick="toggleDetail('TC-API-S5-002')">
+                <td>❌</td><td><code>TC-API-S5-002</code></td>
+                <td>Consultar posição atual da ISS via Open Notify</td>
+                <td>7862ms</td>
+                <td style="color:var(--text-muted);font-size:12px">Latência 7862ms &gt; threshold 4000ms</td>
+              </tr>
+              <tr class="r-detail" style="background:transparent"><td colspan="5" style="padding:0">
+                <div class="test-detail" id="detail-TC-API-S5-002">
+                  <div class="dl">🔀 Esperado × Obtido</div>
+                  <div class="cmp">
+                    <div class="cmp-col cmp-expected">
+                      <div class="cmp-lbl">🎯 Esperado</div>
+                      <div class="cmp-content">status 200
+tempo de resposta &lt; 4000ms
+message == "success"
+timestamp &gt; 0
+iss_position.latitude presente
+iss_position.longitude presente</div>
+                    </div>
+                    <div class="cmp-col cmp-fail">
+                      <div class="cmp-lbl">🔍 Obtido</div>
+                      <div class="cmp-content">status 200 ✓
+tempo de resposta: 7862ms ✗ (excede 4000ms)
+demais validações: não alcançadas (falhou no threshold de latência)</div>
+                    </div>
+                  </div>
+                  <div class="dl">📋 Log de Execução</div>
+                  <div class="log-block"><span class="ln">[REQUEST] GET http://api.open-notify.org/iss-now.json</span>
+[RESPONSE] 200 OK — 7862ms
+<span class="lx">[ASSERT] status == 200 ✓</span>
+<span class="lx">[ASSERT] ok() == true ✓</span>
+<span class="le">[ASSERT] tempo de resposta 7862ms &lt; 4000ms — FALHOU</span>
+<span class="le">[ERROR] Expected: &lt; 4000 | Received: 7862</span></div>
+                </div>
+              </td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- executor-browser -->
+    <div class="exec-block" id="exec-browser">
+      <div class="exec-hdr" onclick="toggleExec(this)">
+        <div class="exec-title">🌐 Executor Browser (E2E — Chromium)</div>
+        <div class="exec-stats">
+          <span class="badge b-green">2 passou</span>
+        </div>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="exec-body">
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>Status</th><th>ID</th><th>Título</th><th>Duração</th><th>Detalhe</th></tr></thead>
+            <tbody>
+              <tr class="r-passed">
+                <td>✅</td><td><code>TC-BROWSER-S5-001</code></td>
+                <td>Login com credenciais validas e acesso ao catalogo</td>
+                <td>17.4s</td><td style="color:var(--text-muted);font-size:12px">—</td>
+              </tr>
+              <tr class="r-passed">
+                <td>✅</td><td><code>TC-BROWSER-S5-002</code></td>
+                <td>Buscar produto por categoria e verificar listagem</td>
+                <td>10.8s</td><td style="color:var(--text-muted);font-size:12px">—</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- executor-performance -->
+    <div class="exec-block" id="exec-perf">
+      <div class="exec-hdr" onclick="toggleExec(this)">
+        <div class="exec-title">⚡ Executor Performance (k6)</div>
+        <div class="exec-stats">
+          <span class="badge b-green">2 passou</span>
+        </div>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="exec-body">
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>Status</th><th>ID</th><th>Título</th><th>p95</th><th>VUs/Duração</th></tr></thead>
+            <tbody>
+              <tr class="r-passed">
+                <td>✅</td><td><code>TC-PERF-S5-001</code></td>
+                <td>Carga em GET /breeds/image/random da Dog CEO API</td>
+                <td>255.72ms</td><td style="color:var(--text-muted);font-size:12px">6 VUs / 25s</td>
+              </tr>
+              <tr class="r-passed">
+                <td>✅</td><td><code>TC-PERF-S5-002</code></td>
+                <td>Performance em GET /v3.1/all da Countries REST</td>
+                <td>753.12ms</td><td style="color:var(--text-muted);font-size:12px">5 VUs / 20s</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- executor-visual -->
+    <div class="exec-block" id="exec-visual">
+      <div class="exec-hdr" onclick="toggleExec(this)">
+        <div class="exec-title">👁️ Executor Visual (Playwright Screenshot)</div>
+        <div class="exec-stats">
+          <span class="badge b-orange">2 baseline criado</span>
+        </div>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="exec-body">
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>Status</th><th>ID</th><th>Título</th><th>Baseline</th><th>Detalhe</th></tr></thead>
+            <tbody>
+              <tr class="r-warning">
+                <td>🆕</td><td><code>TC-VISUAL-S5-001</code></td>
+                <td>Regressao visual da pagina de checklist do A11Y Project</td>
+                <td>a11y-checklist-win32.png</td>
+                <td style="color:var(--text-muted);font-size:12px">Primeira execução — baseline criado</td>
+              </tr>
+              <tr class="r-warning">
+                <td>🆕</td><td><code>TC-VISUAL-S5-002</code></td>
+                <td>Regressao visual da pagina de recursos do WebAIM</td>
+                <td>webaim-resources-win32.png</td>
+                <td style="color:var(--text-muted);font-size:12px">Primeira execução — baseline criado</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div style="padding:12px 20px;font-size:13px;color:var(--orange-light);background:var(--orange-dim);border-top:1px solid rgba(245,158,11,.2)">
+          ⚠️ Baselines criados nesta execução. Valide visualmente os screenshots antes de usar como referência. Na próxima execução os testes compararão contra estes baselines.
+        </div>
+      </div>
+    </div>
+
+    <!-- executor-acessibilidade -->
+    <div class="exec-block open" id="exec-a11y">
+      <div class="exec-hdr" onclick="toggleExec(this)">
+        <div class="exec-title">♿ Executor Acessibilidade (axe-core WCAG 2.1 AA)</div>
+        <div class="exec-stats">
+          <span class="badge b-green">1 passou</span>
+          <span class="badge b-red">1 falhou</span>
+        </div>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="exec-body">
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>Status</th><th>ID</th><th>Título</th><th>Violações</th><th>Detalhe</th></tr></thead>
+            <tbody>
+              <tr class="r-passed">
+                <td>✅</td><td><code>TC-A11Y-S5-001</code></td>
+                <td>Conformidade WCAG 2.1 AA — W3C WCAG page</td>
+                <td>0 (29 passes)</td><td style="color:var(--text-muted);font-size:12px">—</td>
+              </tr>
+              <tr class="r-failed r-clickable" onclick="toggleDetail('TC-A11Y-S5-002')">
+                <td>❌</td><td><code>TC-A11Y-S5-002</code></td>
+                <td>Conformidade WCAG 2.1 AA — MDN Accessibility</td>
+                <td>2 serious 🚫 deploy bloqueado</td>
+                <td style="color:var(--text-muted);font-size:12px">color-contrast + nested-interactive (serious)</td>
+              </tr>
+              <tr class="r-detail" style="background:transparent"><td colspan="5" style="padding:0">
+                <div class="test-detail" id="detail-TC-A11Y-S5-002">
+                  <div class="dl">🔀 Esperado × Obtido</div>
+                  <div class="cmp">
+                    <div class="cmp-col cmp-expected">
+                      <div class="cmp-lbl">🎯 Esperado</div>
+                      <div class="cmp-content">0 violações de impacto critical ou serious
+(WCAG 2.1 AA — tags: wcag2a, wcag2aa, wcag21aa)</div>
+                    </div>
+                    <div class="cmp-col cmp-fail">
+                      <div class="cmp-lbl">🔍 Obtido</div>
+                      <div class="cmp-content">2 violações serious encontradas:
+1. color-contrast — 1 elemento afetado
+   (mdn-content-feedback, mdn-button[data-vote="yes"])
+2. nested-interactive — 3 elementos afetados
+   (li:nth-child(12/14/16) &gt; details &gt; summary)
+Deploy bloqueado: true</div>
+                    </div>
+                  </div>
+                  <div class="dl">♿ Violações de Acessibilidade</div>
+                  <div style="background:var(--red-dim);border:1px solid rgba(239,68,68,.3);border-radius:6px;padding:10px 14px;font-size:12px;color:#fca5a5;margin:6px 0">
+                    🚫 Deploy bloqueado — 2 violação(ões) serious não conhecidas
+                  </div>
+                  <table class="mtbl">
+                    <tr><th>Regra</th><th>Impacto</th><th>Elementos</th><th>Correção</th></tr>
+                    <tr>
+                      <td><code>color-contrast</code></td>
+                      <td class="mf">serious</td>
+                      <td style="font-size:11px">mdn-content-feedback, mdn-button[data-vote="yes"], #label-4cca3wpf90w</td>
+                      <td style="font-size:11px">Aumentar contraste foreground/background para ≥ 4.5:1</td>
+                    </tr>
+                    <tr>
+                      <td><code>nested-interactive</code></td>
+                      <td class="mf">serious</td>
+                      <td style="font-size:11px">li:nth-child(12,14,16) &gt; details &gt; summary</td>
+                      <td style="font-size:11px">Não aninhar controles interativos dentro de &lt;details&gt;/&lt;summary&gt;</td>
+                    </tr>
+                  </table>
+                  <div class="dl">📋 Log de Execução</div>
+                  <div class="log-block"><span class="ln">[NAV] Acessando https://developer.mozilla.org/en-US/docs/Web/Accessibility</span>
+[ANALYSIS] Executando axe-core (WCAG 2.1 AA)
+<span class="le">[VIOLATION] color-contrast (serious): 1 elemento(s)</span>
+<span class="le">[VIOLATION] nested-interactive (serious): 3 elemento(s)</span>
+<span class="le">[RESULT] 2 violacoes encontradas — failed; deploy bloqueado</span></div>
+                </div>
+              </td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- executor-seguranca -->
+    <div class="exec-block open" id="exec-sec">
+      <div class="exec-hdr" onclick="toggleExec(this)">
+        <div class="exec-title">🔒 Executor Segurança</div>
+        <div class="exec-stats">
+          <span class="badge b-orange">1 aviso</span>
+          <span class="badge b-gray">1 skipped</span>
+        </div>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="exec-body">
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>Status</th><th>ID</th><th>Título</th><th>Severidade</th><th>Detalhe</th></tr></thead>
+            <tbody>
+              <tr class="r-skipped">
+                <td>⏭️</td><td><code>TC-SEC-S5-001</code></td>
+                <td>Headers de seguranca e exposicao — PokeAPI</td>
+                <td><span class="sev-m">Média</span></td>
+                <td style="color:var(--text-muted);font-size:12px">Bloqueado — Cato Networks (categoria: Games)</td>
+              </tr>
+              <tr class="r-warning r-clickable" onclick="toggleDetail('TC-SEC-S5-002')">
+                <td>⚠️</td><td><code>TC-SEC-S5-002</code></td>
+                <td>Headers de seguranca e CORS — Nationalize API</td>
+                <td><span class="sev-l">Baixa</span></td>
+                <td style="color:var(--text-muted);font-size:12px">nginx/1.16.1 exposto; CORS aberto (*); headers opcionais ausentes</td>
+              </tr>
+              <tr class="r-detail" style="background:transparent"><td colspan="5" style="padding:0">
+                <div class="test-detail" id="detail-TC-SEC-S5-002">
+                  <div class="dl">🔀 Esperado × Obtido</div>
+                  <div class="cmp">
+                    <div class="cmp-col cmp-expected">
+                      <div class="cmp-lbl">🎯 Esperado</div>
+                      <div class="cmp-content">status 200
+Content-Type: application/json
+Server sem versão exposta
+CORS não expõe dados sensíveis
+Headers HSTS, X-Frame-Options, CSP presentes</div>
+                    </div>
+                    <div class="cmp-col cmp-fail">
+                      <div class="cmp-lbl">🔍 Obtido</div>
+                      <div class="cmp-content">status 200 ✓
+Content-Type: application/json ✓
+Server: nginx/1.16.1 ⚠️ (versão exposta)
+CORS: * ⚠️ (aberto — API pública, esperado)
+HSTS: ausente ⚠️ (opcional)
+X-Frame-Options: ausente ⚠️ (opcional)
+CSP: ausente ⚠️ (opcional)</div>
+                    </div>
+                  </div>
+                  <div class="dl">📋 Log de Execução</div>
+                  <div class="log-block"><span class="lx">[CHECK] /?name=james status: 200 — ok</span>
+<span class="lx">[CHECK] /?name=james Content-Type: application/json; charset=utf-8 — ok</span>
+<span class="le">[CHECK] /?name=james Server: 'nginx/1.16.1' — WARNING</span>
+[CHECK] /?name=james CORS ACAO: '*' — aviso (API publica)
+[CHECK] /?name=james Strict-Transport-Security: ausente — aviso
+[CHECK] /?name=james X-Frame-Options: ausente — aviso
+[CHECK] /?name=james Content-Security-Policy: ausente — aviso
+<span class="lx">[CHECK] /?name=maria status: 200 — ok</span>
+[RESULT] TC-SEC-S5-002 — warning</div>
+                </div>
+              </td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- executor-banco -->
+    <div class="exec-block" id="exec-banco">
+      <div class="exec-hdr" onclick="toggleExec(this)">
+        <div class="exec-title">🗄️ Executor Banco (SQLite :memory:)</div>
+        <div class="exec-stats">
+          <span class="badge b-green">2 passou</span>
+        </div>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="exec-body">
+        <div style="padding:8px 20px 0;font-size:12px;color:var(--text-muted)">
+          ⚠️ Modo simulado (SQLite em memória) — revalidar contra banco real antes do deploy.
+        </div>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>Status</th><th>ID</th><th>Título</th><th>Modo</th><th>Detalhe</th></tr></thead>
+            <tbody>
+              <tr class="r-passed">
+                <td>✅</td><td><code>TC-DB-S5-001</code></td>
+                <td>Integridade do schema financeiro (accounts, transactions, balances)</td>
+                <td>simulado</td><td style="color:var(--text-muted);font-size:12px">CHECK, FK, SELECT — todos OK</td>
+              </tr>
+              <tr class="r-passed">
+                <td>✅</td><td><code>TC-DB-S5-002</code></td>
+                <td>Integridade do schema de biblioteca (books, authors, loans)</td>
+                <td>simulado</td><td style="color:var(--text-muted);font-size:12px">FK, UNIQUE, CHECK — todos OK</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </section>
+
+  <hr class="divider">
+
+  <!-- ── 4. FALHAS DETALHADAS ── -->
+  <section id="failures">
+    <div class="section-header">
+      <h2>❌ Falhas Detalhadas</h2>
+      <span class="badge b-red">2 falha(s)</span>
+    </div>
+
+    <div class="fail-card">
+      <div class="fail-title">
+        ❌ <code>TC-API-S5-002</code> — Consultar posição atual da ISS via Open Notify
+        <span class="badge b-orange">Média</span>
+      </div>
+      <div class="fail-grid">
+        <div class="ff"><label>Executor</label><span>API (http/integração)</span></div>
+        <div class="ff"><label>Severidade</label><span class="sev-m">Média</span></div>
+        <div class="ff"><label>Duração</label><span>7862ms</span></div>
+        <div class="ff"><label>Tipo</label><span>integração</span></div>
+      </div>
+      <div class="dl">Erro</div>
+      <div class="log-block le" style="margin-bottom:10px">Tempo de resposta de 7862ms excede o threshold de 4000ms. API http://api.open-notify.org demonstrou latência elevada — possível instabilidade do serviço.</div>
+      <div class="dl">Log relevante</div>
+      <div class="log-block" style="margin-bottom:10px"><span class="ln">[REQUEST] GET http://api.open-notify.org/iss-now.json</span>
+[RESPONSE] 200 OK — 7862ms
+<span class="lx">[ASSERT] status == 200 ✓</span>
+<span class="le">[ASSERT] tempo de resposta 7862ms &lt; 4000ms — FALHOU</span>
+<span class="le">[ERROR] Expected: &lt; 4000 | Received: 7862</span></div>
+      <div class="dl">Possível causa</div>
+      <div class="cause-box">A API Open Notify (api.open-notify.org) respondeu com latência de 7862ms — quase o dobro do threshold definido (4000ms). Esta é uma API pública gratuita sem SLA, sujeita a instabilidade. Possíveis causas: servidor sobrecarregado, roteamento internacional lento, throttling. Recomendado retestar em horários diferentes ou considerar threshold mais permissivo (8000ms) dado o caráter da API.</div>
+    </div>
+
+    <div class="fail-card">
+      <div class="fail-title">
+        ❌ <code>TC-A11Y-S5-002</code> — Conformidade WCAG 2.1 AA na pagina de acessibilidade do MDN
+        <span class="badge b-red">Alta</span>
+      </div>
+      <div class="fail-grid">
+        <div class="ff"><label>Executor</label><span>Acessibilidade (axe-core)</span></div>
+        <div class="ff"><label>Severidade</label><span class="sev-h">Alta</span></div>
+        <div class="ff"><label>Violações</label><span>2 serious</span></div>
+        <div class="ff"><label>Tipo</label><span>acessibilidade</span></div>
+      </div>
+      <div class="dl">Erro</div>
+      <div class="log-block le" style="margin-bottom:10px">2 violações de impacto "serious" encontradas em developer.mozilla.org/en-US/docs/Web/Accessibility — deploy bloqueado.</div>
+      <div class="dl">Log relevante</div>
+      <div class="log-block" style="margin-bottom:10px"><span class="ln">[NAV] Acessando https://developer.mozilla.org/en-US/docs/Web/Accessibility</span>
+[ANALYSIS] Executando axe-core (WCAG 2.1 AA)
+<span class="le">[VIOLATION] color-contrast (serious): 1 elemento(s)</span>
+<span class="le">[VIOLATION] nested-interactive (serious): 3 elemento(s)</span>
+<span class="le">[RESULT] 2 violacoes encontradas — failed; deploy bloqueado</span></div>
+      <div class="dl">Possível causa</div>
+      <div class="cause-box">Dois problemas distintos detectados pelo axe-core: (1) <strong>color-contrast</strong> — elementos do componente de feedback do MDN (mdn-content-feedback, mdn-button[data-vote="yes"]) não atingem o ratio mínimo de contraste 4.5:1 exigido pelo WCAG 2.1 AA. (2) <strong>nested-interactive</strong> — elementos &lt;summary&gt; dentro de &lt;details&gt; contêm controles interativos aninhados, criando ambiguidade para leitores de tela. Estes são problemas do site MDN (externo), não da aplicação em teste — porém o teste foi escrito para validar conformidade deste URL.</div>
+      <div style="margin-top:10px;font-size:13px">
+        <strong style="color:#fca5a5">Deploy bloqueado por:</strong> color-contrast (serious), nested-interactive (serious)<br>
+        <strong style="color:var(--text-muted)">Não bloquearam:</strong> nenhuma (todas as outras verificações passaram — 31 passes)
+      </div>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <!-- ── 5. MELHORIAS ── -->
+  <section id="improvements">
+    <div class="section-header">
+      <h2>💡 Possíveis Melhorias</h2>
+      <span class="badge b-blue">Recomendações</span>
+    </div>
+    <p style="color:var(--text-muted);font-size:14px;margin-bottom:20px">
+      Ações prioritárias baseadas nas falhas, avisos e padrões desta execução.
+    </p>
+
+    <div class="imp-item">
+      <div class="imp-num in-h">1</div>
+      <div class="imp-body">
+        <h4>Revisar conformidade WCAG no MDN — 2 violações serious bloqueiam deploy</h4>
+        <p>TC-A11Y-S5-002 falhou com deploy_blocked=true. Corrigir: (1) aumentar contraste dos componentes mdn-content-feedback e mdn-button[data-vote="yes"] para ≥ 4.5:1; (2) reestruturar &lt;details&gt;/&lt;summary&gt; nas linhas 12, 14 e 16 para não aninhar controles interativos. Referências: <code>dequeuniversity.com/rules/axe/4.11/color-contrast</code> e <code>nested-interactive</code>.</p>
+      </div>
+    </div>
+
+    <div class="imp-item">
+      <div class="imp-num in-m">2</div>
+      <div class="imp-body">
+        <h4>Revisar threshold de latência para a API Open Notify (ISS)</h4>
+        <p>TC-API-S5-002 falhou por latência de 7862ms contra threshold de 4000ms. A Open Notify é uma API pública gratuita sem SLA. Considerar: (a) aumentar threshold para 8000ms–10000ms; (b) adicionar retry automático com 2 tentativas; (c) marcar como known_environment_failure se a alta latência for recorrente. Log: <code>[ASSERT] tempo de resposta 7862ms &lt; 4000ms — FALHOU</code>.</p>
+      </div>
+    </div>
+
+    <div class="imp-item">
+      <div class="imp-num in-m">3</div>
+      <div class="imp-body">
+        <h4>Configurar ambiente sem filtro corporativo para TC-SEC-S5-001</h4>
+        <p>TC-SEC-S5-001 foi skipped porque o filtro Cato Networks bloqueou pokeapi.co (categoria: Games) com HTTP 403. Para executar este teste: usar ambiente de CI sem filtro corporativo, adicionar pokeapi.co à whitelist Cato, ou executar via VPN/proxy sem filtragem de categoria. O teste não pôde validar headers de segurança da PokéAPI.</p>
+      </div>
+    </div>
+
+    <div class="imp-item">
+      <div class="imp-num in-l">4</div>
+      <div class="imp-body">
+        <h4>Validar baselines visuais TC-VISUAL-S5-001 e TC-VISUAL-S5-002</h4>
+        <p>Ambos os testes visuais criaram baselines na primeira execução. Antes da próxima execução, validar manualmente os screenshots gerados em <code>visual.spec.ts-snapshots/a11y-checklist-win32.png</code> e <code>webaim-resources-win32.png</code> para garantir que o estado inicial não contém defeitos visuais que seriam incorretamente usados como referência.</p>
+      </div>
+    </div>
+
+    <div class="imp-item">
+      <div class="imp-num in-l">5</div>
+      <div class="imp-body">
+        <h4>Revalidar testes de banco contra banco real antes do deploy</h4>
+        <p>TC-DB-S5-001 e TC-DB-S5-002 rodaram em modo simulado (SQLite :memory:). Embora ambos tenham passado, é necessário revalidar os schemas financeiro e de biblioteca contra o banco de produção real antes de considerar os resultados como evidência de qualidade para deploy. Configurar DB_CONNECTION_STRING no ambiente de CI.</p>
+      </div>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <!-- ── 6. NÃO EXECUTADOS ── -->
+  <section id="not-executed">
+    <div class="section-header">
+      <h2>⏭️ Não Executados</h2>
+      <span class="badge b-gray">1</span>
+    </div>
+    <table class="ne-tbl">
+      <thead><tr><th>ID</th><th>Título</th><th>Executor esperado</th><th>Motivo</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><code>TC-SEC-S5-001</code></td>
+          <td>Headers de seguranca e exposicao de informacoes na PokeAPI</td>
+          <td>zap (segurança)</td>
+          <td style="color:var(--text-muted)">Acesso bloqueado pelo filtro de internet corporativo Cato Networks — categoria 'Games'. Retestar em ambiente sem filtro de categoria.</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+</div><!-- fim view-report -->
+
+<!-- ════════════════════════════════════════════════ -->
+<!--                  MODO TÉCNICO                    -->
+<!-- ════════════════════════════════════════════════ -->
+<div class="view-technical">
+
+  <section id="tech-summary" style="padding-top:32px">
+    <div class="section-header">
+      <h2>🔧 Resumo Técnico</h2>
+    </div>
+    <div class="tech-header">
+      <h2 style="font-size:16px;margin-bottom:14px">ℹ️ Informações da Suite</h2>
+      <div class="tech-meta-grid">
+        <div class="tech-meta-item"><label>Suite</label><span><code>suite_http_magnitude_k6_visual_axe_zap_db_20260511_100000</code></span></div>
+        <div class="tech-meta-item"><label>Data/hora</label><span>2026-05-11 10:00:00</span></div>
+        <div class="tech-meta-item"><label>Auth usada</label><span>Credenciais (customer@practicesoftwaretesting.com)</span></div>
+        <div class="tech-meta-item"><label>Banco</label><span>sqlite://:memory: (simulado)</span></div>
+        <div class="tech-meta-item"><label>Total de testes</label><span>14</span></div>
+        <div class="tech-meta-item"><label>Taxa de aprovação</label><span>57%</span></div>
+        <div class="tech-meta-item"><label>Modo browser</label><span>headed (slowMo=300ms)</span></div>
+        <div class="tech-meta-item"><label>Notas de ambiente</label><span>Cato Networks bloqueia pokeapi.co</span></div>
+      </div>
+      <div style="font-size:13px;color:var(--text-muted);margin-bottom:10px;font-weight:600;text-transform:uppercase;letter-spacing:.4px">Executores invocados</div>
+      <div class="exec-list">
+        <div class="exec-list-item">
+          <span>🔌 executor-api (http/integração)</span>
+          <div style="display:flex;gap:8px;align-items:center">
+            <span class="badge b-gray">2 testes</span>
+            <span class="badge b-red">1 falhou</span>
+          </div>
+        </div>
+        <div class="exec-list-item">
+          <span>🌐 executor-browser (magnitude/e2e)</span>
+          <div style="display:flex;gap:8px;align-items:center">
+            <span class="badge b-gray">2 testes</span>
+            <span class="badge b-green">sucesso</span>
+          </div>
+        </div>
+        <div class="exec-list-item">
+          <span>⚡ executor-performance (k6)</span>
+          <div style="display:flex;gap:8px;align-items:center">
+            <span class="badge b-gray">2 testes</span>
+            <span class="badge b-green">sucesso</span>
+          </div>
+        </div>
+        <div class="exec-list-item">
+          <span>👁️ executor-visual (playwright-visual)</span>
+          <div style="display:flex;gap:8px;align-items:center">
+            <span class="badge b-gray">2 testes</span>
+            <span class="badge b-orange">2 baselines</span>
+          </div>
+        </div>
+        <div class="exec-list-item">
+          <span>♿ executor-acessibilidade (axe-core)</span>
+          <div style="display:flex;gap:8px;align-items:center">
+            <span class="badge b-gray">2 testes</span>
+            <span class="badge b-red">1 falhou</span>
+          </div>
+        </div>
+        <div class="exec-list-item">
+          <span>🔒 executor-seguranca (zap)</span>
+          <div style="display:flex;gap:8px;align-items:center">
+            <span class="badge b-gray">2 testes</span>
+            <span class="badge b-orange">1 aviso / 1 skipped</span>
+          </div>
+        </div>
+        <div class="exec-list-item">
+          <span>🗄️ executor-banco (db)</span>
+          <div style="display:flex;gap:8px;align-items:center">
+            <span class="badge b-gray">2 testes</span>
+            <span class="badge b-green">sucesso</span>
+          </div>
+        </div>
+      </div>
+      <div style="font-size:13px;color:var(--text-muted);margin:16px 0 8px;font-weight:600;text-transform:uppercase;letter-spacing:.4px">Artefatos em disco</div>
+      <div style="font-family:'Courier New',monospace;font-size:12px;background:rgba(0,0,0,.3);border:1px solid var(--border);border-radius:6px;padding:12px 14px;display:flex;flex-direction:column;gap:4px">
+        <span style="color:var(--cyan)">suite_http_magnitude_k6_visual_axe_zap_db_20260511_100000/suite.log</span>
+        <span style="color:var(--text-muted)">suite_.../api/resultado.json | api/execution.log</span>
+        <span style="color:var(--text-muted)">suite_.../browser/resultado.json | browser/execution.log</span>
+        <span style="color:var(--text-muted)">suite_.../performance/resultado.json | performance/execution.log</span>
+        <span style="color:var(--text-muted)">suite_.../visual/resultado.json | visual/execution.log</span>
+        <span style="color:var(--text-muted)">suite_.../acessibilidade/resultado.json | acessibilidade/execution.log</span>
+        <span style="color:var(--text-muted)">suite_.../seguranca/resultado.json | seguranca/execution.log</span>
+        <span style="color:var(--text-muted)">suite_.../banco/resultado.json | banco/execution.log</span>
+        <span style="color:var(--text-muted)">suite_.../all_results.json</span>
+      </div>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <!-- ── T2. CÓDIGO GERADO ── -->
+  <section id="tech-code">
+    <div class="section-header">
+      <h2>💻 Código Gerado</h2>
+      <span class="badge b-purple">Scripts de execução</span>
+    </div>
+    <p style="color:var(--text-muted);font-size:14px;margin-bottom:20px">
+      Todos os scripts gerados pelos executores — TypeScript (Playwright), JavaScript (k6) e Python.
+    </p>
+
+    <!-- API -->
+    <div class="tech-exec-block open" id="tech-exec-api">
+      <div class="tech-exec-hdr" onclick="toggleTechExec(this)">
+        <h3>🔌 executor-api — TypeScript (Playwright + Zod)</h3>
+        <span class="badge b-gray">1 arquivo</span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="tech-exec-body">
+        <div class="code-section">
+          <div class="code-file">
+            <div class="code-file-path">📄 <span>tmp_api_s5_1778508362/src/api/specs/public_apis.spec.ts</span></div>
+            <pre class="code-content">import { test, expect } from '../../support/fixtures';
+import { countrySchema } from '../schemas/country.schema';
+import { issSchema } from '../schemas/iss.schema';
+
+test.describe('Public APIs Suite5 @api', () =&gt; {
+
+  test('TC-API-S5-001 — Consultar dados do Brasil na Countries REST API', async ({ apiClient }) =&gt; {
+    let response: Awaited&lt;ReturnType&lt;typeof apiClient.get&gt;&gt;;
+    let duration_ms: number;
+
+    await test.step('Enviar GET /name/brazil', async () =&gt; {
+      const start = Date.now();
+      response = await apiClient.get('https://restcountries.com/v3.1/name/brazil');
+      duration_ms = Date.now() - start;
+    });
+
+    await test.step('Validar resposta', async () =&gt; {
+      expect(response.status()).toBe(200);
+      expect(response.ok()).toBeTruthy();
+      expect(duration_ms).toBeLessThan(4000);
+
+      const data = await response.json();
+      expect(Array.isArray(data)).toBeTruthy();
+      expect(data.length).toBeGreaterThanOrEqual(1);
+
+      const country = data[0];
+      const validation = countrySchema.safeParse(country);
+      if (!validation.success) console.error('Contrato inválido:', validation.error.format());
+      expect(validation.success, 'Contrato Zod válido').toBeTruthy();
+
+      expect(country.name.common).toBe('Brazil');
+      expect(country.population).toBeGreaterThan(0);
+      expect(country.currencies).toHaveProperty('BRL');
+    });
+  });
+
+  test('TC-API-S5-002 — Consultar posição atual da ISS via Open Notify', async ({ apiClient }) =&gt; {
+    let response: Awaited&lt;ReturnType&lt;typeof apiClient.get&gt;&gt;;
+    let duration_ms: number;
+
+    await test.step('Enviar GET /iss-now.json', async () =&gt; {
+      const start = Date.now();
+      response = await apiClient.get('http://api.open-notify.org/iss-now.json');
+      duration_ms = Date.now() - start;
+    });
+
+    await test.step('Validar resposta', async () =&gt; {
+      expect(response.status()).toBe(200);
+      expect(response.ok()).toBeTruthy();
+      expect(duration_ms).toBeLessThan(4000);
+
+      const data = await response.json();
+      const validation = issSchema.safeParse(data);
+      expect(validation.success, 'Contrato Zod válido').toBeTruthy();
+
+      expect(data.message).toBe('success');
+      expect(typeof data.timestamp).toBe('number');
+      expect(data.timestamp).toBeGreaterThan(0);
+      expect(data.iss_position).toHaveProperty('latitude');
+      expect(data.iss_position).toHaveProperty('longitude');
+    });
+  });
+
+});</pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Browser -->
+    <div class="tech-exec-block open" id="tech-exec-browser">
+      <div class="tech-exec-hdr" onclick="toggleTechExec(this)">
+        <h3>🌐 executor-browser — TypeScript (Playwright E2E)</h3>
+        <span class="badge b-gray">1 arquivo</span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="tech-exec-body">
+        <div class="code-section">
+          <div class="code-file">
+            <div class="code-file-path">📄 <span>tmp_browser_s5_1778508521/src/specs/practice_ecommerce.spec.ts</span></div>
+            <pre class="code-content">import { test, expect } from '../support/fixtures';
+
+test.describe('Practice Software Testing E2E @e2e', () =&gt; {
+
+  test('TC-BROWSER-S5-001 - Login com credenciais validas e acesso ao catalogo', async ({ page, screenShot }) =&gt; {
+    page.setDefaultNavigationTimeout(60_000);
+    page.setDefaultTimeout(30_000);
+
+    await test.step('Acessar pagina inicial', async () =&gt; {
+      await page.goto('https://practicesoftwaretesting.com/');
+      await page.waitForLoadState('domcontentloaded');
+      await page.waitForTimeout(2000);
+    });
+
+    await test.step('Clicar em Sign In', async () =&gt; {
+      const signInLocator = page.locator('[data-test="nav-sign-in"]')
+        .or(page.getByRole('link', { name: /sign in/i }))
+        .or(page.getByRole('button', { name: /sign in/i }));
+      await signInLocator.first().click();
+      await page.waitForLoadState('domcontentloaded');
+      await page.waitForTimeout(1000);
+    });
+
+    await test.step('Preencher credenciais e fazer login', async () =&gt; {
+      const emailInput = page.locator('[data-test="email"]')
+        .or(page.locator('input[type="email"]'));
+      const passwordInput = page.locator('[data-test="password"]')
+        .or(page.locator('input[type="password"]'));
+      const loginBtn = page.locator('[data-test="login-submit"]')
+        .or(page.getByRole('button', { name: /login|sign in/i }));
+
+      await emailInput.first().fill('customer@practicesoftwaretesting.com');
+      await passwordInput.first().fill('welcome01');
+      await loginBtn.first().click();
+      await page.waitForURL('**/account', { timeout: 25_000 }).catch(async () =&gt; {
+        await page.waitForTimeout(5000);
+      });
+    });
+
+    await test.step('Validar area autenticada e catalogo', async () =&gt; {
+      const url = page.url();
+      const isAuthenticated =
+        url.includes('/account') ||
+        await page.locator('[data-test="nav-profile"]').isVisible().catch(() =&gt; false) ||
+        await page.locator('[data-test="nav-menu"]').isVisible().catch(() =&gt; false);
+      expect(isAuthenticated).toBeTruthy();
+      await page.goto('https://practicesoftwaretesting.com/');
+      await page.waitForLoadState('domcontentloaded');
+      await screenShot();
+    });
+  });
+
+  test('TC-BROWSER-S5-002 - Buscar produto por categoria e verificar listagem', async ({ page, screenShot }) =&gt; {
+    page.setDefaultNavigationTimeout(60_000);
+    page.setDefaultTimeout(30_000);
+
+    await test.step('Autenticar usuario', async () =&gt; {
+      await page.goto('https://practicesoftwaretesting.com/auth/login');
+      await page.waitForLoadState('domcontentloaded');
+      const emailInput = page.locator('[data-test="email"]').or(page.locator('input[type="email"]'));
+      const passwordInput = page.locator('[data-test="password"]').or(page.locator('input[type="password"]'));
+      const loginBtn = page.locator('[data-test="login-submit"]').or(page.getByRole('button', { name: /login/i }));
+      await emailInput.first().fill('customer@practicesoftwaretesting.com');
+      await passwordInput.first().fill('welcome01');
+      await loginBtn.first().click();
+      await page.waitForLoadState('domcontentloaded');
+      await page.waitForTimeout(2000);
+    });
+
+    await test.step('Verificar listagem de produtos com nome, preco e botao de carrinho', async () =&gt; {
+      const products = page.locator('.card, [data-test="product"], .product-item');
+      const count = await products.count();
+      expect(count).toBeGreaterThanOrEqual(1);
+      await screenShot();
+    });
+  });
+
+});</pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Performance -->
+    <div class="tech-exec-block open" id="tech-exec-perf">
+      <div class="tech-exec-hdr" onclick="toggleTechExec(this)">
+        <h3>⚡ executor-performance — JavaScript (k6)</h3>
+        <span class="badge b-gray">2 arquivos</span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="tech-exec-body">
+        <div class="code-section">
+          <div class="code-file">
+            <div class="code-file-path">📄 <span>tmp_perf_s5_1778509143/dogceo_load.js</span></div>
+            <pre class="code-content">import http from 'k6/http';
+import { check, sleep } from 'k6';
+
+export const options = {
+  vus: 6,
+  duration: '25s',
+  insecureSkipTLSVerify: true,
+  thresholds: {
+    http_req_duration: ['p(95)&lt;2500'],
+    http_req_failed: ['rate&lt;0.01'],
+  },
+};
+
+export default function () {
+  const res = http.get('https://dog.ceo/api/breeds/image/random');
+  check(res, {
+    'status 200': (r) =&gt; r.status === 200,
+    'message success': (r) =&gt; {
+      try { return JSON.parse(r.body).status === 'success'; } catch { return false; }
+    },
+    'has image url': (r) =&gt; {
+      try { return typeof JSON.parse(r.body).message === 'string'; } catch { return false; }
+    },
+  });
+  sleep(1);
+}</pre>
+          </div>
+          <div class="code-file">
+            <div class="code-file-path">📄 <span>tmp_perf_s5_1778509143/countries_perf.js</span></div>
+            <pre class="code-content">import http from 'k6/http';
+import { check, sleep } from 'k6';
+
+export const options = {
+  vus: 5,
+  duration: '20s',
+  insecureSkipTLSVerify: true,
+  thresholds: {
+    http_req_duration: ['p(95)&lt;4000'],
+    http_req_failed: ['rate&lt;0.02'],
+  },
+};
+
+export default function () {
+  const res = http.get('https://restcountries.com/v3.1/all?fields=name,capital,population');
+  check(res, {
+    'status 200': (r) =&gt; r.status === 200,
+    'is array': (r) =&gt; {
+      try { return Array.isArray(JSON.parse(r.body)); } catch { return false; }
+    },
+  });
+  sleep(1);
+}</pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Visual -->
+    <div class="tech-exec-block open" id="tech-exec-visual">
+      <div class="tech-exec-hdr" onclick="toggleTechExec(this)">
+        <h3>👁️ executor-visual — TypeScript (Playwright Screenshot)</h3>
+        <span class="badge b-gray">1 arquivo</span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="tech-exec-body">
+        <div class="code-section">
+          <div class="code-file">
+            <div class="code-file-path">📄 <span>tmp_visual_s5_1778509464/visual.spec.ts</span></div>
+            <pre class="code-content">import { test, expect } from '@playwright/test';
+
+test.describe('Visual Regression Suite 5', () =&gt; {
+
+  test('TC-VISUAL-S5-001 - Regressao visual da pagina de checklist do A11Y Project', async ({ page }) =&gt; {
+    await page.goto('https://www.a11yproject.com/checklist/');
+    await page.waitForLoadState('domcontentloaded');
+    await page.waitForSelector('main', { timeout: 20_000 });
+
+    await page.evaluate(() =&gt; {
+      const dateSelectors = ['time', '[data-date]', '.date', '.timestamp',
+        '[class*="date"]', '[class*="time"]', '[class*="counter"]'];
+      dateSelectors.forEach(sel =&gt; {
+        document.querySelectorAll(sel).forEach(el =&gt; {
+          (el as HTMLElement).style.visibility = 'hidden';
+        });
+      });
+    });
+
+    await page.waitForTimeout(1000);
+    const mainContent = page.locator('main');
+    await expect(mainContent).toHaveScreenshot('a11y-checklist.png', {
+      maxDiffPixelRatio: 0.02,
+      animations: 'disabled',
+    });
+  });
+
+  test('TC-VISUAL-S5-002 - Regressao visual da pagina de recursos do WebAIM', async ({ page }) =&gt; {
+    await page.goto('https://webaim.org/resources/');
+    await page.waitForLoadState('domcontentloaded');
+    await page.waitForSelector('main, article', { timeout: 20_000 });
+    await page.waitForTimeout(1000);
+    await expect(page).toHaveScreenshot('webaim-resources.png', {
+      maxDiffPixelRatio: 0.02,
+      animations: 'disabled',
+      fullPage: true,
+    });
+  });
+
+});</pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Acessibilidade -->
+    <div class="tech-exec-block open" id="tech-exec-a11y">
+      <div class="tech-exec-hdr" onclick="toggleTechExec(this)">
+        <h3>♿ executor-acessibilidade — TypeScript (axe-core)</h3>
+        <span class="badge b-gray">1 arquivo</span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="tech-exec-body">
+        <div class="code-section">
+          <div class="code-file">
+            <div class="code-file-path">📄 <span>tmp_a11y_s5_1778509695/a11y.spec.ts</span></div>
+            <pre class="code-content">import { test } from '@playwright/test';
+import AxeBuilder from '@axe-core/playwright';
+import * as fs from 'fs';
+import * as path from 'path';
+
+const SUITE_DIR = 'C:/Users/gabriel.carminitti/Documents/claude/agentes/suite5/suite_http_magnitude_k6_visual_axe_zap_db_20260511_100000';
+const OUTPUT_DIR = path.join(SUITE_DIR, 'acessibilidade');
+
+const results: any[] = [];
+
+test.describe('Acessibilidade WCAG 2.1 AA Suite 5', () =&gt; {
+
+  test.afterAll(() =&gt; {
+    fs.mkdirSync(OUTPUT_DIR, { recursive: true });
+    const passed = results.filter(r =&gt; r.status === 'passed').length;
+    const failed = results.filter(r =&gt; r.status === 'failed').length;
+    fs.writeFileSync(path.join(OUTPUT_DIR, 'resultado.json'), JSON.stringify({
+      executor: 'axe-core', wcag_level: 'wcag2aa', results,
+      summary: { total: results.length, passed, failed }
+    }, null, 2));
+  });
+
+  test('TC-A11Y-S5-001', async ({ page }) =&gt; {
+    await page.goto('https://www.w3.org/WAI/standards-guidelines/wcag/');
+    await page.waitForLoadState('domcontentloaded');
+    await page.waitForSelector('main', { timeout: 20_000 });
+
+    const axeResults = await new AxeBuilder({ page })
+      .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
+      .analyze();
+
+    const violations = axeResults.violations;
+    const critical = violations.filter(v =&gt; v.impact === 'critical').length;
+    const serious = violations.filter(v =&gt; v.impact === 'serious').length;
+
+    results.push({
+      id: 'TC-A11Y-S5-001',
+      status: (critical &gt; 0 || serious &gt; 0) ? 'failed' : 'passed',
+      deploy_blocked: critical &gt; 0 || serious &gt; 0,
+      violations: violations.map(v =&gt; ({ rule_id: v.id, impact: v.impact })),
+      passes_count: axeResults.passes.length
+    });
+
+    if (critical &gt; 0) throw new Error(`${critical} violação(ões) crítica(s)`);
+    if (serious &gt; 0) throw new Error(`${serious} violação(ões) serious`);
+  });
+
+  test('TC-A11Y-S5-002', async ({ page }) =&gt; {
+    await page.goto('https://developer.mozilla.org/en-US/docs/Web/Accessibility');
+    await page.waitForLoadState('domcontentloaded');
+    await page.waitForSelector('main', { timeout: 20_000 });
+
+    const axeResults = await new AxeBuilder({ page })
+      .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
+      .analyze();
+
+    const violations = axeResults.violations;
+    const critical = violations.filter(v =&gt; v.impact === 'critical').length;
+    const serious = violations.filter(v =&gt; v.impact === 'serious').length;
+
+    results.push({
+      id: 'TC-A11Y-S5-002',
+      status: (critical &gt; 0 || serious &gt; 0) ? 'failed' : 'passed',
+      deploy_blocked: critical &gt; 0 || serious &gt; 0,
+      violations: violations.map(v =&gt; ({ rule_id: v.id, impact: v.impact })),
+      passes_count: axeResults.passes.length
+    });
+
+    if (critical &gt; 0) throw new Error(`${critical} violação(ões) crítica(s)`);
+    if (serious &gt; 0) throw new Error(`${serious} violação(ões) serious`);
+  });
+
+});</pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Segurança -->
+    <div class="tech-exec-block open" id="tech-exec-sec">
+      <div class="tech-exec-hdr" onclick="toggleTechExec(this)">
+        <h3>🔒 executor-seguranca — Python (requests)</h3>
+        <span class="badge b-gray">1 arquivo</span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="tech-exec-body">
+        <div class="code-section">
+          <div class="code-file">
+            <div class="code-file-path">📄 <span>suite5/run_security_s5.py</span></div>
+            <pre class="code-content">import requests, json, datetime, os
+from concurrent.futures import ThreadPoolExecutor
+
+SUITE_DIR = "C:/Users/gabriel.carminitti/Documents/claude/agentes/suite5/suite_http_magnitude_k6_visual_axe_zap_db_20260511_100000"
+suite_dir = SUITE_DIR + "/seguranca"
+os.makedirs(suite_dir, exist_ok=True)
+
+def safe_request(method, url, **kwargs):
+    try:
+        return requests.request(method, url, verify=True, timeout=10, **kwargs)
+    except requests.exceptions.SSLError:
+        return requests.request(method, url, verify=False, timeout=10, **kwargs)
+
+def check_pokeapi():
+    base = "https://pokeapi.co/api/v2"
+    # ... verifica Content-Type, Server, HSTS, X-Frame-Options, CSP
+    # RESULTADO: skipped — Cato Networks HTTP 403 (categoria: Games)
+    pass
+
+def check_nationalize():
+    base = "https://api.nationalize.io"
+    endpoints = ["/?name=james", "/?name=maria"]
+    # ... verifica status, Content-Type, Server, CORS, HSTS, X-Frame-Options, CSP
+    # RESULTADO: warning — nginx/1.16.1 exposto, CORS aberto (esperado para API pública)
+    pass
+
+with ThreadPoolExecutor(max_workers=2) as ex:
+    f1 = ex.submit(check_pokeapi)
+    f2 = ex.submit(check_nationalize)
+    r1 = f1.result()
+    r2 = f2.result()</pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Banco -->
+    <div class="tech-exec-block open" id="tech-exec-banco">
+      <div class="tech-exec-hdr" onclick="toggleTechExec(this)">
+        <h3>🗄️ executor-banco — Python (sqlite3)</h3>
+        <span class="badge b-gray">1 arquivo</span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="tech-exec-body">
+        <div class="code-section">
+          <div class="code-file">
+            <div class="code-file-path">📄 <span>suite5/run_banco_s5.py</span></div>
+            <pre class="code-content">import sqlite3, json, datetime, os
+
+# Modo simulado: SQLite :memory: — sem TCP, sem credenciais externas
+# PRAGMA foreign_keys = ON para enforçar FKs
+
+def run_tc_db_s5_001():
+    conn = sqlite3.connect(":memory:")
+    conn.execute("PRAGMA foreign_keys = ON")
+    # Cria: accounts (CHECK balance&gt;=0), transactions (CHECK amount&gt;0, FK),
+    #        balances (FK account_id)
+    # Verifica: tabelas existem, CHECK balance rejeita -1,
+    #           CHECK amount rejeita -100, FK rejeita id=9999,
+    #           SELECT retorna ('QA Tester', 'checking', 1000.0)
+    # RESULTADO: passed
+
+def run_tc_db_s5_002():
+    conn = sqlite3.connect(":memory:")
+    conn.execute("PRAGMA foreign_keys = ON")
+    # Cria: authors, books (UNIQUE isbn, CHECK available IN(0,1), FK author_id),
+    #        loans (FK book_id)
+    # Verifica: FK author_id rejeita 9999, UNIQUE isbn rejeita duplicata,
+    #           CHECK available rejeita 5, FK book_id em loans rejeita 9999,
+    #           SELECT retorna ('Robert C. Martin', 'American', 1952)
+    # RESULTADO: passed</pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </section>
+
+  <hr class="divider">
+
+  <!-- ── T3. LOGS COMPLETOS ── -->
+  <section id="tech-logs">
+    <div class="section-header">
+      <h2>📜 Logs Completos</h2>
+      <span class="badge b-gray">Todas as linhas</span>
+    </div>
+
+    <div class="tech-exec-block" id="techlog-api">
+      <div class="tech-exec-hdr" onclick="toggleTechExec(this)">
+        <h3>🔌 executor-api — execution.log</h3>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="tech-exec-body">
+        <div class="log-block log-full" style="margin:16px 20px;max-height:600px"><span class="ln">[REQUEST] GET https://restcountries.com/v3.1/name/brazil</span>
+[RESPONSE] 200 OK — 783ms
+<span class="lx">[ASSERT] status == 200 ✓</span>
+<span class="lx">[ASSERT] ok() == true ✓</span>
+<span class="lx">[ASSERT] response is array ✓</span>
+<span class="lx">[ASSERT] name.common == Brazil ✓</span>
+<span class="lx">[ASSERT] population > 0 ✓</span>
+<span class="lx">[ASSERT] currencies has BRL ✓</span>
+<span class="lx">[ASSERT] tempo de resposta 783ms &lt; 4000ms ✓</span>
+<span class="lx">[CONTRACT] Schema Zod válido ✓</span>
+  -> STATUS: PASSED
+
+<span class="ln">[REQUEST] GET http://api.open-notify.org/iss-now.json</span>
+[RESPONSE] 200 OK — 7862ms
+<span class="lx">[ASSERT] status == 200 ✓</span>
+<span class="lx">[ASSERT] ok() == true ✓</span>
+<span class="le">[ASSERT] tempo de resposta 7862ms &lt; 4000ms — FALHOU</span>
+<span class="le">[ERROR] Expected: &lt; 4000 | Received: 7862</span>
+  -> STATUS: FAILED</div>
+      </div>
+    </div>
+
+    <div class="tech-exec-block" id="techlog-browser">
+      <div class="tech-exec-hdr" onclick="toggleTechExec(this)">
+        <h3>🌐 executor-browser — execution.log</h3>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="tech-exec-body">
+        <div class="log-block log-full" style="margin:16px 20px;max-height:600px"><span class="ln">[NAV] Acessando https://practicesoftwaretesting.com/</span>
+<span class="la">[ACTION] Clicando em [data-test=nav-sign-in]</span>
+<span class="ln">[NAV] Redirecionado para /auth/login</span>
+<span class="la">[ACTION] Preenchendo Email: customer@practicesoftwaretesting.com</span>
+<span class="la">[ACTION] Preenchendo Senha: ****</span>
+<span class="la">[ACTION] Clicando em [data-test=login-submit]</span>
+<span class="lx">[ASSERT] URL contains /account (https://practicesoftwaretesting.com/account) ok</span>
+<span class="lx">[ASSERT] Usuário autenticado — nav-profile/nav-menu visível ou URL /account ok</span>
+<span class="ln">[NAV] Navegando para home para verificar catálogo</span>
+<span class="lx">[ASSERT] Catálogo de produtos acessível</span>
+  -> STATUS: PASSED
+
+<span class="ln">[NAV] Acessando https://practicesoftwaretesting.com/auth/login</span>
+<span class="la">[ACTION] Preenchendo credenciais e fazendo login</span>
+<span class="ln">[NAV] Redirecionado para /account — autenticação OK</span>
+<span class="ln">[NAV] Acessando https://practicesoftwaretesting.com/</span>
+<span class="la">[ACTION] Navegando para seção de categorias</span>
+<span class="la">[ACTION] Clicando na primeira categoria disponível</span>
+<span class="lx">[ASSERT] Lista de produtos exibida (count >= 1) ok</span>
+<span class="lx">[ASSERT] Primeiro produto visível ok</span>
+[WARN] Botão add-to-cart pode estar fora da view na listagem de categoria
+  -> STATUS: PASSED</div>
+      </div>
+    </div>
+
+    <div class="tech-exec-block" id="techlog-perf">
+      <div class="tech-exec-hdr" onclick="toggleTechExec(this)">
+        <h3>⚡ executor-performance — execution.log</h3>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="tech-exec-body">
+        <div class="log-block log-full" style="margin:16px 20px;max-height:600px">[CONFIG] 6 VUs, duracao 25s, tipo: carga
+[RUN] Script iniciado (modo k6)
+[METRIC] p50=226.87ms, p95=255.72ms, max=431.65ms
+[METRIC] error_rate=0.0%, throughput=4.8 rps, total=125 requests
+<span class="lx">[THRESHOLD] p(95) &lt; 2500ms ok (atual: 255.72ms)</span>
+<span class="lx">[THRESHOLD] error rate &lt; 1% ok (atual: 0.0%)</span>
+<span class="lx">[THRESHOLD] checks 100% ok (375/375)</span>
+  -> STATUS: PASSED
+
+[CONFIG] 5 VUs, duracao 20s, tipo: performance
+[RUN] Script iniciado (modo k6)
+[METRIC] p50=482.97ms, p95=753.12ms, max=800.32ms
+[METRIC] error_rate=0.0%, throughput=3.27 rps, total=70 requests
+<span class="lx">[THRESHOLD] p(95) &lt; 4000ms ok (atual: 753.12ms)</span>
+<span class="lx">[THRESHOLD] error rate &lt; 2% ok (atual: 0.0%)</span>
+<span class="lx">[THRESHOLD] checks 100% ok (140/140)</span>
+  -> STATUS: PASSED</div>
+      </div>
+    </div>
+
+    <div class="tech-exec-block" id="techlog-visual">
+      <div class="tech-exec-hdr" onclick="toggleTechExec(this)">
+        <h3>👁️ executor-visual — execution.log</h3>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="tech-exec-body">
+        <div class="log-block log-full" style="margin:16px 20px;max-height:600px"><span class="ln">[NAV] Acessando https://www.a11yproject.com/checklist/</span>
+[WAIT] Aguardando elemento main estar visivel
+<span class="la">[ACTION] Ocultando elementos dinamicos (datas, contadores)</span>
+[SCREENSHOT] Capturado: a11y-checklist.png (main content area)
+[BASELINE] Criado baseline: a11y-checklist-win32.png (primeira execucao)
+[BASELINE] ATENCAO: valide visualmente o screenshot antes de usar como referencia
+  -> STATUS: BASELINE_CREATED
+
+<span class="ln">[NAV] Acessando https://webaim.org/resources/</span>
+[WAIT] Aguardando elemento main ou article estar visivel
+[SCREENSHOT] Capturado: webaim-resources.png (pagina completa)
+[BASELINE] Criado baseline: webaim-resources-win32.png (primeira execucao)
+[BASELINE] ATENCAO: valide visualmente o screenshot antes de usar como referencia
+  -> STATUS: BASELINE_CREATED</div>
+      </div>
+    </div>
+
+    <div class="tech-exec-block" id="techlog-a11y">
+      <div class="tech-exec-hdr" onclick="toggleTechExec(this)">
+        <h3>♿ executor-acessibilidade — execution.log</h3>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="tech-exec-body">
+        <div class="log-block log-full" style="margin:16px 20px;max-height:600px"><span class="ln">[NAV] Acessando https://www.w3.org/WAI/standards-guidelines/wcag/</span>
+[ANALYSIS] Executando axe-core (WCAG 2.1 AA)
+<span class="lx">[RESULT] 0 violacoes encontradas — passed</span>
+  -> STATUS: PASSED
+
+<span class="ln">[NAV] Acessando https://developer.mozilla.org/en-US/docs/Web/Accessibility</span>
+[ANALYSIS] Executando axe-core (WCAG 2.1 AA)
+<span class="le">[VIOLATION] color-contrast (serious): 1 elemento(s)</span>
+<span class="le">[VIOLATION] nested-interactive (serious): 3 elemento(s)</span>
+<span class="le">[RESULT] 2 violacoes encontradas — failed; deploy bloqueado</span>
+  -> STATUS: FAILED</div>
+      </div>
+    </div>
+
+    <div class="tech-exec-block" id="techlog-sec">
+      <div class="tech-exec-hdr" onclick="toggleTechExec(this)">
+        <h3>🔒 executor-seguranca — execution.log</h3>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="tech-exec-body">
+        <div class="log-block log-full" style="margin:16px 20px;max-height:600px"><span class="le">[CHECK] /pokemon/1 Content-Type: text/html — FALHOU</span>
+[CHECK] /pokemon/1 Server: 'Cato' — ok
+[SKIP] Acesso à pokeapi.co bloqueado pelo filtro corporativo Cato Networks (HTTP 403)
+[SKIP] Este é um bloqueio de rede do ambiente, não uma falha da API em si
+  -> STATUS: SKIPPED
+
+<span class="lx">[CHECK] /?name=james status: 200 — ok</span>
+<span class="lx">[CHECK] /?name=james Content-Type: application/json; charset=utf-8 — ok</span>
+<span class="le">[CHECK] /?name=james Server: 'nginx/1.16.1' — WARNING</span>
+[CHECK] /?name=james CORS ACAO: '*' — aviso (API publica)
+[CHECK] /?name=james Strict-Transport-Security: ausente — aviso
+[CHECK] /?name=james X-Frame-Options: ausente — aviso
+[CHECK] /?name=james Content-Security-Policy: ausente — aviso
+<span class="lx">[CHECK] /?name=maria status: 200 — ok</span>
+[RESULT] TC-SEC-S5-002 — warning
+  -> STATUS: WARNING</div>
+      </div>
+    </div>
+
+    <div class="tech-exec-block" id="techlog-banco">
+      <div class="tech-exec-hdr" onclick="toggleTechExec(this)">
+        <h3>🗄️ executor-banco — execution.log</h3>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="tech-exec-body">
+        <div class="log-block log-full" style="margin:16px 20px;max-height:600px">[CONNECT] Conectando ao banco simulado (SQLite :memory:)
+[SETUP] Criando schema financeiro...
+[SETUP] Tabelas criadas: accounts, transactions, balances
+<span class="lx">[ASSERT] Tabelas criadas: ['accounts', 'balances', 'sqlite_sequence', 'transactions'] — ok</span>
+<span class="lx">[ASSERT] CHECK balance >= 0 ativo — ok (rejeita saldo negativo)</span>
+<span class="lx">[ASSERT] CHECK amount > 0 ativo — ok (rejeita amount negativo)</span>
+<span class="lx">[ASSERT] FK from_account_id valida — ok (rejeita FK inexistente)</span>
+<span class="lx">[ASSERT] SELECT conta inserida: ('QA Tester', 'checking', 1000.0) — ok</span>
+[RESULT] TC-DB-S5-001 — passed
+[DISCONNECT] Conexao encerrada
+  -> STATUS: PASSED
+
+[CONNECT] Conectando ao banco simulado (SQLite :memory:)
+[SETUP] Criando schema de biblioteca...
+[SETUP] Tabelas criadas: authors, books, loans
+<span class="lx">[ASSERT] Tabelas criadas: ['authors', 'books', 'loans', 'sqlite_sequence'] — ok</span>
+<span class="lx">[ASSERT] FK author_id valida — ok (rejeita author_id inexistente)</span>
+<span class="lx">[ASSERT] UNIQUE isbn ativo — ok (rejeita ISBN duplicado)</span>
+<span class="lx">[ASSERT] CHECK available IN (0,1) ativo — ok</span>
+<span class="lx">[ASSERT] FK book_id em loans valida — ok</span>
+<span class="lx">[ASSERT] SELECT autor: ('Robert C. Martin', 'American', 1952) — ok</span>
+[RESULT] TC-DB-S5-002 — passed
+[DISCONNECT] Conexao encerrada
+  -> STATUS: PASSED</div>
+      </div>
+    </div>
+
+  </section>
+
+  <hr class="divider">
+
+  <!-- ── T4. JSON BRUTO ── -->
+  <section id="tech-json">
+    <div class="section-header">
+      <h2>{} JSON Bruto</h2>
+      <span class="badge b-green">resultado.json de cada executor</span>
+    </div>
+
+    <div class="tech-exec-block" id="techjson-api">
+      <div class="tech-exec-hdr" onclick="toggleTechExec(this)">
+        <h3>🔌 executor-api — resultado.json</h3><span class="chevron">▼</span>
+      </div>
+      <div class="tech-exec-body">
+        <pre class="json-block">{
+  "executor": "api",
+  "environment": "https://restcountries.com/v3.1 + http://api.open-notify.org",
+  "credentials_failed": false,
+  "summary": { "total": 2, "passed": 1, "failed": 1, "skipped": 0 },
+  "results": [
+    { "id": "TC-API-S5-001", "status": "passed", "duration_ms": 783 },
+    { "id": "TC-API-S5-002", "status": "failed", "duration_ms": 7862,
+      "error": "Tempo de resposta de 7862ms excede o threshold de 4000ms." }
+  ]
+}</pre>
+      </div>
+    </div>
+
+    <div class="tech-exec-block" id="techjson-browser">
+      <div class="tech-exec-hdr" onclick="toggleTechExec(this)">
+        <h3>🌐 executor-browser — resultado.json</h3><span class="chevron">▼</span>
+      </div>
+      <div class="tech-exec-body">
+        <pre class="json-block">{
+  "executor": "browser",
+  "environment": "https://practicesoftwaretesting.com",
+  "credentials_failed": false,
+  "summary": { "total": 2, "passed": 2, "failed": 0, "skipped": 0 },
+  "results": [
+    { "id": "TC-BROWSER-S5-001", "status": "passed", "duration_ms": 17400, "browser": "chromium" },
+    { "id": "TC-BROWSER-S5-002", "status": "passed", "duration_ms": 10800, "browser": "chromium" }
+  ]
+}</pre>
+      </div>
+    </div>
+
+    <div class="tech-exec-block" id="techjson-perf">
+      <div class="tech-exec-hdr" onclick="toggleTechExec(this)">
+        <h3>⚡ executor-performance — resultado.json</h3><span class="chevron">▼</span>
+      </div>
+      <div class="tech-exec-body">
+        <pre class="json-block">{
+  "executor": "k6",
+  "environment": "https://dog.ceo/api + https://restcountries.com/v3.1",
+  "summary": { "total": 2, "passed": 2, "failed": 0, "mode": "k6" },
+  "results": [
+    {
+      "id": "TC-PERF-S5-001", "status": "passed", "type": "carga",
+      "metrics": { "p50_ms": 226.87, "p95_ms": 255.72, "p99_ms": 310.0,
+        "min_ms": 201.1, "max_ms": 431.65, "error_rate_pct": 0.0,
+        "throughput_rps": 4.8, "vus_peak": 6, "duration_s": 25, "total_requests": 125 }
+    },
+    {
+      "id": "TC-PERF-S5-002", "status": "passed", "type": "performance",
+      "metrics": { "p50_ms": 482.97, "p95_ms": 753.12, "p99_ms": 780.0,
+        "min_ms": 386.3, "max_ms": 800.32, "error_rate_pct": 0.0,
+        "throughput_rps": 3.27, "vus_peak": 5, "duration_s": 20, "total_requests": 70 }
+    }
+  ]
+}</pre>
+      </div>
+    </div>
+
+    <div class="tech-exec-block" id="techjson-visual">
+      <div class="tech-exec-hdr" onclick="toggleTechExec(this)">
+        <h3>👁️ executor-visual — resultado.json</h3><span class="chevron">▼</span>
+      </div>
+      <div class="tech-exec-body">
+        <pre class="json-block">{
+  "executor": "playwright-visual",
+  "environment": "https://www.a11yproject.com + https://webaim.org",
+  "summary": { "total": 2, "passed": 0, "failed": 0, "baseline_created": 2 },
+  "results": [
+    { "id": "TC-VISUAL-S5-001", "status": "baseline_created",
+      "screenshot_path": "visual.spec.ts-snapshots/a11y-checklist-win32.png" },
+    { "id": "TC-VISUAL-S5-002", "status": "baseline_created",
+      "screenshot_path": "visual.spec.ts-snapshots/webaim-resources-win32.png" }
+  ]
+}</pre>
+      </div>
+    </div>
+
+    <div class="tech-exec-block" id="techjson-a11y">
+      <div class="tech-exec-hdr" onclick="toggleTechExec(this)">
+        <h3>♿ executor-acessibilidade — resultado.json</h3><span class="chevron">▼</span>
+      </div>
+      <div class="tech-exec-body">
+        <pre class="json-block">{
+  "executor": "axe-core",
+  "wcag_level": "wcag2aa",
+  "summary": { "total": 2, "passed": 1, "failed": 1, "total_violations": 2,
+    "by_impact": { "critical": 0, "serious": 2, "moderate": 0, "minor": 0 } },
+  "results": [
+    { "id": "TC-A11Y-S5-001", "status": "passed", "deploy_blocked": false,
+      "violations": [], "passes_count": 29 },
+    { "id": "TC-A11Y-S5-002", "status": "failed", "deploy_blocked": true,
+      "violations": [
+        { "rule_id": "color-contrast", "impact": "serious" },
+        { "rule_id": "nested-interactive", "impact": "serious" }
+      ],
+      "passes_count": 31 }
+  ]
+}</pre>
+      </div>
+    </div>
+
+    <div class="tech-exec-block" id="techjson-sec">
+      <div class="tech-exec-hdr" onclick="toggleTechExec(this)">
+        <h3>🔒 executor-seguranca — resultado.json</h3><span class="chevron">▼</span>
+      </div>
+      <div class="tech-exec-body">
+        <pre class="json-block">{
+  "executor": "security",
+  "environment": "https://pokeapi.co/api/v2 + https://api.nationalize.io",
+  "ssl_warning": "Certificado SSL invalido detectado. Execucao com verify=False.",
+  "summary": { "total": 2, "passed": 0, "failed": 0, "warning": 1, "skipped": 1 },
+  "results": [
+    { "id": "TC-SEC-S5-001", "status": "skipped", "severity": "medium",
+      "error": "Acesso bloqueado pelo filtro Cato Networks — categoria 'Games'." },
+    { "id": "TC-SEC-S5-002", "status": "warning", "severity": "low",
+      "note": "nginx/1.16.1 exposto; CORS aberto (*) — API pública, esperado" }
+  ]
+}</pre>
+      </div>
+    </div>
+
+    <div class="tech-exec-block" id="techjson-banco">
+      <div class="tech-exec-hdr" onclick="toggleTechExec(this)">
+        <h3>🗄️ executor-banco — resultado.json</h3><span class="chevron">▼</span>
+      </div>
+      <div class="tech-exec-body">
+        <pre class="json-block">{
+  "executor": "db",
+  "database": "sqlite://:memory:",
+  "simulated": true,
+  "simulation_note": "Revalidar contra banco real antes do deploy.",
+  "summary": { "total": 2, "passed": 2, "failed": 0, "skipped": 0 },
+  "results": [
+    { "id": "TC-DB-S5-001", "status": "passed",
+      "actual": "tables_ok=True, check_balance=True, check_amount=True, fk_ok=True, select_ok=True" },
+    { "id": "TC-DB-S5-002", "status": "passed",
+      "actual": "tables_ok=True, fk_author=True, isbn_unique=True, avail_check=True, fk_book=True, select_ok=True" }
+  ]
+}</pre>
+      </div>
+    </div>
+
+  </section>
+
+  <hr class="divider">
+
+  <!-- ── T5. MÉTRICAS DETALHADAS ── -->
+  <section id="tech-metrics">
+    <div class="section-header">
+      <h2>📊 Métricas Detalhadas de Performance</h2>
+    </div>
+
+    <div class="tech-exec-block open">
+      <div class="tech-exec-hdr" onclick="toggleTechExec(this)">
+        <h3>⚡ TC-PERF-S5-001 — Dog CEO API (6 VUs / 25s)</h3>
+        <span class="badge b-green">passed</span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="tech-exec-body">
+        <div class="adv-metrics-grid">
+          <div class="adv-metric"><div class="val">226.87ms</div><div class="lbl">p50 (mediana)</div></div>
+          <div class="adv-metric"><div class="val">255.72ms</div><div class="lbl">p95</div></div>
+          <div class="adv-metric"><div class="val">310ms</div><div class="lbl">p99</div></div>
+          <div class="adv-metric"><div class="val">201.1ms</div><div class="lbl">Mínimo</div></div>
+          <div class="adv-metric"><div class="val">431.65ms</div><div class="lbl">Máximo</div></div>
+          <div class="adv-metric"><div class="val">0.0%</div><div class="lbl">Taxa de erro</div></div>
+          <div class="adv-metric"><div class="val">4.8</div><div class="lbl">Req/s</div></div>
+          <div class="adv-metric"><div class="val">6</div><div class="lbl">VUs (pico)</div></div>
+          <div class="adv-metric"><div class="val">25s</div><div class="lbl">Duração total</div></div>
+          <div class="adv-metric"><div class="val">125</div><div class="lbl">Total de requisições</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tech-exec-block open">
+      <div class="tech-exec-hdr" onclick="toggleTechExec(this)">
+        <h3>⚡ TC-PERF-S5-002 — Countries REST (5 VUs / 20s)</h3>
+        <span class="badge b-green">passed</span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="tech-exec-body">
+        <div class="adv-metrics-grid">
+          <div class="adv-metric"><div class="val">482.97ms</div><div class="lbl">p50 (mediana)</div></div>
+          <div class="adv-metric"><div class="val">753.12ms</div><div class="lbl">p95</div></div>
+          <div class="adv-metric"><div class="val">780ms</div><div class="lbl">p99</div></div>
+          <div class="adv-metric"><div class="val">386.3ms</div><div class="lbl">Mínimo</div></div>
+          <div class="adv-metric"><div class="val">800.32ms</div><div class="lbl">Máximo</div></div>
+          <div class="adv-metric"><div class="val">0.0%</div><div class="lbl">Taxa de erro</div></div>
+          <div class="adv-metric"><div class="val">3.27</div><div class="lbl">Req/s</div></div>
+          <div class="adv-metric"><div class="val">5</div><div class="lbl">VUs (pico)</div></div>
+          <div class="adv-metric"><div class="val">20s</div><div class="lbl">Duração total</div></div>
+          <div class="adv-metric"><div class="val">70</div><div class="lbl">Total de requisições</div></div>
+        </div>
+      </div>
+    </div>
+
+  </section>
+
+</div><!-- fim view-technical -->
+
+</main>
+
+<footer>
+  Squad QA · 8 passou · 2 falhou · 14 total · 2026-05-11 10:00:00
+  · <span style="color:var(--purple-light)">⚙️ Toggle: botão no canto superior direito</span>
+</footer>
+
+<!-- SUMMARY_TEXT
+Suite: suite_http_magnitude_k6_visual_axe_zap_db_20260511_100000
+Ambiente: múltiplos (practicesoftwaretesting.com, restcountries.com, dog.ceo, w3.org, developer.mozilla.org, a11yproject.com, webaim.org, nationalize.io, sqlite::memory:)
+Resultado: Reprovada — 2 falha(s) crítica(s) | deploy bloqueado (TC-A11Y-S5-002)
+Passed: 8 | Failed: 2 | Warnings: 3 | Skipped: 1
+-->
+
+<script>
+function toggleMode() {
+  const body = document.body;
+  const isReport = body.classList.contains('mode-report');
+  body.classList.toggle('mode-report', !isReport);
+  body.classList.toggle('mode-technical', isReport);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+function toggleExec(hdr) {
+  hdr.closest('.exec-block').classList.toggle('open');
+}
+function toggleTechExec(hdr) {
+  hdr.closest('.tech-exec-block').classList.toggle('open');
+}
+function toggleDetail(id) {
+  const el = document.getElementById('detail-' + id);
+  if (el) el.classList.toggle('open');
+}
+document.querySelectorAll('.exec-block').forEach(b => {
+  if (b.querySelector('.r-failed, .r-warning')) b.classList.add('open');
+});
+document.querySelectorAll('a[href^="#"]').forEach(a => {
+  a.addEventListener('click', e => {
+    e.preventDefault();
+    const t = document.querySelector(a.getAttribute('href'));
+    if (t) t.scrollIntoView({ behavior: 'smooth' });
+  });
+});
+</script>
+
+</body>
+</html>

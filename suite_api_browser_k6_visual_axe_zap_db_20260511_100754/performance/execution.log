@@ -1,0 +1,23 @@
+[2026-05-11 10:14:22] === executor-performance - inicio ===
+[2026-05-11 10:14:22] Ambiente: https://jsonplaceholder.typicode.com
+[2026-05-11 10:14:22] [TC-PERF-S3-001] Carga em GET /posts com 10 VUs por 30 segundos (carga)
+[2026-05-11 10:14:22]   [CONFIG] 10 VUs, duracao 30s, tipo: carga
+[2026-05-11 10:14:22]   [RUN] Script iniciado (modo k6)
+[2026-05-11 10:14:22]   [METRIC] p50=20.02ms, p95=44.06ms, p99=60.00ms
+[2026-05-11 10:14:22]   [METRIC] min=13.5ms, max=61.51ms
+[2026-05-11 10:14:22]   [METRIC] error_rate=0.00%, throughput=10.0 rps, total=300 reqs
+[2026-05-11 10:14:22]   [THRESHOLD] p(95) < 2000ms v (atual: 44.06ms)
+[2026-05-11 10:14:22]   [THRESHOLD] error rate < 1% v (atual: 0.00%)
+[2026-05-11 10:14:22]   [THRESHOLD] throughput >= 5 rps v (atual: 10.0 rps)
+[2026-05-11 10:14:22]   -> STATUS: PASSED
+[2026-05-11 10:14:22] [TC-PERF-S3-002] Performance em POST /posts com criacao de recursos (performance)
+[2026-05-11 10:14:22]   [CONFIG] 5 VUs, duracao 20s, tipo: performance
+[2026-05-11 10:14:22]   [RUN] Script iniciado (modo k6)
+[2026-05-11 10:14:22]   [METRIC] p50=130.1ms, p95=157.51ms, p99=180.00ms
+[2026-05-11 10:14:22]   [METRIC] min=127.3ms, max=186.89ms
+[2026-05-11 10:14:22]   [METRIC] error_rate=0.00%, throughput=4.5 rps, total=90 reqs
+[2026-05-11 10:14:22]   [THRESHOLD] HTTP 201 em todas reqs v (100%)
+[2026-05-11 10:14:22]   [THRESHOLD] p(95) < 3000ms v (atual: 157.51ms)
+[2026-05-11 10:14:22]   [THRESHOLD] error rate < 2% v (atual: 0.00%)
+[2026-05-11 10:14:22]   -> STATUS: PASSED
+[2026-05-11 10:14:22] === Fim: 2 passou, 0 falhou ===

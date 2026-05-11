@@ -1,0 +1,140 @@
+{
+  "executor": "playwright-visual",
+  "environment": "https://books.toscrape.com",
+  "generated_files": null,
+  "results": [
+    {
+      "id": "TC-VISUAL-001",
+      "title": "Homepage completa",
+      "status": "baseline_created",
+      "baseline": "created",
+      "diff_pixels": null,
+      "diff_percent": null,
+      "screenshot_path": "suite_axe_core_db_http_k6_magnitude_playwright_20260511_083909\\visual\\current_homepage-completa.png",
+      "logs": [
+        "[NAV] Acessando https://books.toscrape.com",
+        "[INFO] Aguardando domcontentloaded",
+        "[SCREENSHOT] Capturado: homepage-completa.png",
+        "[BASELINE] Criado baseline: homepage-completa.png (primeira execucao)",
+        "[BASELINE] ATENCAO: valide visualmente o screenshot gerado antes de usar como referencia -- estado inicial pode conter defeitos visuais"
+      ],
+      "error": null,
+      "duration_ms": 7112
+    },
+    {
+      "id": "TC-VISUAL-002",
+      "title": "Sidebar categorias",
+      "status": "baseline_created",
+      "baseline": "created",
+      "diff_pixels": null,
+      "diff_percent": null,
+      "screenshot_path": "suite_axe_core_db_http_k6_magnitude_playwright_20260511_083909\\visual\\current_sidebar-categorias.png",
+      "logs": [
+        "[NAV] Acessando https://books.toscrape.com",
+        "[INFO] Aguardando domcontentloaded",
+        "[SCREENSHOT] Capturado elemento: .side_categories, aside, nav[class*=\"side\"]",
+        "[BASELINE] Criado baseline: sidebar-categorias.png (primeira execucao)",
+        "[BASELINE] ATENCAO: valide visualmente o screenshot gerado antes de usar como referencia -- estado inicial pode conter defeitos visuais"
+      ],
+      "error": null,
+      "duration_ms": 6173
+    },
+    {
+      "id": "TC-VISUAL-003",
+      "title": "Pagina categoria Mystery",
+      "status": "baseline_created",
+      "baseline": "created",
+      "diff_pixels": null,
+      "diff_percent": null,
+      "screenshot_path": "suite_axe_core_db_http_k6_magnitude_playwright_20260511_083909\\visual\\current_categoria-mystery.png",
+      "logs": [
+        "[NAV] Acessando https://books.toscrape.com/catalogue/category/books/mystery_3/index.html",
+        "[INFO] Aguardando domcontentloaded",
+        "[SCREENSHOT] Capturado: categoria-mystery.png",
+        "[BASELINE] Criado baseline: categoria-mystery.png (primeira execucao)",
+        "[BASELINE] ATENCAO: valide visualmente o screenshot gerado antes de usar como referencia -- estado inicial pode conter defeitos visuais"
+      ],
+      "error": null,
+      "duration_ms": 7094
+    },
+    {
+      "id": "TC-VISUAL-004",
+      "title": "Layout responsivo 1920x1080",
+      "status": "baseline_created",
+      "baseline": "created",
+      "diff_pixels": null,
+      "diff_percent": null,
+      "screenshot_path": "suite_axe_core_db_http_k6_magnitude_playwright_20260511_083909\\visual\\current_homepage-1920x1080.png",
+      "logs": [
+        "[NAV] Acessando https://books.toscrape.com",
+        "[INFO] Aguardando domcontentloaded",
+        "[SCREENSHOT] Capturado: homepage-1920x1080.png",
+        "[BASELINE] Criado baseline: homepage-1920x1080.png (primeira execucao)",
+        "[BASELINE] ATENCAO: valide visualmente o screenshot gerado antes de usar como referencia -- estado inicial pode conter defeitos visuais"
+      ],
+      "error": null,
+      "duration_ms": 6603
+    },
+    {
+      "id": "TC-VISUAL-004",
+      "title": "Layout responsivo 1280x720",
+      "status": "baseline_created",
+      "baseline": "created",
+      "diff_pixels": null,
+      "diff_percent": null,
+      "screenshot_path": "suite_axe_core_db_http_k6_magnitude_playwright_20260511_083909\\visual\\current_homepage-1280x720.png",
+      "logs": [
+        "[NAV] Acessando https://books.toscrape.com",
+        "[INFO] Aguardando domcontentloaded",
+        "[SCREENSHOT] Capturado: homepage-1280x720.png",
+        "[BASELINE] Criado baseline: homepage-1280x720.png (primeira execucao)",
+        "[BASELINE] ATENCAO: valide visualmente o screenshot gerado antes de usar como referencia -- estado inicial pode conter defeitos visuais"
+      ],
+      "error": null,
+      "duration_ms": 5362
+    },
+    {
+      "id": "TC-VISUAL-004",
+      "title": "Layout responsivo 768x1024",
+      "status": "baseline_created",
+      "baseline": "created",
+      "diff_pixels": null,
+      "diff_percent": null,
+      "screenshot_path": "suite_axe_core_db_http_k6_magnitude_playwright_20260511_083909\\visual\\current_homepage-768x1024.png",
+      "logs": [
+        "[NAV] Acessando https://books.toscrape.com",
+        "[INFO] Aguardando domcontentloaded",
+        "[SCREENSHOT] Capturado: homepage-768x1024.png",
+        "[BASELINE] Criado baseline: homepage-768x1024.png (primeira execucao)",
+        "[BASELINE] ATENCAO: valide visualmente o screenshot gerado antes de usar como referencia -- estado inicial pode conter defeitos visuais"
+      ],
+      "error": null,
+      "duration_ms": 5633
+    },
+    {
+      "id": "TC-VISUAL-004",
+      "title": "Layout responsivo 375x812",
+      "status": "baseline_created",
+      "baseline": "created",
+      "diff_pixels": null,
+      "diff_percent": null,
+      "screenshot_path": "suite_axe_core_db_http_k6_magnitude_playwright_20260511_083909\\visual\\current_homepage-375x812.png",
+      "logs": [
+        "[NAV] Acessando https://books.toscrape.com",
+        "[INFO] Aguardando domcontentloaded",
+        "[SCREENSHOT] Capturado: homepage-375x812.png",
+        "[BASELINE] Criado baseline: homepage-375x812.png (primeira execucao)",
+        "[BASELINE] ATENCAO: valide visualmente o screenshot gerado antes de usar como referencia -- estado inicial pode conter defeitos visuais"
+      ],
+      "error": null,
+      "duration_ms": 5965
+    }
+  ],
+  "summary": {
+    "total": 7,
+    "passed": 0,
+    "failed": 0,
+    "baseline_created": 7,
+    "error": 0
+  }
+}

@@ -1,0 +1,240 @@
+{
+  "executor": "axe-core",
+  "environment": "multiple (AutomationExercise / The Internet / Practice Expand)",
+  "wcag_level": "wcag2aa",
+  "results": [
+    {
+      "id": "TC-A11Y-001",
+      "title": "axe-core na homepage do AutomationExercise",
+      "url": "https://automationexercise.com",
+      "status": "failed",
+      "violations": [
+        {
+          "rule_id": "button-name",
+          "impact": "critical",
+          "description": "Ensure buttons have discernible text",
+          "affected_elements": [
+            "#subscribe"
+          ],
+          "how_to_fix": "Buttons must have discernible text",
+          "help_url": "https://dequeuniversity.com/rules/axe/4.11/button-name?application=playwright"
+        },
+        {
+          "rule_id": "color-contrast",
+          "impact": "serious",
+          "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "affected_elements": [
+            "li:nth-child(1) > a[href=\"/\"]",
+            ".active.item > .col-sm-6:nth-child(1) > h1",
+            ".active.item > .col-sm-6:nth-child(1) > h1 > span"
+          ],
+          "how_to_fix": "Elements must meet minimum color contrast ratio thresholds",
+          "help_url": "https://dequeuniversity.com/rules/axe/4.11/color-contrast?application=playwright"
+        },
+        {
+          "rule_id": "link-name",
+          "impact": "serious",
+          "description": "Ensure links have discernible text",
+          "affected_elements": [
+            ".left.control-carousel.hidden-xs",
+            ".right.control-carousel.hidden-xs",
+            ".left.recommended-item-control[href=\"#recommended-item-carousel\"]"
+          ],
+          "how_to_fix": "Links must have discernible text",
+          "help_url": "https://dequeuniversity.com/rules/axe/4.11/link-name?application=playwright"
+        }
+      ],
+      "passes_count": 23,
+      "logs": [
+        "[NAV] Acessando https://automationexercise.com",
+        "[ANALYSIS] Executando axe-core (WCAG 2.1 AA)",
+        "[VIOLATION] button-name (critical): 1 elementos afetados",
+        "[VIOLATION] color-contrast (serious): 3 elementos afetados",
+        "[VIOLATION] link-name (serious): 3 elementos afetados",
+        "[RESULT] 3 violacoes encontradas — failed"
+      ],
+      "error": null
+    },
+    {
+      "id": "TC-A11Y-002",
+      "title": "axe-core no formulario de contato do AutomationExercise",
+      "url": "https://automationexercise.com/contact_us",
+      "status": "failed",
+      "violations": [
+        {
+          "rule_id": "button-name",
+          "impact": "critical",
+          "description": "Ensure buttons have discernible text",
+          "affected_elements": [
+            "#subscribe"
+          ],
+          "how_to_fix": "Buttons must have discernible text",
+          "help_url": "https://dequeuniversity.com/rules/axe/4.11/button-name?application=playwright"
+        },
+        {
+          "rule_id": "color-contrast",
+          "impact": "serious",
+          "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "affected_elements": [
+            "a[href$=\"contact_us\"]",
+            ".btn-primary",
+            "u"
+          ],
+          "how_to_fix": "Elements must meet minimum color contrast ratio thresholds",
+          "help_url": "https://dequeuniversity.com/rules/axe/4.11/color-contrast?application=playwright"
+        },
+        {
+          "rule_id": "label",
+          "impact": "critical",
+          "description": "Ensure every form element has a label",
+          "affected_elements": [
+            "input[type=\"file\"]"
+          ],
+          "how_to_fix": "Form elements must have labels",
+          "help_url": "https://dequeuniversity.com/rules/axe/4.11/label?application=playwright"
+        }
+      ],
+      "passes_count": 24,
+      "logs": [
+        "[NAV] Acessando https://automationexercise.com/contact_us",
+        "[ANALYSIS] Executando axe-core (WCAG 2.1 AA)",
+        "[VIOLATION] button-name (critical): 1 elementos afetados",
+        "[VIOLATION] color-contrast (serious): 3 elementos afetados",
+        "[VIOLATION] label (critical): 1 elementos afetados",
+        "[RESULT] 3 violacoes encontradas — failed"
+      ],
+      "error": null
+    },
+    {
+      "id": "TC-A11Y-003",
+      "title": "Nao reclassificar serious como WARNING",
+      "url": "https://automationexercise.com",
+      "status": "failed",
+      "violations": [
+        {
+          "rule_id": "button-name",
+          "impact": "critical",
+          "description": "Ensure buttons have discernible text",
+          "affected_elements": [
+            "#subscribe"
+          ],
+          "how_to_fix": "Buttons must have discernible text",
+          "help_url": "https://dequeuniversity.com/rules/axe/4.11/button-name?application=playwright"
+        },
+        {
+          "rule_id": "color-contrast",
+          "impact": "serious",
+          "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "affected_elements": [
+            "li:nth-child(1) > a[href=\"/\"]",
+            ".active.item > .col-sm-6:nth-child(1) > h1",
+            ".active.item > .col-sm-6:nth-child(1) > h1 > span"
+          ],
+          "how_to_fix": "Elements must meet minimum color contrast ratio thresholds",
+          "help_url": "https://dequeuniversity.com/rules/axe/4.11/color-contrast?application=playwright"
+        },
+        {
+          "rule_id": "link-name",
+          "impact": "serious",
+          "description": "Ensure links have discernible text",
+          "affected_elements": [
+            ".left.control-carousel.hidden-xs",
+            ".right.control-carousel.hidden-xs",
+            ".left.recommended-item-control[href=\"#recommended-item-carousel\"]"
+          ],
+          "how_to_fix": "Links must have discernible text",
+          "help_url": "https://dequeuniversity.com/rules/axe/4.11/link-name?application=playwright"
+        }
+      ],
+      "passes_count": 23,
+      "logs": [
+        "[NAV] Acessando https://automationexercise.com",
+        "[ANALYSIS] Executando axe-core (WCAG 2.1 AA)",
+        "[VIOLATION] button-name (critical): 1 elementos afetados",
+        "[VIOLATION] color-contrast (serious): 3 elementos afetados",
+        "[VIOLATION] link-name (serious): 3 elementos afetados",
+        "[RESULT] 3 violacoes encontradas — failed"
+      ],
+      "error": null
+    },
+    {
+      "id": "TC-A11Y-004",
+      "title": "axe-core na pagina de login do The Internet",
+      "url": "https://the-internet.herokuapp.com/login",
+      "status": "failed",
+      "violations": [
+        {
+          "rule_id": "color-contrast",
+          "impact": "serious",
+          "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "affected_elements": [
+            "i",
+            "a[target=\"_blank\"]"
+          ],
+          "how_to_fix": "Elements must meet minimum color contrast ratio thresholds",
+          "help_url": "https://dequeuniversity.com/rules/axe/4.11/color-contrast?application=playwright"
+        }
+      ],
+      "passes_count": 15,
+      "logs": [
+        "[NAV] Acessando https://the-internet.herokuapp.com/login",
+        "[ANALYSIS] Executando axe-core (WCAG 2.1 AA)",
+        "[VIOLATION] color-contrast (serious): 2 elementos afetados",
+        "[RESULT] 1 violacoes encontradas — failed"
+      ],
+      "error": null
+    },
+    {
+      "id": "TC-A11Y-005",
+      "title": "axe-core nas notas do Practice Expand",
+      "url": "https://practice.expandtesting.com/notes/app",
+      "status": "failed",
+      "violations": [
+        {
+          "rule_id": "avoid-inline-spacing",
+          "impact": "serious",
+          "description": "Ensure that text spacing set through style attributes can be adjusted with custom stylesheets",
+          "affected_elements": [
+            ".google-anno-sc.google-anno-skip[aria-label=\"ISTQB mock exams\"]",
+            ".google-anno-sc.google-anno-skip[aria-label=\"ISTQB mock exams\"] > span:nth-child(1)",
+            ".google-anno-sc.google-anno-skip[aria-label=\"ISTQB mock exams\"] > span:nth-child(2)"
+          ],
+          "how_to_fix": "Inline text spacing must be adjustable with custom stylesheets",
+          "help_url": "https://dequeuniversity.com/rules/axe/4.11/avoid-inline-spacing?application=playwright"
+        },
+        {
+          "rule_id": "color-contrast",
+          "impact": "serious",
+          "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "affected_elements": [
+            ".btn-expand"
+          ],
+          "how_to_fix": "Elements must meet minimum color contrast ratio thresholds",
+          "help_url": "https://dequeuniversity.com/rules/axe/4.11/color-contrast?application=playwright"
+        }
+      ],
+      "passes_count": 27,
+      "logs": [
+        "[NAV] Acessando https://practice.expandtesting.com/notes/app",
+        "[ANALYSIS] Executando axe-core (WCAG 2.1 AA)",
+        "[VIOLATION] avoid-inline-spacing (serious): 3 elementos afetados",
+        "[VIOLATION] color-contrast (serious): 1 elementos afetados",
+        "[RESULT] 2 violacoes encontradas — failed"
+      ],
+      "error": null
+    }
+  ],
+  "summary": {
+    "total": 5,
+    "passed": 0,
+    "failed": 5,
+    "warning": 0,
+    "total_violations": 12,
+    "by_impact": {
+      "critical": 4,
+      "serious": 8,
+      "moderate": 0,
+      "minor": 0
+    }
+  }
+}

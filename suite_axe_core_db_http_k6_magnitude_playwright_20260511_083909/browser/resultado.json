@@ -1,0 +1,259 @@
+{
+  "executor": "browser",
+  "environment": "https://automationexercise.com",
+  "credentials_failed": false,
+  "generated_files": null,
+  "results": [
+    {
+      "id": "TC-BROWSER-001",
+      "title": "Homepage carrega elementos criticos",
+      "status": "passed",
+      "duration_ms": 11116,
+      "browser": "chromium",
+      "steps": [
+        {
+          "step": "Verificar titulo",
+          "status": "passed"
+        },
+        {
+          "step": "Verificar elementos de navegacao",
+          "status": "passed"
+        }
+      ],
+      "logs": [
+        "[NAV] Acessando https://automationexercise.com",
+        "[ASSERT] Verificando titulo",
+        "[ASSERT] Titulo: \"Automation Exercise\" OK",
+        "[ASSERT] Nav \"Signup / Login\" visivel OK",
+        "[ASSERT] Nav \"Products\" visivel OK",
+        "[ASSERT] Nav \"Cart\" visivel OK"
+      ],
+      "error": null
+    },
+    {
+      "id": "TC-BROWSER-002",
+      "title": "Pagina de produtos carrega lista",
+      "status": "passed",
+      "duration_ms": 4959,
+      "browser": "chromium",
+      "steps": [
+        {
+          "step": "Verificar titulo pagina produtos",
+          "status": "passed"
+        },
+        {
+          "step": "Verificar lista de produtos",
+          "status": "passed"
+        }
+      ],
+      "logs": [
+        "[NAV] Acessando https://automationexercise.com/products",
+        "[ASSERT] Titulo: \"Automation Exercise - All Products\"",
+        "[ASSERT] Produtos encontrados: 102"
+      ],
+      "error": null
+    },
+    {
+      "id": "TC-BROWSER-003",
+      "title": "Cadastro novo usuario",
+      "status": "passed",
+      "duration_ms": 39602,
+      "browser": "chromium",
+      "steps": [
+        {
+          "step": "Navegar para signup",
+          "status": "passed"
+        },
+        {
+          "step": "Criar conta e continuar",
+          "status": "passed"
+        }
+      ],
+      "logs": [
+        "[NAV] Acessando https://automationexercise.com",
+        "[ACTION] Clicando em Signup / Login",
+        "[ACTION] Preenchendo Nome: QA Squad",
+        "[ACTION] Preenchendo Email",
+        "[ACTION] Clicando em Signup",
+        "[ACTION] Preenchendo senha",
+        "[ACTION] Clicando em Create Account",
+        "[ASSERT] ACCOUNT CREATED! visivel OK"
+      ],
+      "error": null
+    },
+    {
+      "id": "TC-BROWSER-004",
+      "title": "Login valido e logout",
+      "status": "passed",
+      "duration_ms": 6433,
+      "browser": "chromium",
+      "steps": [
+        {
+          "step": "Navegar para login",
+          "status": "passed"
+        },
+        {
+          "step": "Submeter formulario de login",
+          "status": "passed"
+        },
+        {
+          "step": "Verificar login bem-sucedido",
+          "status": "passed"
+        },
+        {
+          "step": "Verificar logout",
+          "status": "passed"
+        }
+      ],
+      "logs": [
+        "[NAV] Acessando https://automationexercise.com",
+        "[ACTION] Clicando em Signup/Login",
+        "[ACTION] Preenchendo credenciais",
+        "[ACTION] Clicando em Login",
+        "[ASSERT] Logged in as -- visivel OK",
+        "[ACTION] Clicando em Logout",
+        "[ASSERT] Link Signup/Login apos logout: visivel OK"
+      ],
+      "error": null
+    },
+    {
+      "id": "TC-BROWSER-005",
+      "title": "Login senha incorreta exibe erro",
+      "status": "passed",
+      "duration_ms": 4846,
+      "browser": "chromium",
+      "steps": [
+        {
+          "step": "Navegar para login",
+          "status": "passed"
+        },
+        {
+          "step": "Submeter login com senha incorreta",
+          "status": "passed"
+        },
+        {
+          "step": "Verificar mensagem de erro",
+          "status": "passed"
+        }
+      ],
+      "logs": [
+        "[NAV] Acessando https://automationexercise.com",
+        "[ACTION] Submetido login com senha errada",
+        "[ASSERT] Mensagem erro: visivel OK"
+      ],
+      "error": null
+    },
+    {
+      "id": "TC-BROWSER-006",
+      "title": "Fluxo completo de compra",
+      "status": "failed",
+      "duration_ms": 36812,
+      "browser": "chromium",
+      "steps": [
+        {
+          "step": "Login do usuario",
+          "status": "passed"
+        }
+      ],
+      "logs": [
+        "[NAV] Acessando https://automationexercise.com",
+        "[INFO] Usuario logado",
+        "[ERROR] locator.click: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('link', { name: /^Products$/i }).first()\u001b[22m\n"
+      ],
+      "error": "locator.click: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('link', { name: /^Products$/i }).first()\u001b[22m\n"
+    },
+    {
+      "id": "TC-BROWSER-007",
+      "title": "Busca produto por nome",
+      "status": "passed",
+      "duration_ms": 4639,
+      "browser": "chromium",
+      "steps": [
+        {
+          "step": "Navegar para produtos",
+          "status": "passed"
+        },
+        {
+          "step": "Submeter busca",
+          "status": "passed"
+        },
+        {
+          "step": "Verificar titulo resultados",
+          "status": "passed"
+        },
+        {
+          "step": "Verificar resultados de busca",
+          "status": "passed"
+        }
+      ],
+      "logs": [
+        "[NAV] Acessando https://automationexercise.com/products",
+        "[ACTION] Preenchendo busca: dress",
+        "[ACTION] Clicando em Submit busca",
+        "[ASSERT] \"Searched Products\" visivel: OK",
+        "[ASSERT] Resultados encontrados: 18"
+      ],
+      "error": null
+    },
+    {
+      "id": "TC-BROWSER-008",
+      "title": "Formulario contato - chromium",
+      "status": "failed",
+      "duration_ms": 4240,
+      "browser": "chromium",
+      "steps": [
+        {
+          "step": "Navegar para contact_us (chromium)",
+          "status": "passed"
+        },
+        {
+          "step": "Preencher formulario",
+          "status": "passed"
+        },
+        {
+          "step": "Verificar mensagem sucesso",
+          "status": "failed"
+        }
+      ],
+      "logs": [
+        "[NAV] Acessando /contact_us (chromium)",
+        "[ACTION] Formulario preenchido",
+        "[ACTION] Submit clicado",
+        "[ASSERT] Mensagem sucesso (chromium): NAO visivel",
+        "[ERROR] Mensagem de sucesso nao exibida no chromium"
+      ],
+      "error": "Mensagem de sucesso nao exibida no chromium"
+    },
+    {
+      "id": "TC-BROWSER-008",
+      "title": "Formulario contato - firefox",
+      "status": "failed",
+      "duration_ms": 4,
+      "browser": "firefox",
+      "steps": [],
+      "logs": [
+        "[ERROR] browserType.launch: Executable doesn't exist at C:\\Users\\gabriel.carminitti\\AppData\\Local\\ms-playwright\\firefox-1511\\firefox\\firefox.exe\n╔════════════════════════════════════════════════════════════╗\n║ Looks like Playwright was just installed or updated.       ║\n║ Please run the following command to download new browsers: ║\n║                                                            ║\n║     npx playwright install                                 ║\n║                                                            ║\n║ <3 Playwright Team                                         ║\n╚════════════════════════════════════════════════════════════╝"
+      ],
+      "error": "browserType.launch: Executable doesn't exist at C:\\Users\\gabriel.carminitti\\AppData\\Local\\ms-playwright\\firefox-1511\\firefox\\firefox.exe\n╔════════════════════════════════════════════════════════════╗\n║ Looks like Playwright was just installed or updated.       ║\n║ Please run the following command to download new browsers: ║\n║                                                            ║\n║     npx playwright install                                 ║\n║                                                            ║\n║ <3 Playwright Team                                         ║\n╚════════════════════════════════════════════════════════════╝"
+    },
+    {
+      "id": "TC-BROWSER-008",
+      "title": "Formulario contato - webkit",
+      "status": "failed",
+      "duration_ms": 3,
+      "browser": "webkit",
+      "steps": [],
+      "logs": [
+        "[ERROR] browserType.launch: Executable doesn't exist at C:\\Users\\gabriel.carminitti\\AppData\\Local\\ms-playwright\\webkit-2272\\Playwright.exe\n╔════════════════════════════════════════════════════════════╗\n║ Looks like Playwright was just installed or updated.       ║\n║ Please run the following command to download new browsers: ║\n║                                                            ║\n║     npx playwright install                                 ║\n║                                                            ║\n║ <3 Playwright Team                                         ║\n╚════════════════════════════════════════════════════════════╝"
+      ],
+      "error": "browserType.launch: Executable doesn't exist at C:\\Users\\gabriel.carminitti\\AppData\\Local\\ms-playwright\\webkit-2272\\Playwright.exe\n╔════════════════════════════════════════════════════════════╗\n║ Looks like Playwright was just installed or updated.       ║\n║ Please run the following command to download new browsers: ║\n║                                                            ║\n║     npx playwright install                                 ║\n║                                                            ║\n║ <3 Playwright Team                                         ║\n╚════════════════════════════════════════════════════════════╝"
+    }
+  ],
+  "summary": {
+    "total": 10,
+    "passed": 6,
+    "failed": 4,
+    "skipped": 0,
+    "credentials_failed": false
+  }
+}

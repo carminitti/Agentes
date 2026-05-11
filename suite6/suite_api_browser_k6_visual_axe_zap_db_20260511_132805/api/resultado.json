@@ -1,0 +1,113 @@
+{
+  "executor": "api",
+  "environment": "https://open.er-api.com + https://api.sunrise-sunset.org",
+  "credentials_failed": false,
+  "generated_files": null,
+  "results": [
+    {
+      "id": "TC-API-S6-001",
+      "title": "Consultar taxa de cambio atual do USD via ExchangeRate API",
+      "status": "passed",
+      "duration_ms": 163,
+      "details": {
+        "method": "GET",
+        "url": "https://open.er-api.com/v6/latest/USD",
+        "status_code": 200,
+        "validations": [
+          {
+            "check": "status == 200",
+            "result": "passed"
+          },
+          {
+            "check": "result == 'success'",
+            "result": "passed"
+          },
+          {
+            "check": "base_code == 'USD'",
+            "result": "passed"
+          },
+          {
+            "check": "rates.BRL=4.900313 > 0",
+            "result": "passed"
+          },
+          {
+            "check": "rates.EUR=0.849735 > 0",
+            "result": "passed"
+          },
+          {
+            "check": "duration=163ms < 4000ms",
+            "result": "passed"
+          }
+        ]
+      },
+      "logs": [
+        "[REQUEST] GET https://open.er-api.com/v6/latest/USD",
+        "[RESPONSE] 200 -- 163ms",
+        "[ASSERT] status == 200 OK",
+        "[ASSERT] result == 'success' OK",
+        "[ASSERT] base_code == 'USD' OK",
+        "[ASSERT] rates.BRL=4.900313 > 0 OK",
+        "[ASSERT] rates.EUR=0.849735 > 0 OK",
+        "[ASSERT] duration=163ms < 4000ms OK",
+        "-> STATUS: PASSED"
+      ],
+      "error": null
+    },
+    {
+      "id": "TC-API-S6-002",
+      "title": "Consultar horario de nascer e por do sol em Brasilia",
+      "status": "passed",
+      "duration_ms": 229,
+      "details": {
+        "method": "GET",
+        "url": "https://api.sunrise-sunset.org/json?lat=-15.77&lng=-47.92&date=today&formatted=0",
+        "status_code": 200,
+        "validations": [
+          {
+            "check": "status == 200",
+            "result": "passed"
+          },
+          {
+            "check": "status == 'OK'",
+            "result": "passed"
+          },
+          {
+            "check": "results.sunrise valido",
+            "result": "passed"
+          },
+          {
+            "check": "results.sunset valido",
+            "result": "passed"
+          },
+          {
+            "check": "results.day_length=41251 > 0",
+            "result": "passed"
+          },
+          {
+            "check": "duration=229ms < 4000ms",
+            "result": "passed"
+          }
+        ]
+      },
+      "logs": [
+        "[REQUEST] GET https://api.sunrise-sunset.org/json?lat=-15.77&lng=-47.92&date=today&formatted=0",
+        "[RESPONSE] 200 -- 229ms",
+        "[ASSERT] status == 200 OK",
+        "[ASSERT] status == 'OK' OK",
+        "[ASSERT] results.sunrise valido OK",
+        "[ASSERT] results.sunset valido OK",
+        "[ASSERT] results.day_length=41251 > 0 OK",
+        "[ASSERT] duration=229ms < 4000ms OK",
+        "-> STATUS: PASSED"
+      ],
+      "error": null
+    }
+  ],
+  "summary": {
+    "total": 2,
+    "passed": 2,
+    "failed": 0,
+    "skipped": 0,
+    "credentials_failed": false
+  }
+}

@@ -1,0 +1,18 @@
+=== Suite QA - suite_api_browser_k6_visual_axe_zap_db_20260511_100754 ===
+Inicio: 2026-05-11 10:07:54
+Fim: 2026-05-11T10:17:26.236207
+Ambiente: reqres.in + orangehrmlive.com + jsonplaceholder.typicode.com + quotes.toscrape.com + practiceautomation.com + fakestoreapi.com
+
+--- Executores despachados ---
+  executor-api: passed=0, failed=2, skipped=0 (reqres.in exige x-api-key a partir de 2026)
+  executor-browser: passed=2, failed=0, skipped=0
+  executor-performance: passed=2, failed=0, skipped=0
+  executor-visual: passed=1, failed=0, skipped=0, baseline_created=1
+  executor-acessibilidade: passed=0, failed=2, skipped=0
+  executor-seguranca: passed=0, failed=0, warning=2
+  executor-banco: passed=0, failed=0, warning=2, mode=simulated_fallback
+
+--- Retries de credenciais ---
+  Nenhum retry de credenciais necessario (falha de API foi mudanca de contrato, nao de credenciais)
+
+--- Fim do log da suite ---

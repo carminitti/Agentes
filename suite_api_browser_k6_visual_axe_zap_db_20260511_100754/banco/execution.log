@@ -1,0 +1,14 @@
+[2026-05-11 10:12:46] === executor-banco - inicio ===
+[2026-05-11 10:12:46] [TC-DB-S3-001] Tentando conexao MySQL: mysql://qa_suite3:****@db.qa-suite3.com:3306/orders_db
+[2026-05-11 10:12:46] [FALLBACK] Conexao MySQL falhou apos 5s
+[2026-05-11 10:12:46] [FALLBACK] Modo simulado ativado automaticamente - SQLite :memory:
+[2026-05-11 10:12:46] [SETUP] Tabelas criadas: orders, order_items
+[2026-05-11 10:12:46] [SETUP] Dados populados: 1 order id=1, 1 order_item
+[2026-05-11 10:12:46] [TC-DB-S3-001] -> STATUS: WARNING
+[2026-05-11 10:12:46] [TC-DB-S3-002] Tentando conexao PostgreSQL: postgresql://qa_emp:****@ep-placeholder.us-east-1.aws.neon.tech:5432/employees_db
+[2026-05-11 10:12:46] [FALLBACK] Conexao PostgreSQL falhou apos 5s
+[2026-05-11 10:12:46] [FALLBACK] Modo simulado ativado automaticamente - SQLite :memory:
+[2026-05-11 10:12:46] [SETUP] Tabelas criadas: departments, employees
+[2026-05-11 10:12:46] [SETUP] Departamento inserido: id=1
+[2026-05-11 10:12:46] [TC-DB-S3-002] -> STATUS: WARNING
+[2026-05-11 10:12:46] === Fim: 0 passou, 0 falhou, 2 aviso ===

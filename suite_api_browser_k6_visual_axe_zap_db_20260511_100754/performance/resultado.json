@@ -1,0 +1,105 @@
+{
+  "executor": "k6",
+  "environment": "https://jsonplaceholder.typicode.com",
+  "credentials_failed": false,
+  "results": [
+    {
+      "id": "TC-PERF-S3-001",
+      "title": "Carga em GET /posts com 10 VUs por 30 segundos",
+      "status": "passed",
+      "type": "carga",
+      "metrics": {
+        "p50_ms": 20.02,
+        "p95_ms": 44.06,
+        "p99_ms": 60.0,
+        "min_ms": 13.5,
+        "max_ms": 61.51,
+        "error_rate_pct": 0.0,
+        "throughput_rps": 10.0,
+        "vus_peak": 10,
+        "duration_s": 30,
+        "total_requests": 300
+      },
+      "thresholds": [
+        {
+          "check": "p(95) < 2000ms",
+          "result": "passed",
+          "actual": "44.06ms"
+        },
+        {
+          "check": "error rate < 1%",
+          "result": "passed",
+          "actual": "0.00%"
+        },
+        {
+          "check": "throughput >= 5 rps",
+          "result": "passed",
+          "actual": "10.0 rps"
+        }
+      ],
+      "logs": [
+        "[CONFIG] 10 VUs, duracao 30s, tipo: carga",
+        "[RUN] Script iniciado (modo k6)",
+        "[METRIC] p50=20.02ms, p95=44.06ms, p99=60.00ms",
+        "[METRIC] min=13.5ms, max=61.51ms",
+        "[METRIC] error_rate=0.00%, throughput=10.0 rps, total=300 reqs",
+        "[THRESHOLD] p(95) < 2000ms v (atual: 44.06ms)",
+        "[THRESHOLD] error rate < 1% v (atual: 0.00%)",
+        "[THRESHOLD] throughput >= 5 rps v (atual: 10.0 rps)"
+      ],
+      "error": null
+    },
+    {
+      "id": "TC-PERF-S3-002",
+      "title": "Performance em POST /posts com criacao de recursos",
+      "status": "passed",
+      "type": "performance",
+      "metrics": {
+        "p50_ms": 130.1,
+        "p95_ms": 157.51,
+        "p99_ms": 180.0,
+        "min_ms": 127.3,
+        "max_ms": 186.89,
+        "error_rate_pct": 0.0,
+        "throughput_rps": 4.5,
+        "vus_peak": 5,
+        "duration_s": 20,
+        "total_requests": 90
+      },
+      "thresholds": [
+        {
+          "check": "HTTP 201 em todas as requisicoes",
+          "result": "passed",
+          "actual": "100% 201"
+        },
+        {
+          "check": "p(95) < 3000ms",
+          "result": "passed",
+          "actual": "157.51ms"
+        },
+        {
+          "check": "error rate < 2%",
+          "result": "passed",
+          "actual": "0.00%"
+        }
+      ],
+      "logs": [
+        "[CONFIG] 5 VUs, duracao 20s, tipo: performance",
+        "[RUN] Script iniciado (modo k6)",
+        "[METRIC] p50=130.1ms, p95=157.51ms, p99=180.00ms",
+        "[METRIC] min=127.3ms, max=186.89ms",
+        "[METRIC] error_rate=0.00%, throughput=4.5 rps, total=90 reqs",
+        "[THRESHOLD] HTTP 201 em todas reqs v (100%)",
+        "[THRESHOLD] p(95) < 3000ms v (atual: 157.51ms)",
+        "[THRESHOLD] error rate < 2% v (atual: 0.00%)"
+      ],
+      "error": null
+    }
+  ],
+  "summary": {
+    "total": 2,
+    "passed": 2,
+    "failed": 0,
+    "mode": "k6"
+  }
+}

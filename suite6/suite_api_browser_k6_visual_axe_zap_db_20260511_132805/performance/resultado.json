@@ -1,0 +1,98 @@
+{
+  "executor": "performance",
+  "environment": "https://api.adviceslip.com + https://opentdb.com",
+  "credentials_failed": false,
+  "generated_files": null,
+  "results": [
+    {
+      "id": "TC-PERF-S6-001",
+      "title": "Carga em GET /advice da Advice Slip API (8 VUs / 25s)",
+      "status": "passed",
+      "duration_ms": 25000,
+      "type": "carga",
+      "details": {
+        "vus": 8,
+        "duration": "25s",
+        "total_requests": 128,
+        "p95_ms": 1364.53,
+        "avg_ms": 1100.01,
+        "error_rate_percent": 0.0,
+        "thresholds": {
+          "p95_ms": 3000,
+          "error_rate_percent": 2
+        },
+        "validations": [
+          {
+            "check": "p95=1365ms < 3000ms",
+            "result": "passed"
+          },
+          {
+            "check": "taxa_erro=0.00% < 2%",
+            "result": "passed"
+          },
+          {
+            "check": "requisicoes=128 executadas",
+            "result": "passed"
+          }
+        ]
+      },
+      "logs": [
+        "[K6] Script: perf_s6_001.js — 8 VUs / 25s",
+        "[K6] Total requisicoes: 128",
+        "[K6] p95: 1365ms (threshold: 3000ms) OK",
+        "[K6] Taxa de erro: 0.00% (threshold: 2%) OK",
+        "-> STATUS: PASSED"
+      ],
+      "error": null
+    },
+    {
+      "id": "TC-PERF-S6-002",
+      "title": "Performance em GET /api.php da Open Trivia DB (5 VUs / 20s)",
+      "status": "failed",
+      "duration_ms": 20000,
+      "type": "performance",
+      "details": {
+        "vus": 5,
+        "duration": "20s",
+        "total_requests": 85,
+        "p95_ms": 1132.35,
+        "avg_ms": 205.34,
+        "error_rate_percent": 90.59,
+        "thresholds": {
+          "p95_ms": 3500,
+          "error_rate_percent": 2
+        },
+        "validations": [
+          {
+            "check": "p95=1132ms < 3500ms",
+            "result": "passed"
+          },
+          {
+            "check": "taxa_erro=90.59% < 2%",
+            "result": "failed"
+          },
+          {
+            "check": "requisicoes=85 executadas",
+            "result": "passed"
+          }
+        ]
+      },
+      "logs": [
+        "[K6] Script: perf_s6_002.js — 5 VUs / 20s",
+        "[K6] Total requisicoes: 85",
+        "[K6] p95: 1132ms (threshold: 3500ms) OK",
+        "[K6] Taxa de erro: 90.59% (threshold: 2%) FAIL",
+        "[K6] NOTA: Open Trivia DB pode limitar rate de requisicoes — respostas podem retornar response_code != 0",
+        "-> STATUS: FAILED"
+      ],
+      "error": "Taxa de erro 90.6% excede threshold de 2%. API pode aplicar rate limit."
+    }
+  ],
+  "summary": {
+    "total": 2,
+    "passed": 1,
+    "failed": 1,
+    "skipped": 0,
+    "credentials_failed": false
+  }
+}

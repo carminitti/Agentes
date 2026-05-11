@@ -1,0 +1,72 @@
+{
+  "executor": "browser",
+  "environment": "https://opensource-demo.orangehrmlive.com",
+  "credentials_failed": false,
+  "generated_files": null,
+  "results": [
+    {
+      "id": "TC-BROWSER-S3-001",
+      "title": "Login e verificacao do dashboard",
+      "status": "passed",
+      "duration_ms": 8961,
+      "browser": "chromium",
+      "steps": [
+        {
+          "step": "Realizar login",
+          "status": "passed"
+        },
+        {
+          "step": "Validar dashboard e menus",
+          "status": "passed"
+        }
+      ],
+      "logs": [
+        "[NAV] Acessando /web/index.php/auth/login",
+        "[ACTION] Login realizado: Admin/****",
+        "[NAV] Redirecionado para dashboard",
+        "[ASSERT] Titulo Dashboard: v (texto: Dashboard)",
+        "[ASSERT] Menu PIM: v",
+        "[ASSERT] Menu Leave: v"
+      ],
+      "error": null
+    },
+    {
+      "id": "TC-BROWSER-S3-002",
+      "title": "Navegacao ao modulo PIM e listagem de funcionarios",
+      "status": "passed",
+      "duration_ms": 8104,
+      "browser": "chromium",
+      "steps": [
+        {
+          "step": "Autenticar e acessar dashboard",
+          "status": "passed"
+        },
+        {
+          "step": "Clicar no menu PIM",
+          "status": "passed"
+        },
+        {
+          "step": "Validar Employee List",
+          "status": "passed"
+        }
+      ],
+      "logs": [
+        "[NAV] Acessando login para autenticar",
+        "[ACTION] Autenticado: Admin/****",
+        "[NAV] Dashboard carregado",
+        "[ACTION] Clicou no menu PIM",
+        "[NAV] Pagina PIM carregada",
+        "[ASSERT] Tabela Employee List: 42 linha(s) v",
+        "[ASSERT] Botao Add Employee: v"
+      ],
+      "error": null
+    }
+  ],
+  "summary": {
+    "total": 2,
+    "passed": 2,
+    "failed": 0,
+    "skipped": 0,
+    "credentials_failed": false
+  }
+}

@@ -1,0 +1,28 @@
+[2026-05-11 13:35:28] === executor-banco -- inicio ===
+[2026-05-11 13:35:28] Modo: sqlite::memory: (simulated)
+[2026-05-11 13:35:28] Executando TC-DB-S6-001...
+[2026-05-11 13:35:28]   [DB] Schema criado com sucesso
+[2026-05-11 13:35:28]   [ASSERT] tabela 'courses' existe OK
+[2026-05-11 13:35:28]   [ASSERT] tabela 'students' existe OK
+[2026-05-11 13:35:28]   [ASSERT] tabela 'enrollments' existe OK
+[2026-05-11 13:35:28]   [ASSERT] CHECK duration_hours > 0 rejeitou valor 0 OK
+[2026-05-11 13:35:28]   [ASSERT] CHECK max_students > 0 rejeitou valor 0 OK
+[2026-05-11 13:35:28]   [DB] Curso inserido ID=1
+[2026-05-11 13:35:28]   [ASSERT] curso recuperavel via SELECT com mesmos valores OK
+[2026-05-11 13:35:28]   [ASSERT] CHECK progress_percent rejeitou valor 101 OK
+[2026-05-11 13:35:28]   [ASSERT] FK course_id invalido rejeitado OK
+[2026-05-11 13:35:28]   -> STATUS: PASSED
+[2026-05-11 13:35:28] [TC-DB-S6-001] -> PASSED
+[2026-05-11 13:35:28] Executando TC-DB-S6-002...
+[2026-05-11 13:35:28]   [DB] Schema de saude criado com sucesso
+[2026-05-11 13:35:28]   [ASSERT] tabela 'doctors' existe OK
+[2026-05-11 13:35:28]   [ASSERT] tabela 'patients' existe OK
+[2026-05-11 13:35:28]   [ASSERT] tabela 'appointments' existe OK
+[2026-05-11 13:35:28]   [ASSERT] UNIQUE crm rejeitou duplicata OK
+[2026-05-11 13:35:28]   [ASSERT] UNIQUE cpf rejeitou duplicata OK
+[2026-05-11 13:35:28]   [ASSERT] CHECK status rejeitou valor 'invalid' OK
+[2026-05-11 13:35:28]   [ASSERT] FK patient_id invalido rejeitado OK
+[2026-05-11 13:35:28]   [ASSERT] medico recuperavel via SELECT com mesmos valores OK
+[2026-05-11 13:35:28]   -> STATUS: PASSED
+[2026-05-11 13:35:28] [TC-DB-S6-002] -> PASSED
+[2026-05-11 13:35:28] === Fim: 2 passou, 0 falhou ===

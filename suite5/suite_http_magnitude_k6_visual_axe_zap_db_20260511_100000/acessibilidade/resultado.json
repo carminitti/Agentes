@@ -1,0 +1,82 @@
+{
+  "executor": "axe-core",
+  "environment": "https://www.w3.org + https://developer.mozilla.org",
+  "wcag_level": "wcag2aa",
+  "results": [
+    {
+      "id": "TC-A11Y-S5-001",
+      "title": "Conformidade WCAG 2.1 AA na pagina de padroes WCAG do W3C",
+      "status": "passed",
+      "deploy_blocked": false,
+      "violations": [],
+      "passes_count": 29,
+      "logs": [
+        "[NAV] Acessando https://www.w3.org/WAI/standards-guidelines/wcag/",
+        "[ANALYSIS] Executando axe-core (WCAG 2.1 AA)",
+        "[RESULT] 0 violacoes encontradas — passed"
+      ],
+      "error": null
+    },
+    {
+      "id": "TC-A11Y-S5-002",
+      "title": "Conformidade WCAG 2.1 AA na pagina de acessibilidade do MDN",
+      "status": "failed",
+      "deploy_blocked": true,
+      "violations": [
+        {
+          "rule_id": "color-contrast",
+          "impact": "serious",
+          "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "affected_elements": [
+            [
+              "mdn-content-feedback",
+              "mdn-button[data-vote=\"yes\"]",
+              "#label-4cca3wpf90w"
+            ]
+          ],
+          "how_to_fix": "Elements must meet minimum color contrast ratio thresholds",
+          "help_url": "https://dequeuniversity.com/rules/axe/4.11/color-contrast?application=playwright",
+          "known_environment_failure": false,
+          "known_failure_note": null
+        },
+        {
+          "rule_id": "nested-interactive",
+          "impact": "serious",
+          "description": "Ensure interactive controls are not nested as they are not always announced by screen readers or can cause focus problems for assistive technologies",
+          "affected_elements": [
+            "li:nth-child(12) > details > summary",
+            "li:nth-child(14) > details > summary",
+            "li:nth-child(16) > details > summary"
+          ],
+          "how_to_fix": "Interactive controls must not be nested",
+          "help_url": "https://dequeuniversity.com/rules/axe/4.11/nested-interactive?application=playwright",
+          "known_environment_failure": false,
+          "known_failure_note": null
+        }
+      ],
+      "passes_count": 31,
+      "logs": [
+        "[NAV] Acessando https://developer.mozilla.org/en-US/docs/Web/Accessibility",
+        "[ANALYSIS] Executando axe-core (WCAG 2.1 AA)",
+        "[VIOLATION] color-contrast (serious): 1 elemento(s)",
+        "[VIOLATION] nested-interactive (serious): 3 elemento(s)",
+        "[RESULT] 2 violacoes encontradas — failed; deploy bloqueado"
+      ],
+      "error": null
+    }
+  ],
+  "summary": {
+    "total": 2,
+    "passed": 1,
+    "failed": 1,
+    "warning": 0,
+    "known_environment_failures": 0,
+    "total_violations": 2,
+    "by_impact": {
+      "critical": 0,
+      "serious": 2,
+      "moderate": 0,
+      "minor": 0
+    }
+  }
+}

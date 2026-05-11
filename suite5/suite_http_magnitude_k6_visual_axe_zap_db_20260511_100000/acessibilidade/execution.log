@@ -1,0 +1,18 @@
+[2026-05-11 14:29:08] === executor-acessibilidade — inicio ===
+[2026-05-11 14:29:08] WCAG: wcag2aa
+
+[2026-05-11 14:29:08] [TC-A11Y-S5-001] Conformidade WCAG 2.1 AA na pagina de padroes WCAG do W3C
+[2026-05-11 14:29:08]   [NAV] Acessando https://www.w3.org/WAI/standards-guidelines/wcag/
+[2026-05-11 14:29:08]   [ANALYSIS] Executando axe-core (WCAG 2.1 AA)
+[2026-05-11 14:29:08]   [RESULT] 0 violacoes encontradas — passed
+[2026-05-11 14:29:08]   -> STATUS: PASSED
+
+[2026-05-11 14:29:08] [TC-A11Y-S5-002] Conformidade WCAG 2.1 AA na pagina de acessibilidade do MDN
+[2026-05-11 14:29:08]   [NAV] Acessando https://developer.mozilla.org/en-US/docs/Web/Accessibility
+[2026-05-11 14:29:08]   [ANALYSIS] Executando axe-core (WCAG 2.1 AA)
+[2026-05-11 14:29:08]   [VIOLATION] color-contrast (serious): 1 elemento(s)
+[2026-05-11 14:29:08]   [VIOLATION] nested-interactive (serious): 3 elemento(s)
+[2026-05-11 14:29:08]   [RESULT] 2 violacoes encontradas — failed; deploy bloqueado
+[2026-05-11 14:29:08]   -> STATUS: FAILED
+
+[2026-05-11 14:29:08] === Fim: 1 passou, 1 falhou, 0 aviso ===

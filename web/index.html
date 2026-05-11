@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>QA Squad</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0d1117;
+      color: #c9d1d9;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ── Header ── */
+    header {
+      padding: 10px 20px;
+      border-bottom: 1px solid #21262d;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+    header h1 { font-size: 15px; font-weight: 600; color: #f0f6fc; }
+    header .badge {
+      font-size: 11px;
+      background: #1f6feb22;
+      color: #58a6ff;
+      border: 1px solid #1f6feb55;
+      border-radius: 20px;
+      padding: 2px 9px;
+    }
+    header .version {
+      font-size: 11px;
+      background: #2ea04322;
+      color: #3fb950;
+      border: 1px solid #2ea04355;
+      border-radius: 20px;
+      padding: 2px 9px;
+    }
+    #global-status {
+      margin-left: auto;
+      font-size: 12px;
+      color: #8b949e;
+    }
+    #global-status.running { color: #d29922; }
+    #global-status.done    { color: #3fb950; }
+    #global-status.error   { color: #f85149; }
+
+    /* ── Layout ── */
+    .layout {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 400px 1fr;
+      overflow: hidden;
+    }
+
+    /* ── Input panel ── */
+    .input-panel {
+      border-right: 1px solid #21262d;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+    }
+
+    .input-section {
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      border-bottom: 1px solid #21262d;
+    }
+    .input-section:last-child { border-bottom: none; flex: 1; }
+
+    .section-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: #8b949e;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+    }
+
+    input[type="text"], input[type="password"] {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      color: #c9d1d9;
+      font-size: 12px;
+      padding: 7px 10px;
+      outline: none;
+      transition: border-color .15s;
+      width: 100%;
+    }
+    input[type="text"]:focus,
+    input[type="password"]:focus { border-color: #1f6feb; }
+    input::placeholder { color: #484f58; }
+
+    .input-row { display: flex; gap: 8px; }
+    .input-row input { flex: 1; }
+
+    .auth-tabs {
+      display: flex;
+      gap: 4px;
+    }
+    .auth-tab {
+      font-size: 11px;
+      padding: 3px 10px;
+      border: 1px solid #30363d;
+      border-radius: 4px;
+      background: none;
+      color: #8b949e;
+      cursor: pointer;
+      transition: all .15s;
+    }
+    .auth-tab.active {
+      background: #1f6feb22;
+      color: #58a6ff;
+      border-color: #1f6feb55;
+    }
+
+    .auth-panel { display: none; flex-direction: column; gap: 6px; }
+    .auth-panel.active { display: flex; }
+
+    textarea {
+      flex: 1;
+      min-height: 200px;
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      color: #c9d1d9;
+      font-family: 'Consolas', 'Monaco', monospace;
+      font-size: 12px;
+      line-height: 1.6;
+      padding: 10px;
+      resize: vertical;
+      outline: none;
+      transition: border-color .15s;
+    }
+    textarea:focus { border-color: #1f6feb; }
+    textarea::placeholder { color: #484f58; }
+
+    .run-btn {
+      background: #238636;
+      color: #fff;
+      border: 1px solid #2ea043;
+      border-radius: 6px;
+      padding: 8px 0;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background .15s;
+      width: 100%;
+    }
+    .run-btn:hover:not(:disabled) { background: #2ea043; }
+    .run-btn:disabled { background: #21262d; color: #484f58; border-color: #30363d; cursor: not-allowed; }
+
+    .hint { font-size: 11px; color: #484f58; text-align: center; }
+
+    /* ── Output panel ── */
+    .output-panel {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .output-toolbar {
+      padding: 8px 16px;
+      border-bottom: 1px solid #21262d;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+    .output-toolbar .section-label { flex: 1; }
+
+    .clear-btn {
+      background: none;
+      border: 1px solid #30363d;
+      color: #8b949e;
+      border-radius: 6px;
+      padding: 3px 10px;
+      font-size: 11px;
+      cursor: pointer;
+    }
+    .clear-btn:hover { color: #c9d1d9; border-color: #8b949e; }
+
+    #output {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      font-family: 'Consolas', 'Monaco', monospace;
+      font-size: 12px;
+      line-height: 1.7;
+    }
+
+    /* ── Output elements ── */
+    .msg-text { color: #c9d1d9; white-space: pre-wrap; word-break: break-word; }
+    .msg-status { color: #8b949e; font-style: italic; margin: 6px 0; }
+
+    .tool-block {
+      margin: 10px 0;
+      border: 1px solid #21262d;
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    .tool-header {
+      background: #161b22;
+      padding: 6px 12px;
+      font-size: 11px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .tool-header:hover { background: #1c2128; }
+    .tool-icon { font-size: 13px; }
+    .tool-name { font-weight: 600; color: #d29922; }
+    .tool-badge {
+      margin-left: auto;
+      font-size: 10px;
+      padding: 1px 6px;
+      border-radius: 10px;
+      background: #161b22;
+      border: 1px solid #30363d;
+      color: #8b949e;
+    }
+    .tool-badge.pass   { border-color: #2ea04355; color: #3fb950; background: #2ea04311; }
+    .tool-badge.fail   { border-color: #f8514955; color: #f85149; background: #f8514911; }
+    .tool-badge.running{ border-color: #d2992255; color: #d29922; background: #d2992211; }
+
+    .tool-body {
+      padding: 10px 12px;
+      border-top: 1px solid #21262d;
+      white-space: pre-wrap;
+      word-break: break-word;
+      color: #8b949e;
+      font-size: 11px;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    .tool-body.collapsed { display: none; }
+
+    .error-msg {
+      color: #f85149;
+      background: #f8514911;
+      border: 1px solid #f8514933;
+      border-radius: 6px;
+      padding: 10px 14px;
+      margin: 8px 0;
+    }
+
+    #empty-state {
+      color: #484f58;
+      text-align: center;
+      margin-top: 60px;
+      font-size: 13px;
+      line-height: 2.2;
+    }
+    #empty-state .executors {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 6px;
+      margin-top: 16px;
+    }
+    #empty-state .exec-chip {
+      font-size: 11px;
+      padding: 3px 10px;
+      border: 1px solid #21262d;
+      border-radius: 12px;
+      color: #8b949e;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>⚡ QA Squad</h1>
+  <span class="badge">Automação de testes</span>
+  <span class="version">v1.17.0</span>
+  <span id="global-status">Aguardando</span>
+</header>
+
+<div class="layout">
+
+  <!-- Input panel -->
+  <div class="input-panel">
+
+    <div class="input-section">
+      <span class="section-label">Ambiente</span>
+      <input type="text" id="base-url" placeholder="URL base — ex: https://staging.app.com" />
+    </div>
+
+    <div class="input-section">
+      <span class="section-label">Autenticação</span>
+      <div class="auth-tabs">
+        <button class="auth-tab active" onclick="switchAuth('none', this)">Sem auth</button>
+        <button class="auth-tab" onclick="switchAuth('token', this)">Token</button>
+        <button class="auth-tab" onclick="switchAuth('credentials', this)">Usuário/Senha</button>
+      </div>
+      <div class="auth-panel" id="auth-none">
+        <span style="font-size:11px;color:#484f58">Nenhuma autenticação será enviada.</span>
+      </div>
+      <div class="auth-panel" id="auth-token">
+        <input type="text" id="auth-token-value" placeholder="Bearer eyJ..." />
+      </div>
+      <div class="auth-panel" id="auth-credentials">
+        <input type="text" id="auth-email" placeholder="E-mail / usuário" />
+        <input type="password" id="auth-password" placeholder="Senha" />
+      </div>
+    </div>
+
+    <div class="input-section">
+      <span class="section-label">Casos de teste</span>
+      <textarea
+        id="test-cases"
+        placeholder="Cole aqui seus casos de teste — Gherkin, passo a passo ou CSV do Azure DevOps.
+
+Exemplo:
+Cenário: Listar usuários
+  Dado que a API está disponível
+  Quando faço GET /users
+  Então o status deve ser 200 e retornar lista de usuários"
+      ></textarea>
+      <button class="run-btn" id="run-btn" onclick="runTests()">▶ Executar testes</button>
+      <span class="hint">Ctrl+Enter para executar</span>
+    </div>
+
+  </div>
+
+  <!-- Output panel -->
+  <div class="output-panel">
+    <div class="output-toolbar">
+      <span class="section-label">Saída em tempo real</span>
+      <button class="clear-btn" onclick="clearOutput()">Limpar</button>
+    </div>
+    <div id="output">
+      <div id="empty-state">
+        Nenhuma execução ainda.<br>
+        Cole seus casos de teste e clique em <strong>Executar</strong>.
+        <div class="executors">
+          <span class="exec-chip">🌐 Browser</span>
+          <span class="exec-chip">🔌 API REST</span>
+          <span class="exec-chip">⚡ Performance</span>
+          <span class="exec-chip">👁️ Visual</span>
+          <span class="exec-chip">♿ Acessibilidade</span>
+          <span class="exec-chip">🔒 Segurança</span>
+          <span class="exec-chip">🗄️ Banco de Dados</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const globalStatus = document.getElementById('global-status');
+  const runBtn = document.getElementById('run-btn');
+  const output = document.getElementById('output');
+
+  // ── Auth tabs ──
+  let currentAuthMode = 'none';
+  document.getElementById('auth-none').classList.add('active');
+
+  function switchAuth(mode, btn) {
+    currentAuthMode = mode;
+    document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.auth-panel').forEach(p => p.classList.remove('active'));
+    document.getElementById(`auth-${mode}`).classList.add('active');
+  }
+
+  function buildAuthPayload() {
+    if (currentAuthMode === 'token') {
+      const v = document.getElementById('auth-token-value').value.trim();
+      return v ? { token: v } : null;
+    }
+    if (currentAuthMode === 'credentials') {
+      const email = document.getElementById('auth-email').value.trim();
+      const pass  = document.getElementById('auth-password').value.trim();
+      return (email || pass) ? { email, password: pass } : null;
+    }
+    return null;
+  }
+
+  // ── Output helpers ──
+  function clearOutput() {
+    output.innerHTML = `<div id="empty-state">
+      Nenhuma execução ainda.<br>
+      Cole seus casos de teste e clique em <strong>Executar</strong>.
+      <div class="executors">
+        <span class="exec-chip">🌐 Browser</span>
+        <span class="exec-chip">🔌 API REST</span>
+        <span class="exec-chip">⚡ Performance</span>
+        <span class="exec-chip">👁️ Visual</span>
+        <span class="exec-chip">♿ Acessibilidade</span>
+        <span class="exec-chip">🔒 Segurança</span>
+        <span class="exec-chip">🗄️ Banco de Dados</span>
+      </div>
+    </div>`;
+    setStatus('Aguardando', '');
+  }
+
+  function setStatus(text, cls) {
+    globalStatus.textContent = text;
+    globalStatus.className = cls;
+  }
+
+  function removeEmptyState() {
+    const es = document.getElementById('empty-state');
+    if (es) es.remove();
+  }
+
+  function appendText(text) {
+    removeEmptyState();
+    let last = output.lastElementChild;
+    if (!last || !last.classList.contains('msg-text')) {
+      last = document.createElement('div');
+      last.className = 'msg-text';
+      output.appendChild(last);
+    }
+    last.textContent += text;
+    output.scrollTop = output.scrollHeight;
+  }
+
+  function appendStatus(text) {
+    removeEmptyState();
+    const el = document.createElement('div');
+    el.className = 'msg-status';
+    el.textContent = `— ${text}`;
+    output.appendChild(el);
+    output.scrollTop = output.scrollHeight;
+  }
+
+  const TOOL_LABELS = {
+    execute_python:        { icon: '🐍', label: 'Python (API / Segurança / Banco)' },
+    execute_k6:            { icon: '⚡', label: 'k6 Performance' },
+    execute_node:          { icon: '🎭', label: 'Node.js / Playwright' },
+    run_api_tests:         { icon: '🔌', label: 'API Tests' },
+    run_security_checks:   { icon: '🔒', label: 'Security Checks' },
+    run_performance_test:  { icon: '📊', label: 'Performance Test' },
+  };
+
+  let activeToolBlock = null;
+
+  function appendToolStart(name) {
+    removeEmptyState();
+    const meta = TOOL_LABELS[name] || { icon: '🔧', label: name };
+    const block = document.createElement('div');
+    block.className = 'tool-block';
+    block.innerHTML = `
+      <div class="tool-header" onclick="toggleTool(this)">
+        <span class="tool-icon">${meta.icon}</span>
+        <span class="tool-name">${meta.label}</span>
+        <span class="tool-badge running">Executando…</span>
+      </div>
+      <div class="tool-body collapsed"></div>
+    `;
+    output.appendChild(block);
+    activeToolBlock = block;
+    output.scrollTop = output.scrollHeight;
+  }
+
+  function appendToolResult(name, content) {
+    if (!activeToolBlock) return;
+    const badge = activeToolBlock.querySelector('.tool-badge');
+    const body  = activeToolBlock.querySelector('.tool-body');
+    const isError = content.includes('[ERRO]') || content.toLowerCase().includes('error');
+
+    badge.textContent = isError ? 'Falhou' : 'OK';
+    badge.className = `tool-badge ${isError ? 'fail' : 'pass'}`;
+
+    const MAX = 2000;
+    body.textContent = content.length > MAX
+      ? content.slice(0, MAX) + `\n\n… (${content.length - MAX} caracteres omitidos)`
+      : content;
+
+    activeToolBlock = null;
+    output.scrollTop = output.scrollHeight;
+  }
+
+  function appendError(text) {
+    removeEmptyState();
+    const el = document.createElement('div');
+    el.className = 'error-msg';
+    el.textContent = text;
+    output.appendChild(el);
+    output.scrollTop = output.scrollHeight;
+  }
+
+  function toggleTool(header) {
+    const body = header.nextElementSibling;
+    body.classList.toggle('collapsed');
+  }
+
+  // ── Run ──
+  async function runTests() {
+    const testCases = document.getElementById('test-cases').value.trim();
+    if (!testCases) {
+      alert('Cole os casos de teste antes de executar.');
+      return;
+    }
+
+    clearOutput();
+    runBtn.disabled = true;
+    setStatus('⏳ Executando…', 'running');
+
+    const baseUrl = document.getElementById('base-url').value.trim();
+    const auth    = buildAuthPayload();
+
+    try {
+      const response = await fetch('/run', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ test_cases: testCases, base_url: baseUrl || undefined, auth }),
+      });
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop();
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          try {
+            const ev = JSON.parse(line.slice(6));
+            if      (ev.type === 'text')        appendText(ev.content);
+            else if (ev.type === 'status')      appendStatus(ev.content);
+            else if (ev.type === 'tool_start')  appendToolStart(ev.name);
+            else if (ev.type === 'tool_result') appendToolResult(ev.name, ev.content);
+            else if (ev.type === 'error')       appendError(ev.content);
+            else if (ev.type === 'done')        setStatus('✅ Concluído', 'done');
+          } catch (_) {}
+        }
+      }
+    } catch (err) {
+      appendError(`Erro de conexão: ${err.message}`);
+      setStatus('❌ Erro', 'error');
+    } finally {
+      runBtn.disabled = false;
+      if (globalStatus.className === 'running') setStatus('Aguardando', '');
+    }
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.ctrlKey && e.key === 'Enter') runTests();
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,5 @@
+[2026-05-11 13:44:48] === executor-browser -- inicio ===
+[2026-05-11 13:44:48] Modo: headed (headless=false)
+[2026-05-11 13:44:48] [TC-BROWSER-S6-001] -> PASSED
+[2026-05-11 13:44:48] [TC-BROWSER-S6-002] -> PASSED
+[2026-05-11 13:44:48] === Fim: 2 passou, 0 falhou ===

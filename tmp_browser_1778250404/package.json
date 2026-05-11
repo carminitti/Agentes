@@ -1,0 +1,11 @@
+{
+  "name": "tmp-browser-tests",
+  "version": "1.0.0",
+  "private": true,
+  "devDependencies": {
+    "@playwright/test": "^1.44.0",
+    "@faker-js/faker": "^8.4.1",
+    "dotenv": "^16.4.5",
+    "typescript": "^5.4.5"
+  }
+}

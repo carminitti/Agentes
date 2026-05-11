@@ -1,0 +1,104 @@
+{
+  "executor": "db",
+  "environment": "simulado-local",
+  "database": "sqlite://:memory:",
+  "simulated": true,
+  "mode": "simulated_fallback",
+  "simulation_note": "Execucao em ambiente simulado (SQLite em memoria). Conexoes TCP com MySQL/PostgreSQL falharam - fallback automatico ativado. Revalidar contra banco real antes do deploy.",
+  "credentials_failed": false,
+  "results": [
+    {
+      "id": "TC-DB-S3-001",
+      "title": "Integridade do schema de pedidos - MySQL com fallback",
+      "status": "warning",
+      "simulated": true,
+      "mode": "simulated_fallback",
+      "checks": [
+        {
+          "check": "tabelas orders e order_items existem",
+          "result": "passed"
+        },
+        {
+          "check": "customer_name NOT NULL enforced",
+          "result": "passed"
+        },
+        {
+          "check": "total_amount CHECK > 0",
+          "result": "passed"
+        },
+        {
+          "check": "FK order_id -> orders.id enforced",
+          "result": "warning",
+          "note": "FK via PRAGMA foreign_keys"
+        },
+        {
+          "check": "registro inserido recuperavel via SELECT",
+          "result": "passed",
+          "actual": "('QA Tester', 150.0, 'pending')"
+        }
+      ],
+      "logs": [
+        "[CONNECT] Conectado ao banco simulado (SQLite :memory:)",
+        "[FALLBACK] Conexao MySQL falhou - modo simulated_fallback ativo",
+        "[SETUP] Tabelas criadas: orders, order_items",
+        "[SETUP] Dados inseridos: 1 pedido id=1",
+        "[QUERY] SELECT tabelas do sqlite_master",
+        "[RESULT] Tabelas: ['orders', 'order_items'] - ok",
+        "[RESULT] NOT NULL customer_name - enforced corretamente v",
+        "[RESULT] CHECK total_amount > 0 - enforced v",
+        "[RESULT] FK order_id - SQLite PRAGMA FK (warning esperado modo simulado)",
+        "[QUERY] SELECT customer_name, total_amount, status FROM orders WHERE id=1",
+        "[RESULT] ('QA Tester', 150.0, 'pending') - ok v"
+      ],
+      "error": null
+    },
+    {
+      "id": "TC-DB-S3-002",
+      "title": "Integridade do schema de funcionarios - PostgreSQL com fallback",
+      "status": "warning",
+      "simulated": true,
+      "mode": "simulated_fallback",
+      "checks": [
+        {
+          "check": "tabelas departments e employees existem",
+          "result": "passed"
+        },
+        {
+          "check": "salary CHECK > 0 enforced",
+          "result": "passed"
+        },
+        {
+          "check": "FK department_id -> departments.id enforced",
+          "result": "warning",
+          "note": "FK via PRAGMA foreign_keys"
+        },
+        {
+          "check": "registro de departamento recuperavel via SELECT",
+          "result": "passed",
+          "actual": "('Engenharia', 500000.0)"
+        }
+      ],
+      "logs": [
+        "[CONNECT] Conectado ao banco simulado (SQLite :memory:)",
+        "[FALLBACK] Conexao PostgreSQL falhou - modo simulated_fallback ativo",
+        "[SETUP] Tabelas criadas: departments, employees",
+        "[SETUP] Dados inseridos: 1 departamento id=1",
+        "[QUERY] SELECT tabelas do sqlite_master",
+        "[RESULT] Tabelas: ['departments', 'employees'] - ok",
+        "[RESULT] CHECK salary > 0 enforced v",
+        "[RESULT] FK department_id - SQLite PRAGMA FK (warning esperado modo simulado)",
+        "[QUERY] SELECT name, budget FROM departments WHERE id=1",
+        "[RESULT] ('Engenharia', 500000.0) - ok v"
+      ],
+      "error": null
+    }
+  ],
+  "summary": {
+    "total": 2,
+    "passed": 0,
+    "failed": 0,
+    "skipped": 0,
+    "warning": 2,
+    "credentials_failed": false
+  }
+}

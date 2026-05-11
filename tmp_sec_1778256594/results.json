@@ -1,0 +1,241 @@
+{
+  "executor": "security",
+  "environment": "multiple (JSONPlaceholder / Practice Expand / AutomationExercise)",
+  "results": [
+    {
+      "id": "TC-SEC-001",
+      "title": "Headers de seguranca no JSONPlaceholder",
+      "status": "failed",
+      "checks": [
+        {
+          "check": "X-Content-Type-Options presente",
+          "result": "passed",
+          "actual": "nosniff"
+        },
+        {
+          "check": "X-Frame-Options presente",
+          "result": "failed",
+          "actual": "AUSENTE"
+        },
+        {
+          "check": "Strict-Transport-Security presente",
+          "result": "failed",
+          "actual": "AUSENTE"
+        },
+        {
+          "check": "Content-Security-Policy presente",
+          "result": "failed",
+          "actual": "AUSENTE"
+        }
+      ],
+      "severity": "medium",
+      "logs": [
+        "[CHECK] GET https://jsonplaceholder.typicode.com/posts/1",
+        "[RESPONSE] 200",
+        "[CHECK] Header X-Content-Type-Options: OK",
+        "[CHECK] Header X-Frame-Options: FAIL",
+        "[CHECK] Header Strict-Transport-Security: FAIL",
+        "[CHECK] Header Content-Security-Policy: FAIL"
+      ],
+      "error": ""
+    },
+    {
+      "id": "TC-SEC-002",
+      "title": "CORS com origem maliciosa no JSONPlaceholder",
+      "status": "failed",
+      "checks": [
+        {
+          "check": "Origem maliciosa refletida",
+          "result": "failed",
+          "actual": "https://evil-site.com"
+        }
+      ],
+      "severity": "high",
+      "logs": [
+        "[CHECK] GET https://jsonplaceholder.typicode.com/posts com Origin: https://evil-site.com",
+        "[CHECK] Access-Control-Allow-Origin: 'https://evil-site.com'",
+        "[FAIL] Origem maliciosa refletida no CORS"
+      ],
+      "error": ""
+    },
+    {
+      "id": "TC-SEC-003",
+      "title": "API de notas exige auth em endpoint protegido",
+      "status": "passed",
+      "checks": [
+        {
+          "check": "GET /notes sem token retorna 401",
+          "result": "passed",
+          "actual": 401
+        }
+      ],
+      "severity": null,
+      "logs": [
+        "[CHECK] GET https://practice.expandtesting.com/notes/api/notes sem x-auth-token",
+        "[RESPONSE] 401",
+        "[OK] endpoint protegido corretamente - autenticacao exigida"
+      ],
+      "error": null
+    },
+    {
+      "id": "TC-SEC-004",
+      "title": "DELETE sem auth retorna 401 no Practice Expand",
+      "status": "passed",
+      "checks": [
+        {
+          "check": "DELETE sem token retorna 401",
+          "result": "passed",
+          "actual": 401
+        }
+      ],
+      "severity": null,
+      "logs": [
+        "[CHECK] DELETE https://practice.expandtesting.com/notes/api/notes/qualquer-id sem x-auth-token",
+        "[RESPONSE] 401",
+        "[OK] DELETE protegido corretamente"
+      ],
+      "error": null
+    },
+    {
+      "id": "TC-SEC-005",
+      "title": "Caminhos administrativos nao expostos no AutomationExercise",
+      "status": "failed",
+      "checks": [
+        {
+          "check": "GET /admin",
+          "result": "failed",
+          "actual": 200
+        },
+        {
+          "check": "GET /.env",
+          "result": "passed",
+          "actual": 403
+        },
+        {
+          "check": "GET /config",
+          "result": "failed",
+          "actual": 200
+        },
+        {
+          "check": "GET /internal",
+          "result": "failed",
+          "actual": 200
+        },
+        {
+          "check": "GET /debug",
+          "result": "failed",
+          "actual": 200
+        },
+        {
+          "check": "GET /phpinfo.php",
+          "result": "passed",
+          "actual": 404
+        }
+      ],
+      "severity": "high",
+      "logs": [
+        "[CHECK] GET /admin -> 200: FAIL-VULNERABILIDADE-CRITICA",
+        "[CHECK] GET /.env -> 403: OK",
+        "[CHECK] GET /config -> 200: FAIL-VULNERABILIDADE-CRITICA",
+        "[CHECK] GET /internal -> 200: FAIL-VULNERABILIDADE-CRITICA",
+        "[CHECK] GET /debug -> 200: FAIL-VULNERABILIDADE-CRITICA",
+        "[CHECK] GET /phpinfo.php -> 404: OK"
+      ],
+      "error": ""
+    },
+    {
+      "id": "TC-SEC-006",
+      "title": "Ausencia de stack trace em erro 404 no JSONPlaceholder",
+      "status": "passed",
+      "checks": [
+        {
+          "check": "status 404",
+          "result": "passed",
+          "actual": 404
+        },
+        {
+          "check": "body nao contem 'stack'",
+          "result": "passed",
+          "actual": "ausente"
+        },
+        {
+          "check": "body nao contem 'traceback'",
+          "result": "passed",
+          "actual": "ausente"
+        },
+        {
+          "check": "body nao contem 'exception'",
+          "result": "passed",
+          "actual": "ausente"
+        },
+        {
+          "check": "body nao contem 'at com.'",
+          "result": "passed",
+          "actual": "ausente"
+        }
+      ],
+      "severity": null,
+      "logs": [
+        "[CHECK] GET https://jsonplaceholder.typicode.com/posts/99999",
+        "[RESPONSE] 404",
+        "[OK] status 404 correto",
+        "[OK] body nao contem 'stack'",
+        "[OK] body nao contem 'traceback'",
+        "[OK] body nao contem 'exception'",
+        "[OK] body nao contem 'at com.'",
+        "[OK] sem exposicao de stack trace"
+      ],
+      "error": null
+    },
+    {
+      "id": "TC-SEC-007",
+      "title": "Lidar com certificado SSL invalido sem abortar",
+      "status": "warning",
+      "checks": [
+        {
+          "check": "SSL invalido tratado sem abort",
+          "result": "passed",
+          "actual": "warning registrado"
+        }
+      ],
+      "severity": null,
+      "logs": [
+        "[CHECK] GET https://practice.expandtesting.com/notes/api/health-check com verify=True (pode ter SSLError)",
+        "[RESPONSE] 200",
+        "[SSL] WARNING: Certificado SSL invalido ou autoassinado detectado. As verificacoes foram executadas com verify=False. Recomenda-se substituir o certificado por um valido antes do deploy."
+      ],
+      "error": ""
+    },
+    {
+      "id": "TC-SEC-008",
+      "title": "AutomationExercise forca HTTPS",
+      "status": "passed",
+      "checks": [
+        {
+          "check": "URL final usa HTTPS",
+          "result": "passed",
+          "actual": "https://automationexercise.com/"
+        }
+      ],
+      "severity": null,
+      "logs": [
+        "[CHECK] GET http://automationexercise.com (HTTP sem HTTPS)",
+        "[RESPONSE] 200 \u2014 URL final: https://automationexercise.com/",
+        "[OK] redirecionamento para HTTPS confirmado"
+      ],
+      "error": null
+    }
+  ],
+  "ssl_warning": "Certificado SSL invalido ou autoassinado detectado. As verificacoes foram executadas com verify=False. Recomenda-se substituir o certificado por um valido antes do deploy.",
+  "summary": {
+    "total": 8,
+    "passed": 4,
+    "failed": 3,
+    "warning": 1,
+    "by_severity": {
+      "high": 2,
+      "medium": 1,
+      "low": 0
+    }
+  }
+}

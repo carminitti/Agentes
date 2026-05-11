@@ -1,0 +1,6 @@
+[2026-05-11 10:12:39] === executor-seguranca - inicio ===
+[2026-05-11 10:12:39] TC-SEC-S3-001 ambiente: public_test_api
+[2026-05-11 10:12:43] [TC-SEC-S3-001] -> STATUS: WARNING
+[2026-05-11 10:12:43] TC-SEC-S3-002 ambiente: public_test_api
+[2026-05-11 10:12:45] [TC-SEC-S3-002] -> STATUS: WARNING
+[2026-05-11 10:12:45] === Fim: 0 passou, 0 falhou, 2 aviso ===

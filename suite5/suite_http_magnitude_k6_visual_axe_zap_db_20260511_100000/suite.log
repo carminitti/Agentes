@@ -1,0 +1,19 @@
+=== Suite QA — suite_http_magnitude_k6_visual_axe_zap_db_20260511_100000 ===
+Inicio: 2026-05-11T11:04:00
+Fim: 2026-05-11T11:29:32.943408
+Ambiente: Multiple — restcountries.com, practicesoftwaretesting.com, dog.ceo, a11yproject.com, webaim.org, w3.org, developer.mozilla.org, pokeapi.co, nationalize.io, sqlite::memory:
+
+--- Executores despachados ---
+  api: passed=1, failed=1, skipped=0, warning=0
+  browser: passed=2, failed=0, skipped=0, warning=0
+  performance: passed=2, failed=0, skipped=0, warning=0
+  visual: passed=0, failed=0, skipped=0, warning=0
+  acessibilidade: passed=1, failed=1, skipped=0, warning=0
+  seguranca: passed=0, failed=0, skipped=1, warning=1
+  banco: passed=2, failed=0, skipped=0, warning=0
+
+--- Tipos nao executados ---
+  pact (contrato): nao executado — requer Pact Broker
+  appium (mobile): nao executado — requer configuracao de dispositivo/emulador
+
+--- Fim do log da suite ---

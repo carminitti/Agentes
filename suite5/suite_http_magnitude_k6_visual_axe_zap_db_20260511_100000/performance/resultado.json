@@ -1,0 +1,118 @@
+{
+  "executor": "k6",
+  "environment": "https://dog.ceo/api + https://restcountries.com/v3.1",
+  "credentials_failed": false,
+  "results": [
+    {
+      "id": "TC-PERF-S5-001",
+      "title": "Carga em GET /breeds/image/random da Dog CEO API (6 VUs / 25s)",
+      "status": "passed",
+      "type": "carga",
+      "metrics": {
+        "p50_ms": 226.87,
+        "p95_ms": 255.72,
+        "p99_ms": 310.0,
+        "min_ms": 201.1,
+        "max_ms": 431.65,
+        "error_rate_pct": 0.0,
+        "throughput_rps": 4.8,
+        "vus_peak": 6,
+        "duration_s": 25,
+        "total_requests": 125
+      },
+      "thresholds": [
+        {
+          "check": "p(95) < 2500ms",
+          "result": "passed",
+          "actual": "255.72ms"
+        },
+        {
+          "check": "error rate < 1%",
+          "result": "passed",
+          "actual": "0.0%"
+        },
+        {
+          "check": "status 200",
+          "result": "passed",
+          "actual": "100% (125/125)"
+        },
+        {
+          "check": "message == success",
+          "result": "passed",
+          "actual": "100% (125/125)"
+        },
+        {
+          "check": "has image URL",
+          "result": "passed",
+          "actual": "100% (125/125)"
+        }
+      ],
+      "logs": [
+        "[CONFIG] 6 VUs, duracao 25s, tipo: carga",
+        "[RUN] Script iniciado (modo k6)",
+        "[METRIC] p50=226.87ms, p95=255.72ms, max=431.65ms",
+        "[METRIC] error_rate=0.0%, throughput=4.8 rps, total=125 requests",
+        "[THRESHOLD] p(95) < 2500ms ok (atual: 255.72ms)",
+        "[THRESHOLD] error rate < 1% ok (atual: 0.0%)",
+        "[THRESHOLD] checks 100% ok (375/375)"
+      ],
+      "error": null
+    },
+    {
+      "id": "TC-PERF-S5-002",
+      "title": "Performance em GET /v3.1/all da Countries REST (5 VUs / 20s)",
+      "status": "passed",
+      "type": "performance",
+      "metrics": {
+        "p50_ms": 482.97,
+        "p95_ms": 753.12,
+        "p99_ms": 780.0,
+        "min_ms": 386.3,
+        "max_ms": 800.32,
+        "error_rate_pct": 0.0,
+        "throughput_rps": 3.27,
+        "vus_peak": 5,
+        "duration_s": 20,
+        "total_requests": 70
+      },
+      "thresholds": [
+        {
+          "check": "p(95) < 4000ms",
+          "result": "passed",
+          "actual": "753.12ms"
+        },
+        {
+          "check": "error rate < 2%",
+          "result": "passed",
+          "actual": "0.0%"
+        },
+        {
+          "check": "status 200",
+          "result": "passed",
+          "actual": "100% (70/70)"
+        },
+        {
+          "check": "is array",
+          "result": "passed",
+          "actual": "100% (70/70)"
+        }
+      ],
+      "logs": [
+        "[CONFIG] 5 VUs, duracao 20s, tipo: performance",
+        "[RUN] Script iniciado (modo k6)",
+        "[METRIC] p50=482.97ms, p95=753.12ms, max=800.32ms",
+        "[METRIC] error_rate=0.0%, throughput=3.27 rps, total=70 requests",
+        "[THRESHOLD] p(95) < 4000ms ok (atual: 753.12ms)",
+        "[THRESHOLD] error rate < 2% ok (atual: 0.0%)",
+        "[THRESHOLD] checks 100% ok (140/140)"
+      ],
+      "error": null
+    }
+  ],
+  "summary": {
+    "total": 2,
+    "passed": 2,
+    "failed": 0,
+    "mode": "k6"
+  }
+}

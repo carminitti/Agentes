@@ -1,0 +1,181 @@
+{
+  "executor": "seguranca",
+  "environment": "https://api.adviceslip.com + https://opentdb.com",
+  "credentials_failed": false,
+  "generated_files": null,
+  "results": [
+    {
+      "id": "TC-SEC-S6-001",
+      "title": "Headers de seguranca e exposicao de dados na Advice Slip API",
+      "status": "passed",
+      "duration_ms": 1504,
+      "details": {
+        "validations": [
+          {
+            "check": "status 200 em /advice",
+            "result": "passed",
+            "blocking": true
+          },
+          {
+            "check": "Content-Type contem json em /advice",
+            "result": "warning",
+            "blocking": false
+          },
+          {
+            "check": "Server nao expoe versao em /advice",
+            "result": "passed",
+            "blocking": false
+          },
+          {
+            "check": "Sem stack trace no body em /advice",
+            "result": "passed",
+            "blocking": true
+          },
+          {
+            "check": "status 200 em /advice/search/work",
+            "result": "passed",
+            "blocking": true
+          },
+          {
+            "check": "Content-Type contem json em /advice/search/work",
+            "result": "warning",
+            "blocking": false
+          },
+          {
+            "check": "Server nao expoe versao em /advice/search/work",
+            "result": "passed",
+            "blocking": false
+          },
+          {
+            "check": "Sem stack trace no body em /advice/search/work",
+            "result": "passed",
+            "blocking": true
+          }
+        ],
+        "warnings": [
+          "Content-Type em /advice: 'text/html; charset=UTF-8'",
+          "Header opcional ausente: 'x-frame-options' em /advice",
+          "Content-Type em /advice/search/work: 'text/html; charset=UTF-8'",
+          "Header opcional ausente: 'x-frame-options' em /advice/search/work"
+        ]
+      },
+      "logs": [
+        "[REQUEST] GET https://api.adviceslip.com/advice",
+        "[RESPONSE] 200",
+        "[ASSERT] status 200 OK",
+        "[ASSERT] Content-Type='text/html; charset=UTF-8' AVISO",
+        "[ASSERT] Server='Apache' OK",
+        "[WARN] Header 'x-frame-options' ausente em /advice (nao bloqueante)",
+        "[ASSERT] Sem stack trace OK",
+        "[REQUEST] GET https://api.adviceslip.com/advice/search/work",
+        "[RESPONSE] 200",
+        "[ASSERT] status 200 OK",
+        "[ASSERT] Content-Type='text/html; charset=UTF-8' AVISO",
+        "[ASSERT] Server='Apache' OK",
+        "[WARN] Header 'x-frame-options' ausente em /advice/search/work (nao bloqueante)",
+        "[ASSERT] Sem stack trace OK",
+        "-> STATUS: PASSED",
+        "[WARN] 4 avisos nao bloqueantes"
+      ],
+      "error": null
+    },
+    {
+      "id": "TC-SEC-S6-002",
+      "title": "Headers de seguranca e endpoint de token na Open Trivia DB",
+      "status": "passed",
+      "duration_ms": 1888,
+      "details": {
+        "validations": [
+          {
+            "check": "status 200 em /api.php?amount=1",
+            "result": "passed",
+            "blocking": true
+          },
+          {
+            "check": "Content-Type contem json em /api.php?amount=1",
+            "result": "passed",
+            "blocking": false
+          },
+          {
+            "check": "Server nao expoe versao em /api.php?amount=1",
+            "result": "passed",
+            "blocking": false
+          },
+          {
+            "check": "Sem stack trace no body em /api.php?amount=1",
+            "result": "passed",
+            "blocking": true
+          },
+          {
+            "check": "status 200 em /api_token.php?command=request",
+            "result": "passed",
+            "blocking": true
+          },
+          {
+            "check": "Content-Type contem json em /api_token.php?command=request",
+            "result": "passed",
+            "blocking": false
+          },
+          {
+            "check": "Server nao expoe versao em /api_token.php?command=request",
+            "result": "passed",
+            "blocking": false
+          },
+          {
+            "check": "Sem stack trace no body em /api_token.php?command=request",
+            "result": "passed",
+            "blocking": true
+          },
+          {
+            "check": "tokens de sessoes diferentes sao unicos",
+            "result": "passed",
+            "blocking": false
+          }
+        ],
+        "warnings": [
+          "Header opcional ausente: 'content-security-policy' em /api.php?amount=1",
+          "Header opcional ausente: 'x-frame-options' em /api.php?amount=1",
+          "Header opcional ausente: 'x-content-type-options' em /api.php?amount=1",
+          "Header opcional ausente: 'referrer-policy' em /api.php?amount=1",
+          "Header opcional ausente: 'content-security-policy' em /api_token.php?command=request",
+          "Header opcional ausente: 'x-frame-options' em /api_token.php?command=request",
+          "Header opcional ausente: 'x-content-type-options' em /api_token.php?command=request",
+          "Header opcional ausente: 'referrer-policy' em /api_token.php?command=request"
+        ]
+      },
+      "logs": [
+        "[REQUEST] GET https://opentdb.com/api.php?amount=1",
+        "[RESPONSE] 200",
+        "[ASSERT] status 200 OK",
+        "[ASSERT] Content-Type='application/json' OK",
+        "[ASSERT] Server='Apache' OK",
+        "[WARN] Header 'content-security-policy' ausente em /api.php?amount=1 (nao bloqueante)",
+        "[WARN] Header 'x-frame-options' ausente em /api.php?amount=1 (nao bloqueante)",
+        "[WARN] Header 'x-content-type-options' ausente em /api.php?amount=1 (nao bloqueante)",
+        "[WARN] Header 'referrer-policy' ausente em /api.php?amount=1 (nao bloqueante)",
+        "[ASSERT] Sem stack trace OK",
+        "[REQUEST] GET https://opentdb.com/api_token.php?command=request",
+        "[RESPONSE] 200",
+        "[ASSERT] status 200 OK",
+        "[ASSERT] Content-Type='application/json' OK",
+        "[ASSERT] Server='Apache' OK",
+        "[WARN] Header 'content-security-policy' ausente em /api_token.php?command=request (nao bloqueante)",
+        "[WARN] Header 'x-frame-options' ausente em /api_token.php?command=request (nao bloqueante)",
+        "[WARN] Header 'x-content-type-options' ausente em /api_token.php?command=request (nao bloqueante)",
+        "[WARN] Header 'referrer-policy' ausente em /api_token.php?command=request (nao bloqueante)",
+        "[ASSERT] Sem stack trace OK",
+        "[ASSERT] tokens unicos por sessao OK",
+        "-> STATUS: PASSED",
+        "[WARN] 8 avisos nao bloqueantes"
+      ],
+      "error": null
+    }
+  ],
+  "summary": {
+    "total": 2,
+    "passed": 2,
+    "failed": 0,
+    "skipped": 0,
+    "credentials_failed": false
+  }
+}

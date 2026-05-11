@@ -1,0 +1,24 @@
+[2026-05-11 13:39:22] === executor-api -- inicio ===
+[2026-05-11 13:39:22] Executando TC-API-S6-001...
+[2026-05-11 13:39:22]   [REQUEST] GET https://open.er-api.com/v6/latest/USD
+[2026-05-11 13:39:22]   [RESPONSE] 200 -- 163ms
+[2026-05-11 13:39:22]   [ASSERT] status == 200 OK
+[2026-05-11 13:39:22]   [ASSERT] result == 'success' OK
+[2026-05-11 13:39:22]   [ASSERT] base_code == 'USD' OK
+[2026-05-11 13:39:22]   [ASSERT] rates.BRL=4.900313 > 0 OK
+[2026-05-11 13:39:22]   [ASSERT] rates.EUR=0.849735 > 0 OK
+[2026-05-11 13:39:22]   [ASSERT] duration=163ms < 4000ms OK
+[2026-05-11 13:39:22]   -> STATUS: PASSED
+[2026-05-11 13:39:22] [TC-API-S6-001] -> PASSED
+[2026-05-11 13:39:22] Executando TC-API-S6-002...
+[2026-05-11 13:39:22]   [REQUEST] GET https://api.sunrise-sunset.org/json?lat=-15.77&lng=-47.92&date=today&formatted=0
+[2026-05-11 13:39:22]   [RESPONSE] 200 -- 229ms
+[2026-05-11 13:39:22]   [ASSERT] status == 200 OK
+[2026-05-11 13:39:22]   [ASSERT] status == 'OK' OK
+[2026-05-11 13:39:22]   [ASSERT] results.sunrise valido OK
+[2026-05-11 13:39:22]   [ASSERT] results.sunset valido OK
+[2026-05-11 13:39:22]   [ASSERT] results.day_length=41251 > 0 OK
+[2026-05-11 13:39:22]   [ASSERT] duration=229ms < 4000ms OK
+[2026-05-11 13:39:22]   -> STATUS: PASSED
+[2026-05-11 13:39:22] [TC-API-S6-002] -> PASSED
+[2026-05-11 13:39:22] === Fim: 2 passou, 0 falhou ===

@@ -1,0 +1,124 @@
+{
+  "executor": "api",
+  "environment": "https://restcountries.com/v3.1 + http://api.open-notify.org",
+  "credentials_failed": false,
+  "generated_files": null,
+  "results": [
+    {
+      "id": "TC-API-S5-001",
+      "title": "Consultar dados do Brasil na Countries REST API",
+      "status": "passed",
+      "duration_ms": 783,
+      "details": {
+        "method": "GET",
+        "url": "https://restcountries.com/v3.1/name/brazil",
+        "status_code": 200,
+        "validations": [
+          {
+            "check": "status == 200",
+            "result": "passed"
+          },
+          {
+            "check": "ok() == true",
+            "result": "passed"
+          },
+          {
+            "check": "response is array with >=1 item",
+            "result": "passed"
+          },
+          {
+            "check": "name.common == Brazil",
+            "result": "passed"
+          },
+          {
+            "check": "population > 0",
+            "result": "passed"
+          },
+          {
+            "check": "currencies has BRL",
+            "result": "passed"
+          },
+          {
+            "check": "tempo de resposta < 4000ms",
+            "result": "passed"
+          },
+          {
+            "check": "contrato Zod válido",
+            "result": "passed"
+          }
+        ]
+      },
+      "logs": [
+        "[REQUEST] GET https://restcountries.com/v3.1/name/brazil",
+        "[RESPONSE] 200 OK — 783ms",
+        "[ASSERT] status == 200 ✓",
+        "[ASSERT] ok() == true ✓",
+        "[ASSERT] response is array ✓",
+        "[ASSERT] name.common == Brazil ✓",
+        "[ASSERT] population > 0 ✓",
+        "[ASSERT] currencies has BRL ✓",
+        "[ASSERT] tempo de resposta 783ms < 4000ms ✓",
+        "[CONTRACT] Schema Zod válido ✓"
+      ],
+      "error": null
+    },
+    {
+      "id": "TC-API-S5-002",
+      "title": "Consultar posição atual da ISS via Open Notify",
+      "status": "failed",
+      "duration_ms": 7862,
+      "details": {
+        "method": "GET",
+        "url": "http://api.open-notify.org/iss-now.json",
+        "status_code": 200,
+        "validations": [
+          {
+            "check": "status == 200",
+            "result": "passed"
+          },
+          {
+            "check": "ok() == true",
+            "result": "passed"
+          },
+          {
+            "check": "tempo de resposta < 4000ms",
+            "result": "failed",
+            "actual": "7862ms"
+          },
+          {
+            "check": "message == success",
+            "result": "not reached"
+          },
+          {
+            "check": "timestamp is positive number",
+            "result": "not reached"
+          },
+          {
+            "check": "iss_position.latitude is numeric",
+            "result": "not reached"
+          },
+          {
+            "check": "iss_position.longitude is numeric",
+            "result": "not reached"
+          }
+        ]
+      },
+      "logs": [
+        "[REQUEST] GET http://api.open-notify.org/iss-now.json",
+        "[RESPONSE] 200 OK — 7862ms",
+        "[ASSERT] status == 200 ✓",
+        "[ASSERT] ok() == true ✓",
+        "[ASSERT] tempo de resposta 7862ms < 4000ms — FALHOU",
+        "[ERROR] Expected: < 4000 | Received: 7862"
+      ],
+      "error": "Tempo de resposta de 7862ms excede o threshold de 4000ms. API http://api.open-notify.org demonstrou latência elevada — possível instabilidade do serviço."
+    }
+  ],
+  "summary": {
+    "total": 2,
+    "passed": 1,
+    "failed": 1,
+    "skipped": 0,
+    "credentials_failed": false
+  }
+}

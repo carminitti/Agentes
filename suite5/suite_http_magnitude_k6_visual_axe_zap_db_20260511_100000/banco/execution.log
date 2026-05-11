@@ -1,0 +1,32 @@
+[2026-05-11 11:24:13] === executor-banco — inicio ===
+[2026-05-11 11:24:13] Ambiente: sqlite://:memory:
+[2026-05-11 11:24:13] Modo: simulado
+
+[2026-05-11 11:24:13] [TC-DB-S5-001] Integridade do schema financeiro (accounts, transactions, balances)
+[2026-05-11 11:24:13]   [CONNECT] Conectando ao banco simulado (SQLite :memory:)
+[2026-05-11 11:24:13]   [SETUP] Criando schema financeiro...
+[2026-05-11 11:24:13]   [SETUP] Tabelas criadas: accounts, transactions, balances
+[2026-05-11 11:24:13]   [ASSERT] Tabelas criadas: ['accounts', 'balances', 'sqlite_sequence', 'transactions'] — ok
+[2026-05-11 11:24:13]   [ASSERT] CHECK balance >= 0 ativo — ok (rejeita saldo negativo)
+[2026-05-11 11:24:13]   [ASSERT] CHECK amount > 0 ativo — ok (rejeita amount negativo)
+[2026-05-11 11:24:13]   [ASSERT] FK from_account_id valida — ok (rejeita FK inexistente)
+[2026-05-11 11:24:13]   [ASSERT] SELECT conta inserida: ('QA Tester', 'checking', 1000.0) — ok
+[2026-05-11 11:24:13]   [RESULT] TC-DB-S5-001 — passed
+[2026-05-11 11:24:13]   [DISCONNECT] Conexao encerrada
+[2026-05-11 11:24:13]   -> STATUS: PASSED
+
+[2026-05-11 11:24:13] [TC-DB-S5-002] Integridade do schema de biblioteca (books, authors, loans)
+[2026-05-11 11:24:13]   [CONNECT] Conectando ao banco simulado (SQLite :memory:)
+[2026-05-11 11:24:13]   [SETUP] Criando schema de biblioteca...
+[2026-05-11 11:24:13]   [SETUP] Tabelas criadas: authors, books, loans
+[2026-05-11 11:24:13]   [ASSERT] Tabelas criadas: ['authors', 'books', 'loans', 'sqlite_sequence'] — ok
+[2026-05-11 11:24:13]   [ASSERT] FK author_id valida — ok (rejeita author_id inexistente)
+[2026-05-11 11:24:13]   [ASSERT] UNIQUE isbn ativo — ok (rejeita ISBN duplicado)
+[2026-05-11 11:24:13]   [ASSERT] CHECK available IN (0,1) ativo — ok
+[2026-05-11 11:24:13]   [ASSERT] FK book_id em loans valida — ok
+[2026-05-11 11:24:13]   [ASSERT] SELECT autor: ('Robert C. Martin', 'American', 1952) — ok
+[2026-05-11 11:24:13]   [RESULT] TC-DB-S5-002 — passed
+[2026-05-11 11:24:13]   [DISCONNECT] Conexao encerrada
+[2026-05-11 11:24:13]   -> STATUS: PASSED
+
+[2026-05-11 11:24:13] === Fim: 2 passou, 0 falhou ===

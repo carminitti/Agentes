@@ -1,0 +1,11 @@
+{
+  "name": "qa-api-suite5",
+  "version": "1.0.0",
+  "scripts": { "test": "npx playwright test" },
+  "devDependencies": {
+    "@playwright/test": "^1.44.0",
+    "zod": "^3.22.0",
+    "dotenv": "^16.0.0",
+    "typescript": "^5.0.0"
+  }
+}

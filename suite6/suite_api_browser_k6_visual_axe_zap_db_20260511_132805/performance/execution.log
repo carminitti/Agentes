@@ -1,0 +1,6 @@
+[2026-05-11 13:44:50] === executor-performance -- inicio ===
+[2026-05-11 13:44:50] TC-PERF-S6-001: p95=1365ms avg=1100ms err=0.00% reqs=128
+[2026-05-11 13:44:50] TC-PERF-S6-001 -> PASSED
+[2026-05-11 13:44:50] TC-PERF-S6-002: p95=1132ms avg=205ms err=90.59% reqs=85
+[2026-05-11 13:44:50] TC-PERF-S6-002 -> FAILED
+[2026-05-11 13:44:50] === Fim: 1 passou, 1 falhou ===

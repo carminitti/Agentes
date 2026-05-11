@@ -1,0 +1,62 @@
+{
+  "executor": "db",
+  "environment": "simulado-local",
+  "database": "sqlite://:memory:",
+  "simulated": true,
+  "simulation_note": "Execucao em ambiente simulado (SQLite em memoria). Os dados foram gerados automaticamente com base nos cenarios de teste. Os resultados devem ser revalidados contra o banco real antes do deploy.",
+  "credentials_failed": false,
+  "results": [
+    {
+      "id": "TC-DB-S5-001",
+      "title": "Integridade do schema financeiro (accounts, transactions, balances)",
+      "status": "passed",
+      "simulated": true,
+      "query": "CREATE TABLE + INSERT + SELECT + constraint checks",
+      "expected": "Tabelas criadas, constraints CHECK e FK funcionando, SELECT retorna dados corretos",
+      "actual": "tables_ok=True, check_balance=True, check_amount=True, fk_ok=True, select_ok=True",
+      "logs": [
+        "[CONNECT] Conectando ao banco simulado (SQLite :memory:)",
+        "[SETUP] Criando schema financeiro...",
+        "[SETUP] Tabelas criadas: accounts, transactions, balances",
+        "[ASSERT] Tabelas criadas: ['accounts', 'balances', 'sqlite_sequence', 'transactions'] — ok",
+        "[ASSERT] CHECK balance >= 0 ativo — ok (rejeita saldo negativo)",
+        "[ASSERT] CHECK amount > 0 ativo — ok (rejeita amount negativo)",
+        "[ASSERT] FK from_account_id valida — ok (rejeita FK inexistente)",
+        "[ASSERT] SELECT conta inserida: ('QA Tester', 'checking', 1000.0) — ok",
+        "[RESULT] TC-DB-S5-001 — passed",
+        "[DISCONNECT] Conexao encerrada"
+      ],
+      "error": null
+    },
+    {
+      "id": "TC-DB-S5-002",
+      "title": "Integridade do schema de biblioteca (books, authors, loans)",
+      "status": "passed",
+      "simulated": true,
+      "query": "CREATE TABLE + INSERT + SELECT + constraint checks",
+      "expected": "Tabelas criadas, FK/UNIQUE/CHECK funcionando, SELECT retorna dados corretos",
+      "actual": "tables_ok=True, fk_author=True, isbn_unique=True, avail_check=True, fk_book=True, select_ok=True",
+      "logs": [
+        "[CONNECT] Conectando ao banco simulado (SQLite :memory:)",
+        "[SETUP] Criando schema de biblioteca...",
+        "[SETUP] Tabelas criadas: authors, books, loans",
+        "[ASSERT] Tabelas criadas: ['authors', 'books', 'loans', 'sqlite_sequence'] — ok",
+        "[ASSERT] FK author_id valida — ok (rejeita author_id inexistente)",
+        "[ASSERT] UNIQUE isbn ativo — ok (rejeita ISBN duplicado)",
+        "[ASSERT] CHECK available IN (0,1) ativo — ok",
+        "[ASSERT] FK book_id em loans valida — ok",
+        "[ASSERT] SELECT autor: ('Robert C. Martin', 'American', 1952) — ok",
+        "[RESULT] TC-DB-S5-002 — passed",
+        "[DISCONNECT] Conexao encerrada"
+      ],
+      "error": null
+    }
+  ],
+  "summary": {
+    "total": 2,
+    "passed": 2,
+    "failed": 0,
+    "skipped": 0,
+    "credentials_failed": false
+  }
+}

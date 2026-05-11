@@ -1,0 +1,52 @@
+[2026-05-11 11:52:00] === executor-visual -- inicio ===
+[2026-05-11 11:52:00] Ambiente: https://books.toscrape.com
+[2026-05-11 11:52:00] [TC-VISUAL-001] Homepage completa
+[2026-05-11 11:52:00]   [NAV] Acessando https://books.toscrape.com
+[2026-05-11 11:52:00]   [INFO] Aguardando domcontentloaded
+[2026-05-11 11:52:00]   [SCREENSHOT] Capturado: homepage-completa.png
+[2026-05-11 11:52:00]   [BASELINE] Criado baseline: homepage-completa.png (primeira execucao)
+[2026-05-11 11:52:00]   [BASELINE] ATENCAO: valide visualmente o screenshot gerado antes de usar como referencia -- estado inicial pode conter defeitos visuais
+[2026-05-11 11:52:00]   -> STATUS: BASELINE_CREATED
+[2026-05-11 11:52:00] [TC-VISUAL-002] Sidebar categorias
+[2026-05-11 11:52:00]   [NAV] Acessando https://books.toscrape.com
+[2026-05-11 11:52:00]   [INFO] Aguardando domcontentloaded
+[2026-05-11 11:52:00]   [SCREENSHOT] Capturado elemento: .side_categories, aside, nav[class*="side"]
+[2026-05-11 11:52:00]   [BASELINE] Criado baseline: sidebar-categorias.png (primeira execucao)
+[2026-05-11 11:52:00]   [BASELINE] ATENCAO: valide visualmente o screenshot gerado antes de usar como referencia -- estado inicial pode conter defeitos visuais
+[2026-05-11 11:52:00]   -> STATUS: BASELINE_CREATED
+[2026-05-11 11:52:00] [TC-VISUAL-003] Pagina categoria Mystery
+[2026-05-11 11:52:00]   [NAV] Acessando https://books.toscrape.com/catalogue/category/books/mystery_3/index.html
+[2026-05-11 11:52:00]   [INFO] Aguardando domcontentloaded
+[2026-05-11 11:52:00]   [SCREENSHOT] Capturado: categoria-mystery.png
+[2026-05-11 11:52:00]   [BASELINE] Criado baseline: categoria-mystery.png (primeira execucao)
+[2026-05-11 11:52:00]   [BASELINE] ATENCAO: valide visualmente o screenshot gerado antes de usar como referencia -- estado inicial pode conter defeitos visuais
+[2026-05-11 11:52:00]   -> STATUS: BASELINE_CREATED
+[2026-05-11 11:52:00] [TC-VISUAL-004] Layout responsivo 1920x1080
+[2026-05-11 11:52:00]   [NAV] Acessando https://books.toscrape.com
+[2026-05-11 11:52:00]   [INFO] Aguardando domcontentloaded
+[2026-05-11 11:52:00]   [SCREENSHOT] Capturado: homepage-1920x1080.png
+[2026-05-11 11:52:00]   [BASELINE] Criado baseline: homepage-1920x1080.png (primeira execucao)
+[2026-05-11 11:52:00]   [BASELINE] ATENCAO: valide visualmente o screenshot gerado antes de usar como referencia -- estado inicial pode conter defeitos visuais
+[2026-05-11 11:52:00]   -> STATUS: BASELINE_CREATED
+[2026-05-11 11:52:00] [TC-VISUAL-004] Layout responsivo 1280x720
+[2026-05-11 11:52:00]   [NAV] Acessando https://books.toscrape.com
+[2026-05-11 11:52:00]   [INFO] Aguardando domcontentloaded
+[2026-05-11 11:52:00]   [SCREENSHOT] Capturado: homepage-1280x720.png
+[2026-05-11 11:52:00]   [BASELINE] Criado baseline: homepage-1280x720.png (primeira execucao)
+[2026-05-11 11:52:00]   [BASELINE] ATENCAO: valide visualmente o screenshot gerado antes de usar como referencia -- estado inicial pode conter defeitos visuais
+[2026-05-11 11:52:00]   -> STATUS: BASELINE_CREATED
+[2026-05-11 11:52:00] [TC-VISUAL-004] Layout responsivo 768x1024
+[2026-05-11 11:52:00]   [NAV] Acessando https://books.toscrape.com
+[2026-05-11 11:52:00]   [INFO] Aguardando domcontentloaded
+[2026-05-11 11:52:00]   [SCREENSHOT] Capturado: homepage-768x1024.png
+[2026-05-11 11:52:00]   [BASELINE] Criado baseline: homepage-768x1024.png (primeira execucao)
+[2026-05-11 11:52:00]   [BASELINE] ATENCAO: valide visualmente o screenshot gerado antes de usar como referencia -- estado inicial pode conter defeitos visuais
+[2026-05-11 11:52:00]   -> STATUS: BASELINE_CREATED
+[2026-05-11 11:52:00] [TC-VISUAL-004] Layout responsivo 375x812
+[2026-05-11 11:52:00]   [NAV] Acessando https://books.toscrape.com
+[2026-05-11 11:52:00]   [INFO] Aguardando domcontentloaded
+[2026-05-11 11:52:00]   [SCREENSHOT] Capturado: homepage-375x812.png
+[2026-05-11 11:52:00]   [BASELINE] Criado baseline: homepage-375x812.png (primeira execucao)
+[2026-05-11 11:52:00]   [BASELINE] ATENCAO: valide visualmente o screenshot gerado antes de usar como referencia -- estado inicial pode conter defeitos visuais
+[2026-05-11 11:52:00]   -> STATUS: BASELINE_CREATED
+[2026-05-11 11:52:00] === Fim: 0 passou, 0 falhou, 7 baseline ===

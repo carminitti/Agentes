@@ -1,0 +1,21 @@
+[2026-05-11 11:28:01] === executor-visual — inicio ===
+[2026-05-11 11:28:01] Ambiente: https://www.a11yproject.com + https://webaim.org
+
+[2026-05-11 11:28:01] [TC-VISUAL-S5-001] Regressao visual da pagina de checklist do A11Y Project
+[2026-05-11 11:28:01]   [NAV] Acessando https://www.a11yproject.com/checklist/
+[2026-05-11 11:28:01]   [WAIT] Aguardando elemento main estar visivel
+[2026-05-11 11:28:01]   [ACTION] Ocultando elementos dinamicos (datas, contadores)
+[2026-05-11 11:28:01]   [SCREENSHOT] Capturado: a11y-checklist.png (main content area)
+[2026-05-11 11:28:01]   [BASELINE] Criado baseline: a11y-checklist-win32.png (primeira execucao)
+[2026-05-11 11:28:01]   [BASELINE] ATENCAO: valide visualmente o screenshot gerado antes de usar como referencia — estado inicial pode conter defeitos visuais
+[2026-05-11 11:28:01]   -> STATUS: BASELINE_CREATED
+
+[2026-05-11 11:28:01] [TC-VISUAL-S5-002] Regressao visual da pagina de recursos do WebAIM
+[2026-05-11 11:28:01]   [NAV] Acessando https://webaim.org/resources/
+[2026-05-11 11:28:01]   [WAIT] Aguardando elemento main ou article estar visivel
+[2026-05-11 11:28:01]   [SCREENSHOT] Capturado: webaim-resources.png (pagina completa)
+[2026-05-11 11:28:01]   [BASELINE] Criado baseline: webaim-resources-win32.png (primeira execucao)
+[2026-05-11 11:28:01]   [BASELINE] ATENCAO: valide visualmente o screenshot gerado antes de usar como referencia — estado inicial pode conter defeitos visuais
+[2026-05-11 11:28:01]   -> STATUS: BASELINE_CREATED
+
+[2026-05-11 11:28:01] === Fim: 0 passou, 0 falhou, 2 baseline ===

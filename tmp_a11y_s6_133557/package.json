@@ -1,0 +1,11 @@
+{
+  "name": "executor-a11y-s6",
+  "version": "1.0.0",
+  "scripts": {
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.44.0",
+    "axe-playwright": "^2.0.0"
+  }
+}

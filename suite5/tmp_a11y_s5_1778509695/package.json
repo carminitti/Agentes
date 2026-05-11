@@ -1,0 +1,9 @@
+{
+  "name": "qa-a11y-suite5",
+  "version": "1.0.0",
+  "devDependencies": {
+    "@playwright/test": "^1.44.0",
+    "@axe-core/playwright": "^4.9.0",
+    "typescript": "^5.0.0"
+  }
+}

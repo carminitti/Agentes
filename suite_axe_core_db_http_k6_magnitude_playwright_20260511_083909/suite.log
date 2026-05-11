@@ -1,0 +1,19 @@
+=== Suite QA -- suite_axe_core_db_http_k6_magnitude_playwright_20260511_083909 ===
+Inicio: 2026-05-11T08:39:27
+Fim: 2026-05-11T08:54:46.372834
+Ambiente: multiple (swapi.dev, api.nasa.gov, dummyjson.com, restful-booker.herokuapp.com, automationexercise.com, books.toscrape.com, the-internet.herokuapp.com)
+
+--- Executores despachados ---
+  api: passed=19, failed=1, skipped=8
+  browser: passed=6, failed=4, skipped=0
+  performance: passed=0, failed=4, skipped=0
+  visual: passed=0, failed=0, skipped=0
+  acessibilidade: passed=0, failed=4, skipped=0
+  seguranca: passed=5, failed=3, skipped=0
+  banco: passed=6, failed=10, skipped=0
+
+--- Tipos nao executados ---
+  pact (contrato): Requer Pact Broker
+  appium (mobile): Requer configuracao de dispositivo/emulador
+
+--- Fim do log da suite ---

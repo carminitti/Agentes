@@ -30,6 +30,11 @@ O **Total classificado** deve bater com `summary.environment_tests` do classifie
 - URL do ambiente testado
 - Data/hora da execução
 - Tipos não executados e motivos (Pact, Appium)
+- `screenshot_all`: `true` ou `false` (enviado pelo orquestrador — padrão `false`)
+
+**Regra de evidências visuais por modo:**
+- `screenshot_all: false` (padrão) → screenshots e vídeos exibidos **somente** em testes com status `failed`, `warning` ou `error`; linhas `passed` não são clicáveis e não têm painel de detalhe
+- `screenshot_all: true` → screenshots e vídeos exibidos para **todos** os testes sem exceção; todas as linhas são clicáveis (`r-clickable`) e têm painel de detalhe completo (incluindo log de execução)
 
 ---
 
@@ -421,20 +426,30 @@ footer{text-align:center;padding:28px;color:var(--text-muted);font-size:13px;bor
               <tr><th>Status</th><th>ID</th><th>Título</th><th>Duração</th><th>Detalhe</th></tr>
             </thead>
             <tbody>
-              <!-- Para cada teste: -->
-              <tr class="r-[passed|failed|warning|skipped] [r-clickable se não passed]"
-                  [se não passed: onclick="toggleDetail('[ID]')"]>
+              <!-- Para cada teste:
+                   MODO screenshot_all: false (padrão) →
+                     - status passed: <tr class="r-passed"> sem r-clickable, sem onclick, sem bloco de detalhe
+                     - status não-passed: <tr class="r-[status] r-clickable" onclick="toggleDetail('[ID]')">
+                   MODO screenshot_all: true →
+                     - TODOS os status: <tr class="r-[status] r-clickable" onclick="toggleDetail('[ID]')">
+                     - TODOS têm bloco de detalhe com screenshot, vídeo e log completos -->
+              <tr class="r-[passed|failed|warning|skipped] [r-clickable conforme modo acima]"
+                  [onclick="toggleDetail('[ID]')" conforme modo acima]>
                 <td>[✅|❌|⚠️|⏭️|🆕]</td>
                 <td><code>[ID]</code></td>
                 <td>[Título]</td>
                 <td>[Xms | N/A]</td>
-                <td style="color:var(--text-muted);font-size:12px">[resumo breve do erro | —]</td>
+                <td style="color:var(--text-muted);font-size:12px">[resumo breve do erro, ou "—" se passed]</td>
               </tr>
-              <!-- Bloco de detalhe — só para testes não-passed, imediatamente após o <tr> acima: -->
+              <!-- Bloco de detalhe:
+                   - screenshot_all: false → gerar apenas para testes não-passed
+                   - screenshot_all: true  → gerar para TODOS os testes (incluindo passed) -->
               <tr class="r-detail" style="background:transparent"><td colspan="5" style="padding:0">
                 <div class="test-detail" id="detail-[ID]">
 
-                  <!-- COMPARAÇÃO ESPERADO × OBTIDO — obrigatória para todos os não-passed -->
+                  <!-- COMPARAÇÃO ESPERADO × OBTIDO:
+                       - screenshot_all: false → obrigatória para todos os não-passed
+                       - screenshot_all: true  → obrigatória para TODOS os testes -->
                   <div class="dl">🔀 Esperado × Obtido</div>
                   <div class="cmp">
                     <div class="cmp-col cmp-expected">
@@ -459,8 +474,11 @@ footer{text-align:center;padding:28px;color:var(--text-muted);font-size:13px;bor
                     </div>
                   </div>
 
-                  <!-- SCREENSHOT DE EVIDÊNCIA — exibir para browser, visual e acessibilidade quando screenshot_path presente -->
-                  <!-- INSTRUÇÃO: se o resultado contiver screenshot_path não-nulo, inclua:
+                  <!-- SCREENSHOT DE EVIDÊNCIA — exibir conforme o modo:
+                       - screenshot_all: false → exibir apenas se status != passed
+                       - screenshot_all: true  → exibir para todos os testes
+                       Executores aplicáveis: browser, visual, acessibilidade -->
+                  <!-- INSTRUÇÃO: se o resultado contiver screenshot_path não-nulo E o modo permitir, inclua:
                        <div class="dl">📸 Evidência Visual</div>
                        <div style="margin:8px 0">
                          <img src="file:///[screenshot_path_absoluto]"
@@ -473,8 +491,11 @@ footer{text-align:center;padding:28px;color:var(--text-muted);font-size:13px;bor
                        </div>
                        Se screenshot_path for null, omita esta seção. -->
 
-                  <!-- VÍDEO DE EVIDÊNCIA — exibir para browser, visual e acessibilidade quando video_path presente -->
-                  <!-- INSTRUÇÃO: se o resultado contiver video_path não-nulo, inclua:
+                  <!-- VÍDEO DE EVIDÊNCIA — exibir conforme o modo:
+                       - screenshot_all: false → exibir apenas se status != passed
+                       - screenshot_all: true  → exibir para todos os testes
+                       Executores aplicáveis: browser, visual, acessibilidade -->
+                  <!-- INSTRUÇÃO: se o resultado contiver video_path não-nulo E o modo permitir, inclua:
                        <div class="dl">🎬 Vídeo de Execução</div>
                        <div style="margin:8px 0">
                          <video controls style="max-width:100%;border:1px solid var(--border);border-radius:6px;max-height:360px"
@@ -488,7 +509,9 @@ footer{text-align:center;padding:28px;color:var(--text-muted);font-size:13px;bor
                        </div>
                        Se video_path for null ou executor não for browser/visual/acessibilidade, omita esta seção. -->
 
-                  <!-- LOG DE EXECUÇÃO -->
+                  <!-- LOG DE EXECUÇÃO — exibir conforme o modo:
+                       - screenshot_all: false → exibir apenas se status != passed
+                       - screenshot_all: true  → exibir para todos os testes -->
                   <div class="dl">📋 Log de Execução</div>
                   <div class="log-block">
 <!-- INSTRUÇÃO: para cada linha em logs[], envolva em <span> com classe:

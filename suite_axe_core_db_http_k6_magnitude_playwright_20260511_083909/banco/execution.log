@@ -1,0 +1,79 @@
+[2026-05-11 08:48:25] === executor-banco -- inicio ===
+[2026-05-11 08:48:25] Modo: misto (sqlite simulado + mysql real + postgresql real)
+[2026-05-11 08:48:25] [TC-DB-001] Schema tabela usuarios
+[2026-05-11 08:48:25]   [CONNECT] Conectado ao banco simulado (SQLite :memory:)
+[2026-05-11 08:48:25]   [QUERY] PRAGMA table_info(usuarios);
+[2026-05-11 08:48:25]   [RESULT] [{'cid': 0, 'name': 'id', 'type': 'INTEGER', 'notnull': 0, 'dflt_value': None, 'pk': 1}, {'cid': 1, 'name': 'nome', 'type': 'TEXT', 'notnull': 1, 'dflt_value': None, 'pk': 0}, {'cid': 2, 'name': 'email', 'type': 'TEXT', 'notnull': 1, 'dflt_value': None, 'pk': 0}, {'cid': 3, 'name': 'status', 'type': 'TEXT', 'notnull': 0, 'dflt_value': "'ativo'", 'pk': 0}, {'cid': 4, 'name': 'criado_em', 'type': 'DATETIME', 'notnull': 0, 'dflt_value': 'CURRENT_TIMESTAMP', 'pk': 0}]
+[2026-05-11 08:48:25]   [ASSERT] Schema correto: ['id', 'nome', 'email', 'status', 'criado_em'] OK
+[2026-05-11 08:48:25]   -> STATUS: PASSED
+[2026-05-11 08:48:25] [TC-DB-002] Todos usuarios com status ativo
+[2026-05-11 08:48:25]   [CONNECT] Conectado ao banco simulado (SQLite :memory:)
+[2026-05-11 08:48:25]   [QUERY] SELECT COUNT(*) as total, SUM(CASE WHEN status = "ativo" THEN 1 ELSE 0 END) as ativos FROM usuarios;
+[2026-05-11 08:48:25]   [RESULT] [{'total': 3, 'ativos': 3}]
+[2026-05-11 08:48:25]   [ASSERT] total=3 ativos=3 -- todos ativos OK
+[2026-05-11 08:48:25]   -> STATUS: PASSED
+[2026-05-11 08:48:25] [TC-DB-003] Emails sem duplicatas
+[2026-05-11 08:48:25]   [CONNECT] Conectado ao banco simulado (SQLite :memory:)
+[2026-05-11 08:48:25]   [QUERY] SELECT COUNT(*) AS total, COUNT(DISTINCT email) AS distintos FROM usuarios;
+[2026-05-11 08:48:25]   [RESULT] [{'total': 3, 'distintos': 3}]
+[2026-05-11 08:48:25]   [ASSERT] Emails unicos: total=3=distintos=3 OK
+[2026-05-11 08:48:25]   -> STATUS: PASSED
+[2026-05-11 08:48:25] [TC-DB-004] Integridade referencial pedidos
+[2026-05-11 08:48:25]   [CONNECT] Conectado ao banco simulado (SQLite :memory:)
+[2026-05-11 08:48:25]   [QUERY] SELECT COUNT(*) AS pedidos_orfaos FROM pedidos p WHERE NOT EXISTS (SELECT 1 FROM usuarios u WHERE u.id = p.usuario_id);
+[2026-05-11 08:48:25]   [RESULT] [{'pedidos_orfaos': 0}]
+[2026-05-11 08:48:25]   [ASSERT] Sem pedidos orfaos OK
+[2026-05-11 08:48:25]   -> STATUS: PASSED
+[2026-05-11 08:48:25] [TC-DB-005] Pedidos sem valores negativos
+[2026-05-11 08:48:25]   [CONNECT] Conectado ao banco simulado (SQLite :memory:)
+[2026-05-11 08:48:25]   [QUERY] SELECT COUNT(*) AS invalidos FROM pedidos WHERE valor <= 0;
+[2026-05-11 08:48:25]   [RESULT] [{'invalidos': 0}]
+[2026-05-11 08:48:25]   [ASSERT] Todos pedidos com valor positivo OK
+[2026-05-11 08:48:25]   -> STATUS: PASSED
+[2026-05-11 08:48:25] [TC-DB-006] Referencias de pedidos unicas
+[2026-05-11 08:48:25]   [CONNECT] Conectado ao banco simulado (SQLite :memory:)
+[2026-05-11 08:48:25]   [QUERY] SELECT COUNT(*) AS total, COUNT(DISTINCT referencia) AS distintas FROM pedidos;
+[2026-05-11 08:48:25]   [RESULT] [{'total': 3, 'distintas': 3}]
+[2026-05-11 08:48:25]   [ASSERT] Referencias unicas: 3 OK
+[2026-05-11 08:48:25]   -> STATUS: PASSED
+[2026-05-11 08:48:25] [TC-DB-007] Conexao MySQL estabelecida
+[2026-05-11 08:48:25]   [CONNECT] Falha ao conectar: 2013 (HY000): Lost connection to MySQL server at 'reading initial communication packet', system error: 0
+[2026-05-11 08:48:25]   -> STATUS: FAILED
+[2026-05-11 08:48:25] [TC-DB-008] Versao MySQL Server
+[2026-05-11 08:48:25]   [CONNECT] Falha ao conectar: 2013 (HY000): Lost connection to MySQL server at 'reading initial communication packet', system error: 0
+[2026-05-11 08:48:25]   -> STATUS: FAILED
+[2026-05-11 08:48:25] [TC-DB-009] Listar tabelas qa_squad_db
+[2026-05-11 08:48:25]   [CONNECT] Falha ao conectar: 2013 (HY000): Lost connection to MySQL server at 'reading initial communication packet', system error: 0
+[2026-05-11 08:48:25]   -> STATUS: FAILED
+[2026-05-11 08:48:25] [TC-DB-010] Permissoes leitura qa_squad_2024
+[2026-05-11 08:48:25]   [CONNECT] Falha ao conectar: 2013 (HY000): Lost connection to MySQL server at 'reading initial communication packet', system error: 0
+[2026-05-11 08:48:25]   -> STATUS: FAILED
+[2026-05-11 08:48:25] [TC-DB-011] Charset e collation
+[2026-05-11 08:48:25]   [CONNECT] Falha ao conectar: 2013 (HY000): Lost connection to MySQL server at 'reading initial communication packet', system error: 0
+[2026-05-11 08:48:25]   -> STATUS: FAILED
+[2026-05-11 08:48:25] [TC-DB-012] Conexao SSL PostgreSQL Neon
+[2026-05-11 08:48:25]   [CONNECT] Falha ao conectar: connection to server at "ep-XXXXXXXX.us-east-2.aws.neon.tech" (3.143.47.40), port 5432 failed: ERROR:  password authentication failed for user 'qa_squad'
+
+[2026-05-11 08:48:25]   [INFO] Connection string usa endpoint placeholder ep-XXXXXXXX -- endpoint real nao fornecido
+[2026-05-11 08:48:25]   -> STATUS: FAILED
+[2026-05-11 08:48:25] [TC-DB-013] Versao servidor PostgreSQL
+[2026-05-11 08:48:25]   [CONNECT] Falha ao conectar: connection to server at "ep-XXXXXXXX.us-east-2.aws.neon.tech" (3.143.47.40), port 5432 failed: ERROR:  password authentication failed for user 'qa_squad'
+
+[2026-05-11 08:48:25]   [INFO] Connection string usa endpoint placeholder ep-XXXXXXXX -- endpoint real nao fornecido
+[2026-05-11 08:48:25]   -> STATUS: FAILED
+[2026-05-11 08:48:25] [TC-DB-014] Listar tabelas schema publico
+[2026-05-11 08:48:25]   [CONNECT] Falha ao conectar: connection to server at "ep-XXXXXXXX.us-east-2.aws.neon.tech" (3.143.47.40), port 5432 failed: ERROR:  password authentication failed for user 'qa_squad'
+
+[2026-05-11 08:48:25]   [INFO] Connection string usa endpoint placeholder ep-XXXXXXXX -- endpoint real nao fornecido
+[2026-05-11 08:48:25]   -> STATUS: FAILED
+[2026-05-11 08:48:25] [TC-DB-015] Permissoes qa_squad
+[2026-05-11 08:48:25]   [CONNECT] Falha ao conectar: connection to server at "ep-XXXXXXXX.us-east-2.aws.neon.tech" (3.143.47.40), port 5432 failed: ERROR:  password authentication failed for user 'qa_squad'
+
+[2026-05-11 08:48:25]   [INFO] Connection string usa endpoint placeholder ep-XXXXXXXX -- endpoint real nao fornecido
+[2026-05-11 08:48:25]   -> STATUS: FAILED
+[2026-05-11 08:48:25] [TC-DB-016] Encoding e timezone
+[2026-05-11 08:48:25]   [CONNECT] Falha ao conectar: connection to server at "ep-XXXXXXXX.us-east-2.aws.neon.tech" (3.143.47.40), port 5432 failed: ERROR:  password authentication failed for user 'qa_squad'
+
+[2026-05-11 08:48:25]   [INFO] Connection string usa endpoint placeholder ep-XXXXXXXX -- endpoint real nao fornecido
+[2026-05-11 08:48:25]   -> STATUS: FAILED
+[2026-05-11 08:48:25] === Fim: 6 passou, 10 falhou, 0 skipped ===

@@ -1,0 +1,38 @@
+[2026-05-11 11:52:08] === executor-acessibilidade -- inicio ===
+[2026-05-11 11:52:08] Nivel WCAG: wcag2aa
+[2026-05-11 11:52:08] [TC-A11Y-001] Homepage Books to Scrape acessibilidade
+[2026-05-11 11:52:08]   [NAV] Acessando https://books.toscrape.com
+[2026-05-11 11:52:08]   [ANALYSIS] Executando axe-core (WCAG 2.1 AA)
+[2026-05-11 11:52:08]   [VIOLATION] color-contrast (serious): 3 elementos afetados
+[2026-05-11 11:52:08]   [RESULT] 1 violacoes encontradas (1 novas) -- failed
+[2026-05-11 11:52:08]   -> STATUS: FAILED
+[2026-05-11 11:52:08] [TC-A11Y-002] Categoria Mystery acessibilidade
+[2026-05-11 11:52:08]   [NAV] Acessando https://books.toscrape.com/catalogue/category/books/mystery_3/index.html
+[2026-05-11 11:52:08]   [ANALYSIS] Executando axe-core (WCAG 2.1 AA)
+[2026-05-11 11:52:08]   [VIOLATION] color-contrast (serious): 3 elementos afetados
+[2026-05-11 11:52:08]   [RESULT] 1 violacoes encontradas (1 novas) -- failed
+[2026-05-11 11:52:08]   -> STATUS: FAILED
+[2026-05-11 11:52:08] [TC-A11Y-003] Formulario login The Internet acessibilidade
+[2026-05-11 11:52:08]   [NAV] Acessando https://the-internet.herokuapp.com/login
+[2026-05-11 11:52:08]   [ANALYSIS] Executando axe-core (WCAG 2.1 AA)
+[2026-05-11 11:52:08]   [VIOLATION] color-contrast (serious): 2 elementos afetados
+[2026-05-11 11:52:08]   [RESULT] 1 violacoes encontradas (1 novas) -- failed
+[2026-05-11 11:52:08]   -> STATUS: FAILED
+[2026-05-11 11:52:08] [TC-A11Y-004] Mensagem erro login acessivel
+[2026-05-11 11:52:08]   [NAV] Acessando https://the-internet.herokuapp.com/login
+[2026-05-11 11:52:08]   [ACTION] Credenciais invalidas preenchidas
+[2026-05-11 11:52:08]   [ACTION] Login submetido
+[2026-05-11 11:52:08]   [INFO] Aguardando mensagem de erro
+[2026-05-11 11:52:08]   [ANALYSIS] Executando axe-core (WCAG 2.1 AA)
+[2026-05-11 11:52:08]   [VIOLATION] color-contrast (serious): 2 elementos afetados
+[2026-05-11 11:52:08]   [RESULT] 1 violacoes encontradas (1 novas) -- failed
+[2026-05-11 11:52:08]   -> STATUS: FAILED
+[2026-05-11 11:52:08] [TC-A11Y-005] AutomationExercise homepage acessibilidade (demo)
+[2026-05-11 11:52:08]   [NAV] Acessando https://automationexercise.com
+[2026-05-11 11:52:08]   [ANALYSIS] Executando axe-core (WCAG 2.1 AA)
+[2026-05-11 11:52:08]   [VIOLATION] button-name (critical): 1 elementos afetados (known demo failure)
+[2026-05-11 11:52:08]   [VIOLATION] color-contrast (serious): 3 elementos afetados (known demo failure)
+[2026-05-11 11:52:08]   [VIOLATION] link-name (serious): 3 elementos afetados (known demo failure)
+[2026-05-11 11:52:08]   [RESULT] 3 violacoes conhecidas do ambiente -- deploy nao bloqueado
+[2026-05-11 11:52:08]   -> STATUS: WARNING
+[2026-05-11 11:52:08] === Fim: 0 passou, 4 falhou, 1 aviso ===

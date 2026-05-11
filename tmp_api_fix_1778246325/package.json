@@ -1,0 +1,8 @@
+{
+  "name": "swapi-api-tests-fix",
+  "version": "1.0.0",
+  "devDependencies": {
+    "@playwright/test": "^1.59.1",
+    "zod": "^3.22.0"
+  }
+}

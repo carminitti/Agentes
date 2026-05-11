@@ -1,0 +1,9 @@
+{
+  "name": "swapi-api-tests",
+  "version": "1.0.0",
+  "scripts": { "test": "npx playwright test" },
+  "devDependencies": {
+    "@playwright/test": "^1.59.1",
+    "zod": "^3.22.0"
+  }
+}

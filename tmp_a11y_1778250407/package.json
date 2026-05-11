@@ -1,0 +1,10 @@
+{
+  "name": "tmp-a11y-tests",
+  "version": "1.0.0",
+  "private": true,
+  "devDependencies": {
+    "@playwright/test": "^1.44.0",
+    "@axe-core/playwright": "^4.9.0",
+    "typescript": "^5.4.5"
+  }
+}

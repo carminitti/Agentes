@@ -1,0 +1,120 @@
+{
+  "executor": "api",
+  "environment": "https://practice.expandtesting.com/notes/api",
+  "results": [
+    {
+      "id": "TC-API-011",
+      "title": "Health check da API de notas",
+      "status": "passed",
+      "duration_ms": 243,
+      "details": {
+        "status_code": 200,
+        "message": "Notes API is Running"
+      },
+      "logs": [
+        "[REQUEST] GET https://practice.expandtesting.com/notes/api/health-check",
+        "[RESPONSE] 200 \u2014 240ms",
+        "[ASSERT] status == 200 \u2713",
+        "[ASSERT] message == 'Notes API is Running' \u2713"
+      ],
+      "error": null
+    },
+    {
+      "id": "TC-API-012",
+      "title": "Registrar usu\u00e1rio no Practice Expand",
+      "status": "passed",
+      "duration_ms": 211,
+      "details": {
+        "status_code": 409,
+        "note": "Usu\u00e1rio criado ou j\u00e1 existia"
+      },
+      "logs": [
+        "[REQUEST] POST https://practice.expandtesting.com/notes/api/users/register",
+        "[RESPONSE] 409 \u2014 208ms",
+        "[ASSERT] status in [201, 409] \u2713 (recebido: 409)",
+        "[INFO] Usu\u00e1rio j\u00e1 existia (409) \u2014 aceit\u00e1vel"
+      ],
+      "error": null
+    },
+    {
+      "id": "TC-API-013",
+      "title": "Login e obter token no Practice Expand",
+      "status": "passed",
+      "duration_ms": 292,
+      "details": {
+        "status_code": 200,
+        "token_obtained": true
+      },
+      "logs": [
+        "[REQUEST] POST https://practice.expandtesting.com/notes/api/users/login",
+        "[RESPONSE] 200 \u2014 290ms",
+        "[ASSERT] status == 200 \u2713",
+        "[ASSERT] data.token n\u00e3o vazio \u2713 (token obtido)"
+      ],
+      "error": null
+    },
+    {
+      "id": "TC-API-014",
+      "title": "Criar nota autenticada no Practice Expand",
+      "status": "passed",
+      "duration_ms": 432,
+      "details": {
+        "status_code": 200,
+        "note_id": "69fe0d8f0fadc10297dd8317"
+      },
+      "logs": [
+        "[REQUEST] POST https://practice.expandtesting.com/notes/api/notes",
+        "[HEADER] x-auth-token: <token>",
+        "[RESPONSE] 200 \u2014 430ms",
+        "[ASSERT] status == 200 \u2713",
+        "[ASSERT] data.title == 'Nota do QA Agente' \u2713",
+        "[ASSERT] data.category == 'Work' \u2713",
+        "[INFO] Note ID salvo: 69fe0d8f0fadc10297dd8317"
+      ],
+      "error": null
+    },
+    {
+      "id": "TC-API-015",
+      "title": "Listar notas autenticado no Practice Expand",
+      "status": "passed",
+      "duration_ms": 197,
+      "details": {
+        "status_code": 200,
+        "notes_count": 3
+      },
+      "logs": [
+        "[REQUEST] GET https://practice.expandtesting.com/notes/api/notes",
+        "[RESPONSE] 200 \u2014 195ms",
+        "[ASSERT] status == 200 \u2713",
+        "[ASSERT] resultado \u00e9 array \u2713 (3 notas)",
+        "[ASSERT] campo 'id' presente \u2713",
+        "[ASSERT] campo 'title' presente \u2713",
+        "[ASSERT] campo 'description' presente \u2713",
+        "[ASSERT] campo 'category' presente \u2713"
+      ],
+      "error": null
+    },
+    {
+      "id": "TC-API-016",
+      "title": "Tentar criar nota sem autentica\u00e7\u00e3o retorna 401",
+      "status": "passed",
+      "duration_ms": 194,
+      "details": {
+        "status_code": 401,
+        "protected": true
+      },
+      "logs": [
+        "[REQUEST] POST https://practice.expandtesting.com/notes/api/notes (sem x-auth-token)",
+        "[RESPONSE] 401 \u2014 193ms",
+        "[ASSERT] status == 401 \u2713 \u2014 endpoint protegido corretamente"
+      ],
+      "error": null
+    }
+  ],
+  "summary": {
+    "total": 6,
+    "passed": 6,
+    "failed": 0,
+    "skipped": 0
+  }
+}

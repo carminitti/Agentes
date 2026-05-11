@@ -1,0 +1,96 @@
+{
+  "executor": "axe-core",
+  "environment": "practiceautomation.com / quotes.toscrape.com",
+  "wcag_level": "wcag2aa",
+  "results": [
+    {
+      "id": "TC-A11Y-S3-001",
+      "title": "Conformidade WCAG 2.1 AA no formulario de pratica",
+      "status": "failed",
+      "deploy_blocked": true,
+      "violations": [
+        {
+          "rule_id": "color-contrast",
+          "impact": "serious",
+          "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "affected_elements": [
+            "<button class=\"cky-btn cky-btn-customize\" aria-label=\"Customize\" aria-haspopup=\"true\" aria-controls=\"ckyPreferenceCenter\" data-cky-tag=\"settings-button\" style=\"color: rgb(42, 165, 39); border-color: rgb(42, 165, 39); background-color: transparent;\" aria-expanded=\"false\">Customize</button>",
+            "<button class=\"cky-btn cky-btn-reject\" aria-label=\"Reject All\" data-cky-tag=\"reject-button\" style=\"color: rgb(42, 165, 39); border-color: rgb(42, 165, 39); background-color: transparent;\">Reject All</button>",
+            "<button class=\"cky-btn cky-btn-accept\" aria-label=\"Accept All\" data-cky-tag=\"accept-button\" style=\"color: #FFFFFF; border-color: rgb(42, 165, 39); background-color: rgb(42, 165, 39);\">Accept All</button>"
+          ],
+          "how_to_fix": "Fix any of the following:\n  Element has insufficient color contrast of 3.22 (foreground color: #2aa527, background color: #ffffff, font size: 10.5pt (14px), font weight: normal). Expected contrast ratio of 4.5:1",
+          "help_url": "https://dequeuniversity.com/rules/axe/4.11/color-contrast?application=playwright",
+          "known_environment_failure": false,
+          "known_failure_note": null
+        }
+      ],
+      "passes_count": 27,
+      "logs": [
+        "[NAV] Acessando https://practiceautomation.com/practice-form/",
+        "[WAIT] form visivel",
+        "[ANALYSIS] Executando axe-core (WCAG 2.1 AA)",
+        "[VIOLATION] color-contrast (serious): 3 elementos",
+        "[RESULT] 1 violacoes encontradas - failed"
+      ],
+      "error": null
+    },
+    {
+      "id": "TC-A11Y-S3-002",
+      "title": "Conformidade WCAG 2.1 AA na pagina inicial de citacoes",
+      "status": "failed",
+      "deploy_blocked": true,
+      "violations": [
+        {
+          "rule_id": "color-contrast",
+          "impact": "serious",
+          "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "affected_elements": [
+            "<a href=\"/login\">Login</a>",
+            "<small class=\"author\" itemprop=\"author\">Albert Einstein</small>",
+            "<a href=\"/author/Albert-Einstein\">(about)</a>"
+          ],
+          "how_to_fix": "Fix any of the following:\n  Element has insufficient color contrast of 3.71 (foreground color: #4582ec, background color: #ffffff, font size: 12.0pt (16px), font weight: normal). Expected contrast ratio of 4.5:1",
+          "help_url": "https://dequeuniversity.com/rules/axe/4.11/color-contrast?application=playwright",
+          "known_environment_failure": false,
+          "known_failure_note": null
+        },
+        {
+          "rule_id": "link-in-text-block",
+          "impact": "serious",
+          "description": "Ensure links are distinguished from surrounding text in a way that does not rely on color",
+          "affected_elements": [
+            "<a class=\"zyte\" href=\"https://www.zyte.com\">Zyte</a>"
+          ],
+          "how_to_fix": "Fix any of the following:\n  The link has insufficient color contrast of 2.46:1 with the surrounding text. (Minimum contrast is 3:1, link text: #b02cce, surrounding text: #333333)\n  The link has no styling (such as underline) to distinguish it from the surrounding text",
+          "help_url": "https://dequeuniversity.com/rules/axe/4.11/link-in-text-block?application=playwright",
+          "known_environment_failure": false,
+          "known_failure_note": null
+        }
+      ],
+      "passes_count": 12,
+      "logs": [
+        "[NAV] Acessando https://quotes.toscrape.com/",
+        "[WAIT] div.quote visivel",
+        "[ANALYSIS] Executando axe-core (WCAG 2.1 AA)",
+        "[VIOLATION] color-contrast (serious): 3 elementos",
+        "[VIOLATION] link-in-text-block (serious): 1 elementos",
+        "[RESULT] 2 violacoes encontradas - failed"
+      ],
+      "error": null
+    }
+  ],
+  "summary": {
+    "total": 2,
+    "passed": 0,
+    "failed": 2,
+    "warning": 0,
+    "known_environment_failures": 0,
+    "total_violations": 3,
+    "by_impact": {
+      "critical": 0,
+      "serious": 3,
+      "moderate": 0,
+      "minor": 0
+    }
+  }
+}

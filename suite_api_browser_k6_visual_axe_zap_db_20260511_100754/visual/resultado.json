@@ -1,0 +1,48 @@
+{
+  "executor": "playwright-visual",
+  "environment": "https://quotes.toscrape.com",
+  "results": [
+    {
+      "id": "TC-VISUAL-S3-001",
+      "title": "Regressao visual da pagina inicial de citacoes",
+      "status": "passed",
+      "baseline": "existing",
+      "diff_pixels": 0,
+      "diff_percent": 0,
+      "screenshot_path": "suite_api_browser_k6_visual_axe_zap_db_20260511_100754\\visual\\screenshots\\quotes-home.png",
+      "logs": [
+        "[NAV] Acessando https://quotes.toscrape.com/",
+        "[WAIT] div.quote visivel",
+        "[DYNAMIC] Elementos dinamicos ocultados",
+        "[SCREENSHOT] Capturado: quotes-home.png",
+        "[COMPARE] Comparando com baseline",
+        "[RESULT] Diferenca: 0% (threshold: 2%) v"
+      ],
+      "error": null
+    },
+    {
+      "id": "TC-VISUAL-S3-002",
+      "title": "Regressao visual da pagina de tags populares",
+      "status": "baseline_created",
+      "baseline": "created",
+      "diff_pixels": null,
+      "diff_percent": null,
+      "screenshot_path": "suite_api_browser_k6_visual_axe_zap_db_20260511_100754\\visual\\screenshots\\quotes-love-tag.png",
+      "logs": [
+        "[NAV] Acessando https://quotes.toscrape.com/tag/love/",
+        "[WAIT] div.quote visivel",
+        "[DYNAMIC] Elementos dinamicos ocultados",
+        "[SCREENSHOT] Capturado: quotes-love-tag.png",
+        "[BASELINE] Criado baseline: quotes-love-tag.png (primeira execucao)",
+        "[BASELINE] ATENCAO: valide visualmente o screenshot gerado antes de usar como referencia"
+      ],
+      "error": null
+    }
+  ],
+  "summary": {
+    "total": 2,
+    "passed": 1,
+    "failed": 0,
+    "baseline_created": 1
+  }
+}

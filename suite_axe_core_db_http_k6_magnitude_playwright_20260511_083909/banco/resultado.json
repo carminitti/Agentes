@@ -1,0 +1,248 @@
+{
+  "executor": "db",
+  "environment": "mixed (sqlite:memory + mysql:db4free.net + postgresql:neon.tech)",
+  "database": "sqlite://:memory: | mysql://****@db4free.net:3306/qa_squad_db | postgresql://****@ep-XXXXXXXX.neon.tech/qa_test_db",
+  "simulated": false,
+  "simulation_note": "Execucao em ambiente simulado (SQLite em memoria). Os dados foram gerados automaticamente. Resultados do SQLite devem ser revalidados contra o banco real antes do deploy.",
+  "credentials_failed": false,
+  "generated_files": null,
+  "results": [
+    {
+      "id": "TC-DB-001",
+      "title": "Schema tabela usuarios",
+      "status": "passed",
+      "simulated": true,
+      "query": "PRAGMA table_info(usuarios);",
+      "logs": [
+        "[CONNECT] Conectado ao banco simulado (SQLite :memory:)",
+        "[QUERY] PRAGMA table_info(usuarios);",
+        "[RESULT] [{'cid': 0, 'name': 'id', 'type': 'INTEGER', 'notnull': 0, 'dflt_value': None, 'pk': 1}, {'cid': 1, 'name': 'nome', 'type': 'TEXT', 'notnull': 1, 'dflt_value': None, 'pk': 0}, {'cid': 2, 'name': 'email', 'type': 'TEXT', 'notnull': 1, 'dflt_value': None, 'pk': 0}, {'cid': 3, 'name': 'status', 'type': 'TEXT', 'notnull': 0, 'dflt_value': \"'ativo'\", 'pk': 0}, {'cid': 4, 'name': 'criado_em', 'type': 'DATETIME', 'notnull': 0, 'dflt_value': 'CURRENT_TIMESTAMP', 'pk': 0}]",
+        "[ASSERT] Schema correto: ['id', 'nome', 'email', 'status', 'criado_em'] OK"
+      ],
+      "error": null,
+      "duration_ms": 0
+    },
+    {
+      "id": "TC-DB-002",
+      "title": "Todos usuarios com status ativo",
+      "status": "passed",
+      "simulated": true,
+      "query": "SELECT COUNT(*) as total, SUM(CASE WHEN status = \"ativo\" THEN 1 ELSE 0 END) as ativos FROM usuarios;",
+      "logs": [
+        "[CONNECT] Conectado ao banco simulado (SQLite :memory:)",
+        "[QUERY] SELECT COUNT(*) as total, SUM(CASE WHEN status = \"ativo\" THEN 1 ELSE 0 END) as ativos FROM usuarios;",
+        "[RESULT] [{'total': 3, 'ativos': 3}]",
+        "[ASSERT] total=3 ativos=3 -- todos ativos OK"
+      ],
+      "error": null,
+      "duration_ms": 0
+    },
+    {
+      "id": "TC-DB-003",
+      "title": "Emails sem duplicatas",
+      "status": "passed",
+      "simulated": true,
+      "query": "SELECT COUNT(*) AS total, COUNT(DISTINCT email) AS distintos FROM usuarios;",
+      "logs": [
+        "[CONNECT] Conectado ao banco simulado (SQLite :memory:)",
+        "[QUERY] SELECT COUNT(*) AS total, COUNT(DISTINCT email) AS distintos FROM usuarios;",
+        "[RESULT] [{'total': 3, 'distintos': 3}]",
+        "[ASSERT] Emails unicos: total=3=distintos=3 OK"
+      ],
+      "error": null,
+      "duration_ms": 0
+    },
+    {
+      "id": "TC-DB-004",
+      "title": "Integridade referencial pedidos",
+      "status": "passed",
+      "simulated": true,
+      "query": "SELECT COUNT(*) AS pedidos_orfaos FROM pedidos p WHERE NOT EXISTS (SELECT 1 FROM usuarios u WHERE u.id = p.usuario_id);",
+      "logs": [
+        "[CONNECT] Conectado ao banco simulado (SQLite :memory:)",
+        "[QUERY] SELECT COUNT(*) AS pedidos_orfaos FROM pedidos p WHERE NOT EXISTS (SELECT 1 FROM usuarios u WHERE u.id = p.usuario_id);",
+        "[RESULT] [{'pedidos_orfaos': 0}]",
+        "[ASSERT] Sem pedidos orfaos OK"
+      ],
+      "error": null,
+      "duration_ms": 0
+    },
+    {
+      "id": "TC-DB-005",
+      "title": "Pedidos sem valores negativos",
+      "status": "passed",
+      "simulated": true,
+      "query": "SELECT COUNT(*) AS invalidos FROM pedidos WHERE valor <= 0;",
+      "logs": [
+        "[CONNECT] Conectado ao banco simulado (SQLite :memory:)",
+        "[QUERY] SELECT COUNT(*) AS invalidos FROM pedidos WHERE valor <= 0;",
+        "[RESULT] [{'invalidos': 0}]",
+        "[ASSERT] Todos pedidos com valor positivo OK"
+      ],
+      "error": null,
+      "duration_ms": 0
+    },
+    {
+      "id": "TC-DB-006",
+      "title": "Referencias de pedidos unicas",
+      "status": "passed",
+      "simulated": true,
+      "query": "SELECT COUNT(*) AS total, COUNT(DISTINCT referencia) AS distintas FROM pedidos;",
+      "logs": [
+        "[CONNECT] Conectado ao banco simulado (SQLite :memory:)",
+        "[QUERY] SELECT COUNT(*) AS total, COUNT(DISTINCT referencia) AS distintas FROM pedidos;",
+        "[RESULT] [{'total': 3, 'distintas': 3}]",
+        "[ASSERT] Referencias unicas: 3 OK"
+      ],
+      "error": null,
+      "duration_ms": 0
+    },
+    {
+      "id": "TC-DB-007",
+      "title": "Conexao MySQL estabelecida",
+      "status": "failed",
+      "simulated": false,
+      "query": null,
+      "logs": [
+        "[CONNECT] Falha ao conectar: 2013 (HY000): Lost connection to MySQL server at 'reading initial communication packet', system error: 0"
+      ],
+      "error": "Banco inacessivel: 2013 (HY000): Lost connection to MySQL server at 'reading initial communication packet', system error: 0",
+      "duration_ms": 0
+    },
+    {
+      "id": "TC-DB-008",
+      "title": "Versao MySQL Server",
+      "status": "failed",
+      "simulated": false,
+      "query": null,
+      "logs": [
+        "[CONNECT] Falha ao conectar: 2013 (HY000): Lost connection to MySQL server at 'reading initial communication packet', system error: 0"
+      ],
+      "error": "Banco inacessivel: 2013 (HY000): Lost connection to MySQL server at 'reading initial communication packet', system error: 0",
+      "duration_ms": 0
+    },
+    {
+      "id": "TC-DB-009",
+      "title": "Listar tabelas qa_squad_db",
+      "status": "failed",
+      "simulated": false,
+      "query": null,
+      "logs": [
+        "[CONNECT] Falha ao conectar: 2013 (HY000): Lost connection to MySQL server at 'reading initial communication packet', system error: 0"
+      ],
+      "error": "Banco inacessivel: 2013 (HY000): Lost connection to MySQL server at 'reading initial communication packet', system error: 0",
+      "duration_ms": 0
+    },
+    {
+      "id": "TC-DB-010",
+      "title": "Permissoes leitura qa_squad_2024",
+      "status": "failed",
+      "simulated": false,
+      "query": null,
+      "logs": [
+        "[CONNECT] Falha ao conectar: 2013 (HY000): Lost connection to MySQL server at 'reading initial communication packet', system error: 0"
+      ],
+      "error": "Banco inacessivel: 2013 (HY000): Lost connection to MySQL server at 'reading initial communication packet', system error: 0",
+      "duration_ms": 0
+    },
+    {
+      "id": "TC-DB-011",
+      "title": "Charset e collation",
+      "status": "failed",
+      "simulated": false,
+      "query": null,
+      "logs": [
+        "[CONNECT] Falha ao conectar: 2013 (HY000): Lost connection to MySQL server at 'reading initial communication packet', system error: 0"
+      ],
+      "error": "Banco inacessivel: 2013 (HY000): Lost connection to MySQL server at 'reading initial communication packet', system error: 0",
+      "duration_ms": 0
+    },
+    {
+      "id": "TC-DB-012",
+      "title": "Conexao SSL PostgreSQL Neon",
+      "status": "failed",
+      "simulated": false,
+      "database": "postgresql://****@ep-XXXXXXXX.neon.tech/qa_test_db",
+      "logs": [
+        "[CONNECT] Falha ao conectar: connection to server at \"ep-XXXXXXXX.us-east-2.aws.neon.tech\" (3.143.47.40), port 5432 failed: ERROR:  password authentication failed for user 'qa_squad'\n",
+        "[INFO] Connection string usa endpoint placeholder ep-XXXXXXXX -- endpoint real nao fornecido"
+      ],
+      "error": "Banco inacessivel: connection to server at \"ep-XXXXXXXX.us-east-2.aws.neon.tech\" (3.143.47.40), port 5432 failed: ERROR:  password authentication failed for user 'qa_squad'\n",
+      "duration_ms": 0
+    },
+    {
+      "id": "TC-DB-013",
+      "title": "Versao servidor PostgreSQL",
+      "status": "failed",
+      "simulated": false,
+      "database": "postgresql://****@ep-XXXXXXXX.neon.tech/qa_test_db",
+      "logs": [
+        "[CONNECT] Falha ao conectar: connection to server at \"ep-XXXXXXXX.us-east-2.aws.neon.tech\" (3.143.47.40), port 5432 failed: ERROR:  password authentication failed for user 'qa_squad'\n",
+        "[INFO] Connection string usa endpoint placeholder ep-XXXXXXXX -- endpoint real nao fornecido"
+      ],
+      "error": "Banco inacessivel: connection to server at \"ep-XXXXXXXX.us-east-2.aws.neon.tech\" (3.143.47.40), port 5432 failed: ERROR:  password authentication failed for user 'qa_squad'\n",
+      "duration_ms": 0
+    },
+    {
+      "id": "TC-DB-014",
+      "title": "Listar tabelas schema publico",
+      "status": "failed",
+      "simulated": false,
+      "database": "postgresql://****@ep-XXXXXXXX.neon.tech/qa_test_db",
+      "logs": [
+        "[CONNECT] Falha ao conectar: connection to server at \"ep-XXXXXXXX.us-east-2.aws.neon.tech\" (3.143.47.40), port 5432 failed: ERROR:  password authentication failed for user 'qa_squad'\n",
+        "[INFO] Connection string usa endpoint placeholder ep-XXXXXXXX -- endpoint real nao fornecido"
+      ],
+      "error": "Banco inacessivel: connection to server at \"ep-XXXXXXXX.us-east-2.aws.neon.tech\" (3.143.47.40), port 5432 failed: ERROR:  password authentication failed for user 'qa_squad'\n",
+      "duration_ms": 0
+    },
+    {
+      "id": "TC-DB-015",
+      "title": "Permissoes qa_squad",
+      "status": "failed",
+      "simulated": false,
+      "database": "postgresql://****@ep-XXXXXXXX.neon.tech/qa_test_db",
+      "logs": [
+        "[CONNECT] Falha ao conectar: connection to server at \"ep-XXXXXXXX.us-east-2.aws.neon.tech\" (3.143.47.40), port 5432 failed: ERROR:  password authentication failed for user 'qa_squad'\n",
+        "[INFO] Connection string usa endpoint placeholder ep-XXXXXXXX -- endpoint real nao fornecido"
+      ],
+      "error": "Banco inacessivel: connection to server at \"ep-XXXXXXXX.us-east-2.aws.neon.tech\" (3.143.47.40), port 5432 failed: ERROR:  password authentication failed for user 'qa_squad'\n",
+      "duration_ms": 0
+    },
+    {
+      "id": "TC-DB-016",
+      "title": "Encoding e timezone",
+      "status": "failed",
+      "simulated": false,
+      "database": "postgresql://****@ep-XXXXXXXX.neon.tech/qa_test_db",
+      "logs": [
+        "[CONNECT] Falha ao conectar: connection to server at \"ep-XXXXXXXX.us-east-2.aws.neon.tech\" (3.143.47.40), port 5432 failed: ERROR:  password authentication failed for user 'qa_squad'\n",
+        "[INFO] Connection string usa endpoint placeholder ep-XXXXXXXX -- endpoint real nao fornecido"
+      ],
+      "error": "Banco inacessivel: connection to server at \"ep-XXXXXXXX.us-east-2.aws.neon.tech\" (3.143.47.40), port 5432 failed: ERROR:  password authentication failed for user 'qa_squad'\n",
+      "duration_ms": 0
+    }
+  ],
+  "summary": {
+    "total": 16,
+    "passed": 6,
+    "failed": 10,
+    "skipped": 0,
+    "error": 0,
+    "credentials_failed": false,
+    "groups": {
+      "sqlite_simulated": {
+        "total": 6,
+        "passed": 6
+      },
+      "mysql_real": {
+        "total": 5,
+        "passed": 0
+      },
+      "postgresql_real": {
+        "total": 5,
+        "passed": 0
+      }
+    }
+  }
+}

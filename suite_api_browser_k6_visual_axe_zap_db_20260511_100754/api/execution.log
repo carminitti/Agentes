@@ -1,0 +1,5 @@
+[2026-05-11 10:11:33] === executor-api - inicio ===
+[2026-05-11 10:11:33] Ambiente: https://reqres.in/api
+[2026-05-11 10:11:34] [TC-API-S3-001] STATUS: FAILED
+[2026-05-11 10:11:34] [TC-API-S3-002] STATUS: FAILED
+[2026-05-11 10:11:34] === Fim: 0 passou, 2 falhou ===

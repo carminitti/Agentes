@@ -1,0 +1,232 @@
+{
+  "executor": "k6",
+  "environment": "swapi.dev|restful-booker.herokuapp.com",
+  "credentials_failed": false,
+  "generated_files": null,
+  "results": [
+    {
+      "id": "TC-PERF-001",
+      "title": "SWAPI performance 10 VUs 30s",
+      "status": "failed",
+      "type": "performance",
+      "metrics": {
+        "error_rate_pct": 100.0,
+        "throughput_rps": 0,
+        "p95_ms": 9999,
+        "p99_ms": 9999,
+        "p50_ms": 9999,
+        "min_ms": 0,
+        "max_ms": 0,
+        "total_requests": 0,
+        "mode": "fallback_python"
+      },
+      "thresholds": [
+        {
+          "check": "error rate < 1%",
+          "actual": "100.0%",
+          "result": "failed"
+        },
+        {
+          "check": "p(95) < 2000ms",
+          "actual": "9999ms",
+          "result": "failed"
+        },
+        {
+          "check": "p(99) < 4000ms",
+          "actual": "9999ms",
+          "result": "failed"
+        },
+        {
+          "check": "throughput >= 5 rps",
+          "actual": "0 rps",
+          "result": "failed"
+        }
+      ],
+      "logs": [
+        "[CONFIG] 10 VUs, duracao 30s, tipo: performance",
+        "[RUN] Script iniciado (modo fallback Python)",
+        "[METRIC] p50=9999ms p95=9999ms p99=9999ms",
+        "[METRIC] error_rate=100.0% throughput=0 rps",
+        "[THRESHOLD] error rate < 1% FALHOU (atual: 100.0%)",
+        "[THRESHOLD] p(95) < 2000ms FALHOU (atual: 9999ms)",
+        "[THRESHOLD] p(99) < 4000ms FALHOU (atual: 9999ms)",
+        "[THRESHOLD] throughput >= 5 rps FALHOU (atual: 0 rps)"
+      ],
+      "error": null,
+      "duration_ms": 30541
+    },
+    {
+      "id": "TC-PERF-002",
+      "title": "Restful-Booker carga 50 VUs 60s",
+      "status": "failed",
+      "type": "carga",
+      "metrics": {
+        "p50_ms": 5635.9,
+        "p95_ms": 6428.2,
+        "p99_ms": 6843.9,
+        "min_ms": 3816.0,
+        "max_ms": 6972.3,
+        "error_rate_pct": 36.2,
+        "throughput_rps": 7.55,
+        "vus_peak": 50,
+        "duration_s": 60,
+        "total_requests": 710,
+        "mode": "fallback_python"
+      },
+      "thresholds": [
+        {
+          "check": "error rate < 5%",
+          "actual": "36.2%",
+          "result": "failed"
+        },
+        {
+          "check": "p(95) < 5000ms",
+          "actual": "6428.2ms",
+          "result": "failed"
+        },
+        {
+          "check": "throughput >= 10 rps",
+          "actual": "7.55 rps",
+          "result": "failed"
+        }
+      ],
+      "logs": [
+        "[CONFIG] 50 VUs, duracao 60s, tipo: carga",
+        "[RUN] Script iniciado (modo fallback Python)",
+        "[METRIC] p50=5635.9ms p95=6428.2ms p99=6843.9ms",
+        "[METRIC] error_rate=36.2% throughput=7.55 rps",
+        "[THRESHOLD] error rate < 5% FALHOU (atual: 36.2%)",
+        "[THRESHOLD] p(95) < 5000ms FALHOU (atual: 6428.2ms)",
+        "[THRESHOLD] throughput >= 10 rps FALHOU (atual: 7.55 rps)"
+      ],
+      "error": null,
+      "duration_ms": 64068
+    },
+    {
+      "id": "TC-PERF-003",
+      "title": "SWAPI stress rampa 100 VUs",
+      "status": "failed",
+      "type": "stress",
+      "metrics": {
+        "error_rate_pct": 100.0,
+        "throughput_rps": 0,
+        "p95_ms": 9999,
+        "p99_ms": 9999,
+        "p50_ms": 9999,
+        "min_ms": 0,
+        "max_ms": 0,
+        "total_requests": 0,
+        "mode": "fallback_python",
+        "stage_vus": 100,
+        "vus_peak": 100,
+        "stages_completed": 3,
+        "all_stages": [
+          {
+            "error_rate_pct": 100.0,
+            "throughput_rps": 0,
+            "p95_ms": 9999,
+            "p99_ms": 9999,
+            "p50_ms": 9999,
+            "min_ms": 0,
+            "max_ms": 0,
+            "total_requests": 0,
+            "mode": "fallback_python",
+            "stage_vus": 10
+          },
+          {
+            "error_rate_pct": 100.0,
+            "throughput_rps": 0,
+            "p95_ms": 9999,
+            "p99_ms": 9999,
+            "p50_ms": 9999,
+            "min_ms": 0,
+            "max_ms": 0,
+            "total_requests": 0,
+            "mode": "fallback_python",
+            "stage_vus": 50
+          },
+          {
+            "error_rate_pct": 100.0,
+            "throughput_rps": 0,
+            "p95_ms": 9999,
+            "p99_ms": 9999,
+            "p50_ms": 9999,
+            "min_ms": 0,
+            "max_ms": 0,
+            "total_requests": 0,
+            "mode": "fallback_python",
+            "stage_vus": 100
+          }
+        ]
+      },
+      "thresholds": [
+        {
+          "check": "nenhuma etapa com error rate > 10%",
+          "actual": "100.0%",
+          "result": "failed"
+        },
+        {
+          "check": "p95 no pico < 8000ms",
+          "actual": "9999ms",
+          "result": "failed"
+        }
+      ],
+      "logs": [
+        "[CONFIG] rampa: 10->50->100 VUs, tipo: stress",
+        "[RUN] Script iniciado (modo fallback Python)",
+        "[METRIC] p95=9999ms error_rate=100.0% vus_peak=100",
+        "[METRIC] stages_completed=3",
+        "[THRESHOLD] nenhuma etapa com error rate > 10% FALHOU (atual: 100.0%)",
+        "[THRESHOLD] p95 no pico < 8000ms FALHOU (atual: 9999ms)"
+      ],
+      "error": null,
+      "duration_ms": 77952
+    },
+    {
+      "id": "TC-PERF-004",
+      "title": "SWAPI soak 20 VUs 3min",
+      "status": "failed",
+      "type": "soak",
+      "metrics": {
+        "p50_ms": 9999.0,
+        "p95_ms": 9999,
+        "p99_ms": 9999,
+        "error_rate_pct": 100.0,
+        "throughput_rps": 0,
+        "vus_peak": 21,
+        "duration_s": 180,
+        "mode": "fallback_python"
+      },
+      "thresholds": [
+        {
+          "check": "error rate < 2%",
+          "actual": "100.0%",
+          "result": "failed"
+        },
+        {
+          "check": "p95 < 8000ms (durante soak)",
+          "actual": "9999ms",
+          "result": "failed"
+        }
+      ],
+      "logs": [
+        "[CONFIG] 20 VUs, duracao 3min (default conservador), tipo: soak",
+        "[RUN] Script iniciado (modo fallback Python)",
+        "[INFO] Alterna entre /people/, /films/, /starships/",
+        "[METRIC] p50=9999.0ms p95=9999ms",
+        "[METRIC] error_rate=100.0% throughput=0 rps",
+        "[THRESHOLD] error rate < 2% FALHOU (atual: 100.0%)",
+        "[THRESHOLD] p95 < 8000ms (durante soak) FALHOU (atual: 9999ms)"
+      ],
+      "error": null,
+      "duration_ms": 181625
+    }
+  ],
+  "summary": {
+    "total": 4,
+    "passed": 0,
+    "failed": 4,
+    "mode": "fallback_python",
+    "k6_available": true
+  }
+}

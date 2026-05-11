@@ -1,0 +1,5 @@
+[2026-05-11 13:44:49] === executor-acessibilidade -- inicio ===
+[2026-05-11 13:44:49] WCAG 2.1 AA — axe-core 4.8.0 via CDN
+[2026-05-11 13:44:49] [TC-A11Y-S6-001] -> PASSED deploy_blocked=False
+[2026-05-11 13:44:49] [TC-A11Y-S6-002] -> PASSED deploy_blocked=False
+[2026-05-11 13:44:49] === Fim: 2 passou, 0 falhou ===

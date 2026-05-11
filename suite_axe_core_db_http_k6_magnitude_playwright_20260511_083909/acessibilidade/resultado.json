@@ -1,0 +1,203 @@
+{
+  "executor": "axe-core",
+  "environment": "books.toscrape.com|the-internet.herokuapp.com|automationexercise.com",
+  "wcag_level": "wcag2aa",
+  "generated_files": null,
+  "results": [
+    {
+      "id": "TC-A11Y-001",
+      "title": "Homepage Books to Scrape acessibilidade",
+      "status": "failed",
+      "deploy_blocked": true,
+      "violations": [
+        {
+          "rule_id": "color-contrast",
+          "impact": "serious",
+          "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "affected_elements": [
+            "<small> We love being scraped!</small>",
+            "<a href=\"index.html\">Home</a>",
+            "<li class=\"active\">All products</li>"
+          ],
+          "how_to_fix": "Elements must meet minimum color contrast ratio thresholds",
+          "help_url": "https://dequeuniversity.com/rules/axe/4.11/color-contrast?application=playwright",
+          "known_failure_note": null
+        }
+      ],
+      "passes_count": 16,
+      "logs": [
+        "[NAV] Acessando https://books.toscrape.com",
+        "[ANALYSIS] Executando axe-core (WCAG 2.1 AA)",
+        "[VIOLATION] color-contrast (serious): 3 elementos afetados",
+        "[RESULT] 1 violacoes encontradas (1 novas) -- failed"
+      ],
+      "error": null,
+      "duration_ms": 10260
+    },
+    {
+      "id": "TC-A11Y-002",
+      "title": "Categoria Mystery acessibilidade",
+      "status": "failed",
+      "deploy_blocked": true,
+      "violations": [
+        {
+          "rule_id": "color-contrast",
+          "impact": "serious",
+          "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "affected_elements": [
+            "<small> We love being scraped!</small>",
+            "<a href=\"../../../../index.html\">Home</a>",
+            "<a href=\"../../books_1/index.html\">Books</a>"
+          ],
+          "how_to_fix": "Elements must meet minimum color contrast ratio thresholds",
+          "help_url": "https://dequeuniversity.com/rules/axe/4.11/color-contrast?application=playwright",
+          "known_failure_note": null
+        }
+      ],
+      "passes_count": 16,
+      "logs": [
+        "[NAV] Acessando https://books.toscrape.com/catalogue/category/books/mystery_3/index.html",
+        "[ANALYSIS] Executando axe-core (WCAG 2.1 AA)",
+        "[VIOLATION] color-contrast (serious): 3 elementos afetados",
+        "[RESULT] 1 violacoes encontradas (1 novas) -- failed"
+      ],
+      "error": null,
+      "duration_ms": 7222
+    },
+    {
+      "id": "TC-A11Y-003",
+      "title": "Formulario login The Internet acessibilidade",
+      "status": "failed",
+      "deploy_blocked": true,
+      "violations": [
+        {
+          "rule_id": "color-contrast",
+          "impact": "serious",
+          "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "affected_elements": [
+            "<i class=\"fa fa-2x fa-sign-in\"> Login</i>",
+            "<a target=\"_blank\" href=\"http://elementalselenium.com/\">Elemental Selenium</a>"
+          ],
+          "how_to_fix": "Elements must meet minimum color contrast ratio thresholds",
+          "help_url": "https://dequeuniversity.com/rules/axe/4.11/color-contrast?application=playwright",
+          "known_failure_note": null
+        }
+      ],
+      "passes_count": 15,
+      "logs": [
+        "[NAV] Acessando https://the-internet.herokuapp.com/login",
+        "[ANALYSIS] Executando axe-core (WCAG 2.1 AA)",
+        "[VIOLATION] color-contrast (serious): 2 elementos afetados",
+        "[RESULT] 1 violacoes encontradas (1 novas) -- failed"
+      ],
+      "error": null,
+      "duration_ms": 6896
+    },
+    {
+      "id": "TC-A11Y-004",
+      "title": "Mensagem erro login acessivel",
+      "status": "failed",
+      "deploy_blocked": true,
+      "violations": [
+        {
+          "rule_id": "color-contrast",
+          "impact": "serious",
+          "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "affected_elements": [
+            "<i class=\"fa fa-2x fa-sign-in\"> Login</i>",
+            "<a target=\"_blank\" href=\"http://elementalselenium.com/\">Elemental Selenium</a>"
+          ],
+          "how_to_fix": "Elements must meet minimum color contrast ratio thresholds",
+          "help_url": "https://dequeuniversity.com/rules/axe/4.11/color-contrast?application=playwright",
+          "known_failure_note": null
+        }
+      ],
+      "passes_count": 15,
+      "logs": [
+        "[NAV] Acessando https://the-internet.herokuapp.com/login",
+        "[ACTION] Credenciais invalidas preenchidas",
+        "[ACTION] Login submetido",
+        "[INFO] Aguardando mensagem de erro",
+        "[ANALYSIS] Executando axe-core (WCAG 2.1 AA)",
+        "[VIOLATION] color-contrast (serious): 2 elementos afetados",
+        "[RESULT] 1 violacoes encontradas (1 novas) -- failed"
+      ],
+      "error": null,
+      "duration_ms": 7914
+    },
+    {
+      "id": "TC-A11Y-005",
+      "title": "AutomationExercise homepage acessibilidade (demo)",
+      "status": "warning",
+      "deploy_blocked": false,
+      "violations": [
+        {
+          "rule_id": "button-name",
+          "impact": "critical",
+          "description": "Ensure buttons have discernible text",
+          "affected_elements": [
+            "<button type=\"submit\" id=\"subscribe\" class=\"btn btn-default\"><i class=\"fa fa-arrow-circle-o-right\"></i></button>"
+          ],
+          "how_to_fix": "Buttons must have discernible text",
+          "help_url": "https://dequeuniversity.com/rules/axe/4.11/button-name?application=playwright",
+          "known_environment_failure": true,
+          "known_failure_note": "falha conhecida do ambiente de demonstracao -- nao corrigivel pelo time"
+        },
+        {
+          "rule_id": "color-contrast",
+          "impact": "serious",
+          "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "affected_elements": [
+            "<a href=\"/\" style=\"color: orange;\"><i class=\"fa fa-home\"></i> Home</a>",
+            "<h1><span>Automation</span>Exercise</h1>",
+            "<span>Automation</span>"
+          ],
+          "how_to_fix": "Elements must meet minimum color contrast ratio thresholds",
+          "help_url": "https://dequeuniversity.com/rules/axe/4.11/color-contrast?application=playwright",
+          "known_environment_failure": true,
+          "known_failure_note": "falha conhecida do ambiente de demonstracao -- nao corrigivel pelo time"
+        },
+        {
+          "rule_id": "link-name",
+          "impact": "serious",
+          "description": "Ensure links have discernible text",
+          "affected_elements": [
+            "<a href=\"#slider-carousel\" class=\"left control-carousel hidden-xs\" data-slide=\"prev\">\n\t\t\t\t\t\t\t<i class=\"fa fa-angle-left\"></i>\n\t\t\t\t\t\t</a>",
+            "<a href=\"#slider-carousel\" class=\"right control-carousel hidden-xs\" data-slide=\"next\">\n\t\t\t\t\t\t\t<i class=\"fa fa-angle-right\"></i>\n\t\t\t\t\t\t</a>",
+            "<a class=\"left recommended-item-control\" href=\"#recommended-item-carousel\" data-slide=\"prev\">\n\t\t\t\t\t\t\t\t<i class=\"fa fa-angle-left\"></i>\n\t\t\t\t\t\t\t  </a>"
+          ],
+          "how_to_fix": "Links must have discernible text",
+          "help_url": "https://dequeuniversity.com/rules/axe/4.11/link-name?application=playwright",
+          "known_environment_failure": true,
+          "known_failure_note": "falha conhecida do ambiente de demonstracao -- nao corrigivel pelo time"
+        }
+      ],
+      "passes_count": 16,
+      "logs": [
+        "[NAV] Acessando https://automationexercise.com",
+        "[ANALYSIS] Executando axe-core (WCAG 2.1 AA)",
+        "[VIOLATION] button-name (critical): 1 elementos afetados (known demo failure)",
+        "[VIOLATION] color-contrast (serious): 3 elementos afetados (known demo failure)",
+        "[VIOLATION] link-name (serious): 3 elementos afetados (known demo failure)",
+        "[RESULT] 3 violacoes conhecidas do ambiente -- deploy nao bloqueado"
+      ],
+      "error": null,
+      "duration_ms": 6158
+    }
+  ],
+  "summary": {
+    "total": 5,
+    "passed": 0,
+    "failed": 4,
+    "warning": 1,
+    "skipped": 0,
+    "known_environment_failures": 3,
+    "total_violations": 7,
+    "by_impact": {
+      "critical": 1,
+      "serious": 6,
+      "moderate": 0,
+      "minor": 0
+    }
+  }
+}

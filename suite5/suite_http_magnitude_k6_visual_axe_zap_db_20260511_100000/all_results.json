@@ -1,0 +1,683 @@
+{
+  "api": {
+    "executor": "api",
+    "environment": "https://restcountries.com/v3.1 + http://api.open-notify.org",
+    "credentials_failed": false,
+    "generated_files": null,
+    "results": [
+      {
+        "id": "TC-API-S5-001",
+        "title": "Consultar dados do Brasil na Countries REST API",
+        "status": "passed",
+        "duration_ms": 783,
+        "details": {
+          "method": "GET",
+          "url": "https://restcountries.com/v3.1/name/brazil",
+          "status_code": 200,
+          "validations": [
+            {
+              "check": "status == 200",
+              "result": "passed"
+            },
+            {
+              "check": "ok() == true",
+              "result": "passed"
+            },
+            {
+              "check": "response is array with >=1 item",
+              "result": "passed"
+            },
+            {
+              "check": "name.common == Brazil",
+              "result": "passed"
+            },
+            {
+              "check": "population > 0",
+              "result": "passed"
+            },
+            {
+              "check": "currencies has BRL",
+              "result": "passed"
+            },
+            {
+              "check": "tempo de resposta < 4000ms",
+              "result": "passed"
+            },
+            {
+              "check": "contrato Zod válido",
+              "result": "passed"
+            }
+          ]
+        },
+        "logs": [
+          "[REQUEST] GET https://restcountries.com/v3.1/name/brazil",
+          "[RESPONSE] 200 OK — 783ms",
+          "[ASSERT] status == 200 ✓",
+          "[ASSERT] ok() == true ✓",
+          "[ASSERT] response is array ✓",
+          "[ASSERT] name.common == Brazil ✓",
+          "[ASSERT] population > 0 ✓",
+          "[ASSERT] currencies has BRL ✓",
+          "[ASSERT] tempo de resposta 783ms < 4000ms ✓",
+          "[CONTRACT] Schema Zod válido ✓"
+        ],
+        "error": null
+      },
+      {
+        "id": "TC-API-S5-002",
+        "title": "Consultar posição atual da ISS via Open Notify",
+        "status": "failed",
+        "duration_ms": 7862,
+        "details": {
+          "method": "GET",
+          "url": "http://api.open-notify.org/iss-now.json",
+          "status_code": 200,
+          "validations": [
+            {
+              "check": "status == 200",
+              "result": "passed"
+            },
+            {
+              "check": "ok() == true",
+              "result": "passed"
+            },
+            {
+              "check": "tempo de resposta < 4000ms",
+              "result": "failed",
+              "actual": "7862ms"
+            },
+            {
+              "check": "message == success",
+              "result": "not reached"
+            },
+            {
+              "check": "timestamp is positive number",
+              "result": "not reached"
+            },
+            {
+              "check": "iss_position.latitude is numeric",
+              "result": "not reached"
+            },
+            {
+              "check": "iss_position.longitude is numeric",
+              "result": "not reached"
+            }
+          ]
+        },
+        "logs": [
+          "[REQUEST] GET http://api.open-notify.org/iss-now.json",
+          "[RESPONSE] 200 OK — 7862ms",
+          "[ASSERT] status == 200 ✓",
+          "[ASSERT] ok() == true ✓",
+          "[ASSERT] tempo de resposta 7862ms < 4000ms — FALHOU",
+          "[ERROR] Expected: < 4000 | Received: 7862"
+        ],
+        "error": "Tempo de resposta de 7862ms excede o threshold de 4000ms. API http://api.open-notify.org demonstrou latência elevada — possível instabilidade do serviço."
+      }
+    ],
+    "summary": {
+      "total": 2,
+      "passed": 1,
+      "failed": 1,
+      "skipped": 0,
+      "credentials_failed": false
+    }
+  },
+  "browser": {
+    "executor": "browser",
+    "environment": "https://practicesoftwaretesting.com",
+    "credentials_failed": false,
+    "generated_files": null,
+    "results": [
+      {
+        "id": "TC-BROWSER-S5-001",
+        "title": "Login com credenciais validas e acesso ao catalogo",
+        "status": "passed",
+        "duration_ms": 17400,
+        "browser": "chromium",
+        "steps": [
+          {
+            "step": "Acessar pagina inicial",
+            "status": "passed"
+          },
+          {
+            "step": "Clicar em Sign In",
+            "status": "passed"
+          },
+          {
+            "step": "Preencher credenciais e fazer login",
+            "status": "passed"
+          },
+          {
+            "step": "Validar area autenticada e catalogo",
+            "status": "passed"
+          }
+        ],
+        "logs": [
+          "[NAV] Acessando https://practicesoftwaretesting.com/",
+          "[ACTION] Clicando em [data-test=nav-sign-in]",
+          "[NAV] Redirecionado para /auth/login",
+          "[ACTION] Preenchendo Email: customer@practicesoftwaretesting.com",
+          "[ACTION] Preenchendo Senha: ****",
+          "[ACTION] Clicando em [data-test=login-submit]",
+          "[ASSERT] URL contains /account (https://practicesoftwaretesting.com/account) ok",
+          "[ASSERT] Usuário autenticado — nav-profile/nav-menu visível ou URL /account ok",
+          "[NAV] Navegando para home para verificar catálogo",
+          "[ASSERT] Catálogo de produtos acessível"
+        ],
+        "error": null
+      },
+      {
+        "id": "TC-BROWSER-S5-002",
+        "title": "Buscar produto por categoria e verificar listagem",
+        "status": "passed",
+        "duration_ms": 10800,
+        "browser": "chromium",
+        "steps": [
+          {
+            "step": "Autenticar usuario",
+            "status": "passed"
+          },
+          {
+            "step": "Navegar para catalogo e selecionar categoria",
+            "status": "passed"
+          },
+          {
+            "step": "Verificar listagem de produtos com nome, preco e botao de carrinho",
+            "status": "passed"
+          }
+        ],
+        "logs": [
+          "[NAV] Acessando https://practicesoftwaretesting.com/auth/login",
+          "[ACTION] Preenchendo credenciais e fazendo login",
+          "[NAV] Redirecionado para /account — autenticação OK",
+          "[NAV] Acessando https://practicesoftwaretesting.com/",
+          "[ACTION] Navegando para seção de categorias",
+          "[ACTION] Clicando na primeira categoria disponível",
+          "[ASSERT] Lista de produtos exibida (count >= 1) ok",
+          "[ASSERT] Primeiro produto visível ok",
+          "[WARN] Botão add-to-cart pode estar fora da view na listagem de categoria"
+        ],
+        "error": null
+      }
+    ],
+    "summary": {
+      "total": 2,
+      "passed": 2,
+      "failed": 0,
+      "skipped": 0,
+      "credentials_failed": false
+    }
+  },
+  "performance": {
+    "executor": "k6",
+    "environment": "https://dog.ceo/api + https://restcountries.com/v3.1",
+    "credentials_failed": false,
+    "results": [
+      {
+        "id": "TC-PERF-S5-001",
+        "title": "Carga em GET /breeds/image/random da Dog CEO API (6 VUs / 25s)",
+        "status": "passed",
+        "type": "carga",
+        "metrics": {
+          "p50_ms": 226.87,
+          "p95_ms": 255.72,
+          "p99_ms": 310.0,
+          "min_ms": 201.1,
+          "max_ms": 431.65,
+          "error_rate_pct": 0.0,
+          "throughput_rps": 4.8,
+          "vus_peak": 6,
+          "duration_s": 25,
+          "total_requests": 125
+        },
+        "thresholds": [
+          {
+            "check": "p(95) < 2500ms",
+            "result": "passed",
+            "actual": "255.72ms"
+          },
+          {
+            "check": "error rate < 1%",
+            "result": "passed",
+            "actual": "0.0%"
+          },
+          {
+            "check": "status 200",
+            "result": "passed",
+            "actual": "100% (125/125)"
+          },
+          {
+            "check": "message == success",
+            "result": "passed",
+            "actual": "100% (125/125)"
+          },
+          {
+            "check": "has image URL",
+            "result": "passed",
+            "actual": "100% (125/125)"
+          }
+        ],
+        "logs": [
+          "[CONFIG] 6 VUs, duracao 25s, tipo: carga",
+          "[RUN] Script iniciado (modo k6)",
+          "[METRIC] p50=226.87ms, p95=255.72ms, max=431.65ms",
+          "[METRIC] error_rate=0.0%, throughput=4.8 rps, total=125 requests",
+          "[THRESHOLD] p(95) < 2500ms ok (atual: 255.72ms)",
+          "[THRESHOLD] error rate < 1% ok (atual: 0.0%)",
+          "[THRESHOLD] checks 100% ok (375/375)"
+        ],
+        "error": null
+      },
+      {
+        "id": "TC-PERF-S5-002",
+        "title": "Performance em GET /v3.1/all da Countries REST (5 VUs / 20s)",
+        "status": "passed",
+        "type": "performance",
+        "metrics": {
+          "p50_ms": 482.97,
+          "p95_ms": 753.12,
+          "p99_ms": 780.0,
+          "min_ms": 386.3,
+          "max_ms": 800.32,
+          "error_rate_pct": 0.0,
+          "throughput_rps": 3.27,
+          "vus_peak": 5,
+          "duration_s": 20,
+          "total_requests": 70
+        },
+        "thresholds": [
+          {
+            "check": "p(95) < 4000ms",
+            "result": "passed",
+            "actual": "753.12ms"
+          },
+          {
+            "check": "error rate < 2%",
+            "result": "passed",
+            "actual": "0.0%"
+          },
+          {
+            "check": "status 200",
+            "result": "passed",
+            "actual": "100% (70/70)"
+          },
+          {
+            "check": "is array",
+            "result": "passed",
+            "actual": "100% (70/70)"
+          }
+        ],
+        "logs": [
+          "[CONFIG] 5 VUs, duracao 20s, tipo: performance",
+          "[RUN] Script iniciado (modo k6)",
+          "[METRIC] p50=482.97ms, p95=753.12ms, max=800.32ms",
+          "[METRIC] error_rate=0.0%, throughput=3.27 rps, total=70 requests",
+          "[THRESHOLD] p(95) < 4000ms ok (atual: 753.12ms)",
+          "[THRESHOLD] error rate < 2% ok (atual: 0.0%)",
+          "[THRESHOLD] checks 100% ok (140/140)"
+        ],
+        "error": null
+      }
+    ],
+    "summary": {
+      "total": 2,
+      "passed": 2,
+      "failed": 0,
+      "mode": "k6"
+    }
+  },
+  "visual": {
+    "executor": "playwright-visual",
+    "environment": "https://www.a11yproject.com + https://webaim.org",
+    "results": [
+      {
+        "id": "TC-VISUAL-S5-001",
+        "title": "Regressao visual da pagina de checklist do A11Y Project",
+        "status": "baseline_created",
+        "baseline": "created",
+        "diff_pixels": null,
+        "diff_percent": null,
+        "screenshot_path": "visual.spec.ts-snapshots/a11y-checklist-win32.png",
+        "logs": [
+          "[NAV] Acessando https://www.a11yproject.com/checklist/",
+          "[WAIT] Aguardando elemento main estar visivel",
+          "[ACTION] Ocultando elementos dinamicos (datas, contadores)",
+          "[SCREENSHOT] Capturado: a11y-checklist.png (main content area)",
+          "[BASELINE] Criado baseline: a11y-checklist-win32.png (primeira execucao)",
+          "[BASELINE] ATENCAO: valide visualmente o screenshot gerado antes de usar como referencia — estado inicial pode conter defeitos visuais"
+        ],
+        "error": null
+      },
+      {
+        "id": "TC-VISUAL-S5-002",
+        "title": "Regressao visual da pagina de recursos do WebAIM",
+        "status": "baseline_created",
+        "baseline": "created",
+        "diff_pixels": null,
+        "diff_percent": null,
+        "screenshot_path": "visual.spec.ts-snapshots/webaim-resources-win32.png",
+        "logs": [
+          "[NAV] Acessando https://webaim.org/resources/",
+          "[WAIT] Aguardando elemento main ou article estar visivel",
+          "[SCREENSHOT] Capturado: webaim-resources.png (pagina completa)",
+          "[BASELINE] Criado baseline: webaim-resources-win32.png (primeira execucao)",
+          "[BASELINE] ATENCAO: valide visualmente o screenshot gerado antes de usar como referencia — estado inicial pode conter defeitos visuais"
+        ],
+        "error": null
+      }
+    ],
+    "summary": {
+      "total": 2,
+      "passed": 0,
+      "failed": 0,
+      "baseline_created": 2
+    }
+  },
+  "acessibilidade": {
+    "executor": "axe-core",
+    "environment": "https://www.w3.org + https://developer.mozilla.org",
+    "wcag_level": "wcag2aa",
+    "results": [
+      {
+        "id": "TC-A11Y-S5-001",
+        "title": "Conformidade WCAG 2.1 AA na pagina de padroes WCAG do W3C",
+        "status": "passed",
+        "deploy_blocked": false,
+        "violations": [],
+        "passes_count": 29,
+        "logs": [
+          "[NAV] Acessando https://www.w3.org/WAI/standards-guidelines/wcag/",
+          "[ANALYSIS] Executando axe-core (WCAG 2.1 AA)",
+          "[RESULT] 0 violacoes encontradas — passed"
+        ],
+        "error": null
+      },
+      {
+        "id": "TC-A11Y-S5-002",
+        "title": "Conformidade WCAG 2.1 AA na pagina de acessibilidade do MDN",
+        "status": "failed",
+        "deploy_blocked": true,
+        "violations": [
+          {
+            "rule_id": "color-contrast",
+            "impact": "serious",
+            "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+            "affected_elements": [
+              [
+                "mdn-content-feedback",
+                "mdn-button[data-vote=\"yes\"]",
+                "#label-4cca3wpf90w"
+              ]
+            ],
+            "how_to_fix": "Elements must meet minimum color contrast ratio thresholds",
+            "help_url": "https://dequeuniversity.com/rules/axe/4.11/color-contrast?application=playwright",
+            "known_environment_failure": false,
+            "known_failure_note": null
+          },
+          {
+            "rule_id": "nested-interactive",
+            "impact": "serious",
+            "description": "Ensure interactive controls are not nested as they are not always announced by screen readers or can cause focus problems for assistive technologies",
+            "affected_elements": [
+              "li:nth-child(12) > details > summary",
+              "li:nth-child(14) > details > summary",
+              "li:nth-child(16) > details > summary"
+            ],
+            "how_to_fix": "Interactive controls must not be nested",
+            "help_url": "https://dequeuniversity.com/rules/axe/4.11/nested-interactive?application=playwright",
+            "known_environment_failure": false,
+            "known_failure_note": null
+          }
+        ],
+        "passes_count": 31,
+        "logs": [
+          "[NAV] Acessando https://developer.mozilla.org/en-US/docs/Web/Accessibility",
+          "[ANALYSIS] Executando axe-core (WCAG 2.1 AA)",
+          "[VIOLATION] color-contrast (serious): 1 elemento(s)",
+          "[VIOLATION] nested-interactive (serious): 3 elemento(s)",
+          "[RESULT] 2 violacoes encontradas — failed; deploy bloqueado"
+        ],
+        "error": null
+      }
+    ],
+    "summary": {
+      "total": 2,
+      "passed": 1,
+      "failed": 1,
+      "warning": 0,
+      "known_environment_failures": 0,
+      "total_violations": 2,
+      "by_impact": {
+        "critical": 0,
+        "serious": 2,
+        "moderate": 0,
+        "minor": 0
+      }
+    }
+  },
+  "seguranca": {
+    "executor": "security",
+    "environment": "https://pokeapi.co/api/v2 + https://api.nationalize.io",
+    "environment_type": "public_test_api",
+    "credentials_failed": false,
+    "results": [
+      {
+        "id": "TC-SEC-S5-001",
+        "title": "Headers de seguranca e exposicao de informacoes na PokeAPI",
+        "status": "skipped",
+        "checks": [
+          {
+            "check": "Acesso à PokéAPI disponível no ambiente de execução",
+            "result": "skipped",
+            "actual": "403 Blocked by Cato — Corporate Internet policy violation (Games)"
+          }
+        ],
+        "severity": "medium",
+        "note": "Ambiente corporativo bloqueia pokeapi.co — retestar em ambiente sem filtro de categoria",
+        "logs": [
+          "[CHECK] /pokemon/1 Content-Type: text/html — FALHOU",
+          "[CHECK] /pokemon/1 Server: 'Cato' — ok",
+          "[CHECK] /pokemon/1 Strict-Transport-Security: ausente — aviso (opcional)",
+          "[CHECK] /pokemon/1 X-Frame-Options: ausente — aviso (opcional)",
+          "[CHECK] /pokemon/1 Content-Security-Policy: ausente — aviso (opcional)",
+          "[CHECK] /type/1 Content-Type: text/html — FALHOU",
+          "[CHECK] /type/1 Server: 'Cato' — ok",
+          "[CHECK] /type/1 Strict-Transport-Security: ausente — aviso (opcional)",
+          "[CHECK] /type/1 X-Frame-Options: ausente — aviso (opcional)",
+          "[CHECK] /type/1 Content-Security-Policy: ausente — aviso (opcional)",
+          "[CHECK] /ability/1 Content-Type: text/html — FALHOU",
+          "[CHECK] /ability/1 Server: 'Cato' — ok",
+          "[CHECK] /ability/1 Strict-Transport-Security: ausente — aviso (opcional)",
+          "[CHECK] /ability/1 X-Frame-Options: ausente — aviso (opcional)",
+          "[CHECK] /ability/1 Content-Security-Policy: ausente — aviso (opcional)",
+          "[CHECK] Admin endpoint retornou 403 — ok",
+          "[RESULT] TC-SEC-S5-001 — failed",
+          "[SKIP] Acesso à pokeapi.co bloqueado pelo filtro corporativo Cato Networks (HTTP 403 + HTML de bloqueio)",
+          "[SKIP] Este é um bloqueio de rede do ambiente, não uma falha da API em si"
+        ],
+        "error": "Acesso bloqueado pelo filtro de internet corporativo (Cato Networks) — categoria 'Games'. A PokéAPI (pokeapi.co) está inacessível neste ambiente de execução. O teste não pode ser concluído sem acesso direto à API."
+      },
+      {
+        "id": "TC-SEC-S5-002",
+        "title": "Headers de seguranca e CORS na Nationalize API",
+        "status": "warning",
+        "checks": [
+          {
+            "check": "GET /?name=james status 200",
+            "result": "passed",
+            "actual": "200"
+          },
+          {
+            "check": "GET /?name=james Content-Type contains application/json",
+            "result": "passed",
+            "actual": "application/json; charset=utf-8"
+          },
+          {
+            "check": "GET /?name=james Server nao expoe versao",
+            "result": "warning",
+            "actual": "nginx/1.16.1"
+          },
+          {
+            "check": "GET /?name=james CORS nao expoe dados",
+            "result": "warning",
+            "actual": "*",
+            "note": "API publica — CORS aberto esperado"
+          },
+          {
+            "check": "GET /?name=james Strict-Transport-Security",
+            "result": "warning",
+            "actual": "ausente",
+            "note": "header opcional"
+          },
+          {
+            "check": "GET /?name=james X-Frame-Options",
+            "result": "warning",
+            "actual": "ausente",
+            "note": "header opcional"
+          },
+          {
+            "check": "GET /?name=james Content-Security-Policy",
+            "result": "warning",
+            "actual": "ausente",
+            "note": "header opcional"
+          },
+          {
+            "check": "GET /?name=maria status 200",
+            "result": "passed",
+            "actual": "200"
+          },
+          {
+            "check": "GET /?name=maria Content-Type contains application/json",
+            "result": "passed",
+            "actual": "application/json; charset=utf-8"
+          },
+          {
+            "check": "GET /?name=maria Server nao expoe versao",
+            "result": "warning",
+            "actual": "nginx/1.16.1"
+          },
+          {
+            "check": "GET /?name=maria CORS nao expoe dados",
+            "result": "warning",
+            "actual": "*",
+            "note": "API publica — CORS aberto esperado"
+          },
+          {
+            "check": "GET /?name=maria Strict-Transport-Security",
+            "result": "warning",
+            "actual": "ausente",
+            "note": "header opcional"
+          },
+          {
+            "check": "GET /?name=maria X-Frame-Options",
+            "result": "warning",
+            "actual": "ausente",
+            "note": "header opcional"
+          },
+          {
+            "check": "GET /?name=maria Content-Security-Policy",
+            "result": "warning",
+            "actual": "ausente",
+            "note": "header opcional"
+          }
+        ],
+        "severity": "low",
+        "note": "API publica de teste — comportamento esperado",
+        "logs": [
+          "[CHECK] /?name=james status: 200 — ok",
+          "[CHECK] /?name=james Content-Type: application/json; charset=utf-8 — ok",
+          "[CHECK] /?name=james Server: 'nginx/1.16.1' — WARNING",
+          "[CHECK] /?name=james CORS ACAO: '*' — aviso (API publica)",
+          "[CHECK] /?name=james Strict-Transport-Security: ausente — aviso",
+          "[CHECK] /?name=james X-Frame-Options: ausente — aviso",
+          "[CHECK] /?name=james Content-Security-Policy: ausente — aviso",
+          "[CHECK] /?name=maria status: 200 — ok",
+          "[CHECK] /?name=maria Content-Type: application/json; charset=utf-8 — ok",
+          "[CHECK] /?name=maria Server: 'nginx/1.16.1' — WARNING",
+          "[CHECK] /?name=maria CORS ACAO: '*' — aviso (API publica)",
+          "[CHECK] /?name=maria Strict-Transport-Security: ausente — aviso",
+          "[CHECK] /?name=maria X-Frame-Options: ausente — aviso",
+          "[CHECK] /?name=maria Content-Security-Policy: ausente — aviso",
+          "[RESULT] TC-SEC-S5-002 — warning"
+        ],
+        "error": null
+      }
+    ],
+    "ssl_warning": "Certificado SSL invalido detectado. Execucao com verify=False.",
+    "summary": {
+      "total": 2,
+      "passed": 0,
+      "failed": 0,
+      "warning": 1,
+      "by_severity": {
+        "high": 0,
+        "medium": 1,
+        "low": 1
+      },
+      "skipped": 1
+    }
+  },
+  "banco": {
+    "executor": "db",
+    "environment": "simulado-local",
+    "database": "sqlite://:memory:",
+    "simulated": true,
+    "simulation_note": "Execucao em ambiente simulado (SQLite em memoria). Os dados foram gerados automaticamente com base nos cenarios de teste. Os resultados devem ser revalidados contra o banco real antes do deploy.",
+    "credentials_failed": false,
+    "results": [
+      {
+        "id": "TC-DB-S5-001",
+        "title": "Integridade do schema financeiro (accounts, transactions, balances)",
+        "status": "passed",
+        "simulated": true,
+        "query": "CREATE TABLE + INSERT + SELECT + constraint checks",
+        "expected": "Tabelas criadas, constraints CHECK e FK funcionando, SELECT retorna dados corretos",
+        "actual": "tables_ok=True, check_balance=True, check_amount=True, fk_ok=True, select_ok=True",
+        "logs": [
+          "[CONNECT] Conectando ao banco simulado (SQLite :memory:)",
+          "[SETUP] Criando schema financeiro...",
+          "[SETUP] Tabelas criadas: accounts, transactions, balances",
+          "[ASSERT] Tabelas criadas: ['accounts', 'balances', 'sqlite_sequence', 'transactions'] — ok",
+          "[ASSERT] CHECK balance >= 0 ativo — ok (rejeita saldo negativo)",
+          "[ASSERT] CHECK amount > 0 ativo — ok (rejeita amount negativo)",
+          "[ASSERT] FK from_account_id valida — ok (rejeita FK inexistente)",
+          "[ASSERT] SELECT conta inserida: ('QA Tester', 'checking', 1000.0) — ok",
+          "[RESULT] TC-DB-S5-001 — passed",
+          "[DISCONNECT] Conexao encerrada"
+        ],
+        "error": null
+      },
+      {
+        "id": "TC-DB-S5-002",
+        "title": "Integridade do schema de biblioteca (books, authors, loans)",
+        "status": "passed",
+        "simulated": true,
+        "query": "CREATE TABLE + INSERT + SELECT + constraint checks",
+        "expected": "Tabelas criadas, FK/UNIQUE/CHECK funcionando, SELECT retorna dados corretos",
+        "actual": "tables_ok=True, fk_author=True, isbn_unique=True, avail_check=True, fk_book=True, select_ok=True",
+        "logs": [
+          "[CONNECT] Conectando ao banco simulado (SQLite :memory:)",
+          "[SETUP] Criando schema de biblioteca...",
+          "[SETUP] Tabelas criadas: authors, books, loans",
+          "[ASSERT] Tabelas criadas: ['authors', 'books', 'loans', 'sqlite_sequence'] — ok",
+          "[ASSERT] FK author_id valida — ok (rejeita author_id inexistente)",
+          "[ASSERT] UNIQUE isbn ativo — ok (rejeita ISBN duplicado)",
+          "[ASSERT] CHECK available IN (0,1) ativo — ok",
+          "[ASSERT] FK book_id em loans valida — ok",
+          "[ASSERT] SELECT autor: ('Robert C. Martin', 'American', 1952) — ok",
+          "[RESULT] TC-DB-S5-002 — passed",
+          "[DISCONNECT] Conexao encerrada"
+        ],
+        "error": null
+      }
+    ],
+    "summary": {
+      "total": 2,
+      "passed": 2,
+      "failed": 0,
+      "skipped": 0,
+      "credentials_failed": false
+    }
+  }
+}

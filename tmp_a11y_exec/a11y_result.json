@@ -1,0 +1,82 @@
+{
+  "executor": "axe-core",
+  "environment": "https://automationexercise.com",
+  "wcag_level": "wcag2aa",
+  "results": [
+    {
+      "id": "TC-A11Y-001",
+      "title": "Acessibilidade da pagina inicial",
+      "status": "failed",
+      "deploy_blocked": true,
+      "violations": [
+        {
+          "rule_id": "button-name",
+          "impact": "critical",
+          "description": "Ensure buttons have discernible text",
+          "affected_elements": [
+            "#subscribe"
+          ],
+          "how_to_fix": "Fix any of the following:\n  Element does not have inner text that is visible to screen readers\n  aria-label attribute does not exist or is empty\n  aria-labelledby attribute does not exist, references elements that do not exist or references elements that are empty\n  Element has no title attribute\n  Element does not have an implicit (wrapped) <label>\n  Element does not have an explicit <label>\n  Element's default semantics were not overridden with role=\"none\" or role=\"presentation\"",
+          "help_url": "https://dequeuniversity.com/rules/axe/4.11/button-name?application=playwright",
+          "known_environment_failure": false,
+          "known_failure_note": null
+        },
+        {
+          "rule_id": "color-contrast",
+          "impact": "serious",
+          "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "affected_elements": [
+            "li:nth-child(1) > a[href=\"/\"]",
+            ".active.item > .col-sm-6:nth-child(1) > h1",
+            ".active.item > .col-sm-6:nth-child(1) > h1 > span",
+            ".active.item > .col-sm-6:nth-child(1) > .test_cases_list[href$=\"test_cases\"] > .btn-success[type=\"button\"]",
+            ".active.item > .col-sm-6:nth-child(1) > .apis_list[href$=\"api_list\"] > .btn-success[type=\"button\"]"
+          ],
+          "how_to_fix": "Fix any of the following:\n  Element has insufficient color contrast of 1.97 (foreground color: #ffa500, background color: #ffffff, font size: 10.5pt (14px), font weight: normal). Expected contrast ratio of 4.5:1",
+          "help_url": "https://dequeuniversity.com/rules/axe/4.11/color-contrast?application=playwright",
+          "known_environment_failure": true,
+          "known_failure_note": "falha conhecida do ambiente de demonstracao - nao corrigivel pelo time"
+        },
+        {
+          "rule_id": "link-name",
+          "impact": "serious",
+          "description": "Ensure links have discernible text",
+          "affected_elements": [
+            ".left.control-carousel.hidden-xs",
+            ".right.control-carousel.hidden-xs",
+            ".left.recommended-item-control[href=\"#recommended-item-carousel\"]",
+            ".right.recommended-item-control[href=\"#recommended-item-carousel\"]"
+          ],
+          "how_to_fix": "Fix all of the following:\n  Element is in tab order and does not have accessible text\n\nFix any of the following:\n  Element does not have text that is visible to screen readers\n  aria-label attribute does not exist or is empty\n  aria-labelledby attribute does not exist, references elements that do not exist or references elements that are empty\n  Element has no title attribute",
+          "help_url": "https://dequeuniversity.com/rules/axe/4.11/link-name?application=playwright",
+          "known_environment_failure": false,
+          "known_failure_note": null
+        }
+      ],
+      "passes_count": 23,
+      "logs": [
+        "[NAV] Acessando https://automationexercise.com",
+        "[ANALYSIS] Executando axe-core (WCAG 2.1 AA)",
+        "[VIOLATION] button-name (critical): 1 elementos afetados [CRITICAL]",
+        "[VIOLATION] color-contrast (serious): 5 elementos afetados [KNOWN_DEMO]",
+        "[VIOLATION] link-name (serious): 4 elementos afetados [SERIOUS]",
+        "[RESULT] 3 violacoes encontradas — failed; deploy_blocked: true"
+      ],
+      "error": null
+    }
+  ],
+  "summary": {
+    "total": 1,
+    "passed": 0,
+    "failed": 1,
+    "warning": 0,
+    "known_environment_failures": 1,
+    "total_violations": 3,
+    "by_impact": {
+      "critical": 1,
+      "serious": 2,
+      "moderate": 0,
+      "minor": 0
+    }
+  }
+}
