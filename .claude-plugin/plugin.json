@@ -1,7 +1,7 @@
 {
   "name": "qa-agents",
   "description": "Agentes de QA para geração de critérios de aceite, plano de testes, mapa mental e cenários de teste em Gherkin, passo a passo ou CSV para Azure DevOps",
-  "version": "1.18.0",
+  "version": "1.19.0",
   "author": {
     "name": "Gabriel Carminitti",
     "email": "gabriel.carminitti@venturus.org.br"

@@ -47,6 +47,7 @@ Se essa seção estiver presente:
 - `base_url` → use como URL base nas verificações, não pergunte
 - `auth.token` → use diretamente nos testes de autorização (403), não pergunte nada
 - `auth.credentials` → gere o token automaticamente via `auto_get_token()`, não pergunte nada
+- `suite_dir` → se presente, use `[suite_dir]/seguranca/` como diretório de artefatos; crie com `os.makedirs`
 - `environment_notes` → aplique as regras abaixo conforme palavras-chave:
   - Contém `certificado`, `SSL`, `autoassinado` ou `self-signed` → inicie com `verify=False` direto em `safe_request()` sem esperar o `SSLError`; registre `ssl_warning` com a mensagem padrão
   - Contém `VPN` ou `proxy` → adicione `[ENV] Ambiente pode exigir VPN/proxy` nos logs; se testes falharem com erro de conexão, inclua `"Possível causa: acesso via VPN/proxy necessário"` no campo `error`
@@ -96,6 +97,8 @@ Se o token for gerado, use-o nos testes de autorização. Se falhar, passe para 
 > - **Usuário e senha** de um usuário com permissões limitadas para que eu gere o token automaticamente"
 
 Após receber a resposta, aplique. Se não houver testes de autorização no conjunto recebido, ignore este passo.
+
+**Se `auto_get_token()` falhar e o teste requer autorização:** inclua `"credentials_failed": true` no JSON de saída para que o orquestrador faça retry com novas credenciais. Não prossiga com os testes de autorização sem token válido.
 
 ---
 
@@ -286,6 +289,7 @@ Para paths que retornam 200:
   "executor": "security",
   "environment": "https://staging.app.com",
   "environment_type": "production",
+  "credentials_failed": false,
   "results": [
     {
       "id": "TC-050",
@@ -340,6 +344,36 @@ Para paths que retornam 200:
 - `"página legítima do ambiente de demonstração"` — para endpoints sensíveis que retornam 200 em `demo_app`
 
 **Campo `environment_type`:** `"public_test_api"` | `"demo_app"` | `"production"` — determinado automaticamente via domínio da `base_url`.
+
+---
+
+## Persistência obrigatória em disco
+
+Ao final de cada execução, grave os artefatos no diretório correto:
+
+```python
+import os, json, datetime
+
+output_dir = f"{suite_dir}/seguranca" if suite_dir else f"tmp_sec_{timestamp}"
+os.makedirs(output_dir, exist_ok=True)
+
+# resultado.json
+with open(f"{output_dir}/resultado.json", "w", encoding="utf-8") as f:
+    json.dump(output_json, f, ensure_ascii=False, indent=2)
+
+# execution.log — log completo em texto puro
+def ts(): return datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+with open(f"{output_dir}/execution.log", "w", encoding="utf-8") as f:
+    f.write(f"[{ts()}] === executor-seguranca — início ===\n")
+    f.write(f"[{ts()}] Ambiente: {base_url}\n")
+    f.write(f"[{ts()}] Tipo: {environment_type}\n\n")
+    for result in results:
+        f.write(f"[{ts()}] [{result['id']}] {result['title']}\n")
+        for line in result.get("logs", []):
+            f.write(f"[{ts()}]   {line}\n")
+        f.write(f"[{ts()}]   → STATUS: {result['status'].upper()}\n\n")
+    f.write(f"[{ts()}] === Fim: {summary['passed']} passou, {summary['failed']} falhou ===\n")
+```
 
 ---
 

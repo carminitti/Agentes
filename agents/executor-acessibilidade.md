@@ -36,6 +36,7 @@ Se essa seção estiver presente:
 - `base_url` → use como URL base, não pergunte
 - `auth.token` → use para autenticar no Playwright antes da análise axe-core, não pergunte nada
 - `auth.credentials` → use para fazer login no Playwright antes da análise axe-core, não pergunte nada
+- `suite_dir` → se presente, use `[suite_dir]/acessibilidade/` como diretório de artefatos; crie com `fs.mkdirSync`
 - `environment_notes` → aplique as regras abaixo conforme palavras-chave:
   - Contém `certificado`, `SSL`, `autoassinado` ou `self-signed` → adicione `ignoreHTTPSErrors: true` no `playwright.config.ts`
   - Contém `VPN` ou `proxy` → adicione `[ENV] Ambiente pode exigir VPN/proxy` nos logs; se testes falharem com erro de conexão, inclua `"Possível causa: acesso via VPN/proxy necessário"` no campo `error`
@@ -252,6 +253,39 @@ Durante a execução, colete um log de cada ação relevante para incluir no res
 - Cada violação encontrada (`[VIOLATION] color-contrast (serious): 2 elementos afetados`)
 - Resultado final (`[RESULT] X violações encontradas — failed/warning/passed`)
 - Erros (`[ERROR] mensagem`)
+
+---
+
+## Persistência obrigatória em disco
+
+Ao final de cada execução, **antes de encerrar**, grave os artefatos no diretório correto:
+
+```typescript
+import * as fs from 'fs';
+import * as path from 'path';
+
+const outputDir = suiteDir ? path.join(suiteDir, 'acessibilidade') : `tmp_a11y_${timestamp}`;
+fs.mkdirSync(outputDir, { recursive: true });
+
+// resultado.json
+fs.writeFileSync(path.join(outputDir, 'resultado.json'), JSON.stringify(outputJson, null, 2));
+
+// execution.log — log completo em texto puro
+const ts = () => new Date().toISOString().replace('T', ' ').slice(0, 19);
+const logLines: string[] = [];
+logLines.push(`[${ts()}] === executor-acessibilidade — início ===`);
+logLines.push(`[${ts()}] Ambiente: ${baseUrl}`);
+logLines.push(`[${ts()}] Nível WCAG: ${wcagLevel}`);
+for (const result of results) {
+  logLines.push(`[${ts()}] [${result.id}] ${result.title}`);
+  for (const line of result.logs ?? []) {
+    logLines.push(`[${ts()}]   ${line}`);
+  }
+  logLines.push(`[${ts()}]   → STATUS: ${result.status.toUpperCase()}`);
+}
+logLines.push(`[${ts()}] === Fim: ${summary.passed} passou, ${summary.failed} falhou, ${summary.warning} aviso ===`);
+fs.writeFileSync(path.join(outputDir, 'execution.log'), logLines.join('\n'));
+```
 
 ---
 

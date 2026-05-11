@@ -34,9 +34,15 @@ O `orquestrador-qa` formata a mensagem com uma seção explícita. Procure no se
 
 Se essa seção estiver presente e `db_connection` não for `null` → use como string de conexão diretamente, não pergunte nada e não verifique a variável de ambiente.
 
+Se `suite_dir` estiver presente → use `[suite_dir]/banco/` como diretório para artefatos (logs, resultado.json). Crie a subpasta automaticamente com `os.makedirs`.
+
 `environment_notes` não afeta conexões de banco — ignore para este executor.
 
 **Se a seção `## Contexto de execução` estiver presente com `db_connection` preenchido, ignore os passos abaixo e prossiga para a execução.**
+
+**Se `db_connection` for `null` e houver testes classificados com executor `db`:** não prossiga — pergunte ao usuário antes de executar qualquer teste:
+> "Os testes de banco requerem uma string de conexão que não foi fornecida pelo orquestrador. Por favor, informe no formato: `postgresql://user:pass@host:5432/db` (ou equivalente para MySQL/SQLite/SQL Server)."
+Aguarde a resposta e use como `db_connection` antes de continuar.
 
 ---
 
@@ -196,10 +202,11 @@ ok, err = test_connection(db_connection)
 if not ok:
     results = [{"id": t["id"], "title": t["title"], "status": "skipped",
                 "error": f"Banco inacessível: {err}"} for t in tests]
-    # Retorne o JSON de saída com todos os testes skipped e encerre
+    # Retorne JSON com credentials_failed: true para que o orquestrador possa fazer retry
+    # Veja o campo credentials_failed no Formato de saída
 ```
 
-Se a conexão falhar, **não tente executar nenhum teste** — retorne o JSON com todos como `skipped` e o motivo do erro.
+Se a conexão falhar, **não tente executar nenhum teste** — retorne o JSON com todos como `skipped`, o motivo do erro, e `"credentials_failed": true` no summary para que o orquestrador saiba que deve pedir novas credenciais ao usuário.
 
 Para cada teste:
 
@@ -239,6 +246,7 @@ Para cada teste:
   "database": "postgresql://****@host:5432/staging_db",
   "simulated": false,
   "simulation_note": null,
+  "credentials_failed": false,
   "results": [
     {
       "id": "TC-060",
@@ -261,7 +269,27 @@ Para cada teste:
     "total": 1,
     "passed": 1,
     "failed": 0,
-    "skipped": 0
+    "skipped": 0,
+    "credentials_failed": false
+  }
+}
+```
+
+**Quando a conexão falha (retorno ao orquestrador para retry):**
+```json
+{
+  "executor": "db",
+  "environment": "staging",
+  "database": "postgresql://****@host:5432/staging_db",
+  "simulated": false,
+  "credentials_failed": true,
+  "results": [
+    { "id": "TC-060", "title": "...", "status": "skipped",
+      "error": "Banco inacessível: password authentication failed for user..." }
+  ],
+  "summary": {
+    "total": 1, "passed": 0, "failed": 0, "skipped": 1,
+    "credentials_failed": true
   }
 }
 ```
@@ -318,13 +346,42 @@ Durante a execução, colete um log de cada ação relevante para incluir no res
 
 ## Persistência obrigatória em disco
 
-Ao final de cada execução, **antes de encerrar**, grave o JSON de resultados em disco:
+Ao final de cada execução, **antes de encerrar**, grave os artefatos em disco.
 
-```
-tmp_db_[timestamp]/resultado.json
+Determine o diretório de saída:
+```python
+import os, datetime
+
+output_dir = f"{suite_dir}/banco" if suite_dir else f"tmp_db_{timestamp}"
+os.makedirs(output_dir, exist_ok=True)
 ```
 
-O orquestrador só considera o resultado desta execução se este arquivo existir e for legível. Se a gravação falhar, inclua `"error": "falha ao persistir artefato em disco"` no summary.
+Grave `resultado.json` e `execution.log`:
+
+```python
+import json, datetime
+
+# resultado.json
+with open(f"{output_dir}/resultado.json", "w", encoding="utf-8") as f:
+    json.dump(output_json, f, ensure_ascii=False, indent=2)
+
+# execution.log — log completo em texto puro com timestamps
+with open(f"{output_dir}/execution.log", "w", encoding="utf-8") as f:
+    ts = lambda: datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    f.write(f"[{ts()}] === executor-banco — início ===\n")
+    f.write(f"[{ts()}] Ambiente: {database_masked}\n")
+    f.write(f"[{ts()}] Modo: {'simulado' if simulated else 'real'}\n")
+    f.write(f"[{ts()}] Testes a executar: {[t['id'] for t in tests]}\n\n")
+    for result in results:
+        f.write(f"[{ts()}] [{result['id']}] {result['title']}\n")
+        for line in result.get("logs", []):
+            f.write(f"[{ts()}]   {line}\n")
+        f.write(f"[{ts()}]   → STATUS: {result['status'].upper()}\n\n")
+    f.write(f"[{ts()}] === Fim: {summary['passed']} passou, "
+            f"{summary['failed']} falhou, {summary['skipped']} skipped ===\n")
+```
+
+O orquestrador só considera o resultado desta execução se `resultado.json` existir e for legível. Se a gravação falhar, inclua `"error": "falha ao persistir artefato em disco"` no summary.
 
 ## Exibir código gerado
 

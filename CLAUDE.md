@@ -199,3 +199,4 @@ python mcp_server/server.py
 | v1.16.1 | Reporter-qa: separação bloqueantes vs não-bloqueantes |
 | v1.17.0 | 13 correções críticas (`networkidle`, `DEMO_HOSTS`, `beforeAll`, CORS OPTIONS, etc.) |
 | v1.18.0 | 6 bugs críticos: `domcontentloaded` no visual, `SETUP_FAILED` em specs browser/api, parallel exceptions no segurança, `mysql.connector` com urlparse, `low_confidence` visível no orquestrador e reporter |
+| v1.19.0 | Suite directory (`suite_[nome]_[timestamp]/`), `execution.log` em todos os executores, `credentials_failed` signal + retry loop no orquestrador, `suite_dir` propagado no contexto |

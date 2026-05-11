@@ -92,9 +92,32 @@ contexto = {
     credentials: { email: "...", password: "..." } | null
   },
   db_connection: "postgresql://..." | null,
-  environment_notes: "Requer VPN XYZ" | null
+  environment_notes: "Requer VPN XYZ" | null,
+  suite_dir: "suite_[nome]_[YYYYMMDD_HHMMSS]"
 }
 ```
+
+### Criação do diretório da suite
+
+Antes de despachar qualquer executor, crie o diretório da suite:
+
+```python
+import os, re, datetime
+
+def make_suite_dir(tests):
+    """Deriva nome da suite a partir dos tipos de executor presentes."""
+    executors_present = sorted(set(t.get("executor", "") for t in tests if t.get("executor")))
+    name = "_".join(e for e in executors_present if e) or "suite"
+    name = re.sub(r'[^a-z0-9_]', '_', name.lower())[:40]
+    ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    suite_dir = f"suite_{name}_{ts}"
+    os.makedirs(suite_dir, exist_ok=True)
+    return suite_dir
+
+suite_dir = make_suite_dir(classified_tests)
+```
+
+Inclua `suite_dir` no campo `suite_dir` do contexto de execução. Cada executor criará sua subpasta `[suite_dir]/[executor_type]/` automaticamente.
 
 ---
 
@@ -129,20 +152,73 @@ Execute **todos** os tipos identificados. Nunca pergunte se deve executar um sub
     "credentials": { "email": "...", "password": "..." }
   },
   "db_connection": "postgresql://...",
-  "environment_notes": "..."
+  "environment_notes": "...",
+  "suite_dir": "suite_[nome]_[YYYYMMDD_HHMMSS]"
 }
 
 ## Testes a executar
 [lista filtrada de testes em JSON, exatamente como retornado pelo classifier]
 ```
 
-Substitua cada campo pelo valor real coletado na Etapa 2. Use `null` nos campos que não se aplicam (ex: `"db_connection": null` para executores que não são banco, `"auth": null` para testes sem autenticação).
+Substitua cada campo pelo valor real coletado na Etapa 2. Use `null` nos campos que não se aplicam (ex: `"db_connection": null` para executores que não são banco, `"auth": null` para testes sem autenticação). Nunca omita `suite_dir` — sempre repasse o valor criado nesta etapa.
 
-Os executores **não devem perguntar nada ao usuário** — todas as informações necessárias já foram coletadas aqui. Se um executor retornar que faltou alguma informação, registre o teste como `skipped` com o motivo e continue.
+Os executores **não devem perguntar nada ao usuário** — todas as informações necessárias já foram coletadas aqui.
+
+---
+
+## Etapa 3.5 — Retry de credenciais
+
+Após receber os resultados de todos os executores da Etapa 3, verifique se algum retornou `"credentials_failed": true` no JSON de resultado (campo no `summary` ou na raiz).
+
+Para cada executor com `credentials_failed: true` (máximo **2 tentativas** por executor):
+
+1. Identifique o tipo de credencial que falhou com base no executor:
+   - `executor-banco` → string de conexão inválida ou host inacessível
+   - `executor-api`, `executor-browser` → token inválido ou credenciais de login erradas
+   - `executor-seguranca`, `executor-performance` → token de autorização inválido
+
+2. Informe o usuário antes de re-despachar:
+   > "As credenciais fornecidas para **[nome do executor]** são inválidas ou insuficientes.
+   > - Para **banco de dados**: forneça novamente no formato `tipo://user:pass@host:port/db`
+   > - Para **autenticação**: forneça um novo Bearer token ou usuário/senha válidos"
+
+3. Aguarde a resposta do usuário.
+
+4. Atualize o contexto de execução com as novas credenciais.
+
+5. Re-despache **apenas o executor que falhou** com o contexto atualizado.
+
+6. Substitua os resultados anteriores pelos novos no conjunto de resultados consolidados.
+
+Se após 2 tentativas o executor ainda retornar `credentials_failed: true`, registre como `"falha definitiva de credenciais"` e prossiga para Etapa 4 — não marque como skipped, marque como `failed` com motivo explícito.
 
 ---
 
 ## Etapa 4 — Relatório
+
+Antes de invocar o reporter, grave o log consolidado da suite em disco:
+
+```python
+import datetime, json, os
+
+suite_log_path = f"{suite_dir}/suite.log"
+with open(suite_log_path, "w", encoding="utf-8") as f:
+    f.write(f"=== Suite QA — {suite_dir} ===\n")
+    f.write(f"Início: {suite_start_time}\n")
+    f.write(f"Fim: {datetime.datetime.now().isoformat()}\n")
+    f.write(f"Ambiente: {base_url}\n\n")
+    f.write("--- Executores despachados ---\n")
+    for executor_name, result in executor_results.items():
+        summary = result.get("summary", {})
+        f.write(f"  {executor_name}: passed={summary.get('passed',0)}, "
+                f"failed={summary.get('failed',0)}, "
+                f"skipped={summary.get('skipped',0)}\n")
+    if retries_performed:
+        f.write("\n--- Retries de credenciais ---\n")
+        for retry in retries_performed:
+            f.write(f"  {retry}\n")
+    f.write("\n--- Fim do log da suite ---\n")
+```
 
 Após receber os resultados de todos os executores, invoque o subagente `reporter-qa` passando:
 - O JSON completo retornado pelo `classifier-testes`

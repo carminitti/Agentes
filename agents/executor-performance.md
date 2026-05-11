@@ -36,6 +36,7 @@ Se essa seção estiver presente:
 - `base_url` → use como URL base nos scripts k6/Python, não pergunte
 - `auth.token` → injete no script k6 como `const TOKEN = '...'`, não pergunte nada
 - `auth.credentials` → gere o token via Python antes de montar o script k6, não pergunte nada
+- `suite_dir` → se presente, use `[suite_dir]/performance/` como diretório de artefatos; crie com `os.makedirs`
 - `environment_notes` → aplique as regras abaixo conforme palavras-chave:
   - Contém `certificado`, `SSL`, `autoassinado` ou `self-signed` → adicione `insecureSkipTLSVerify: true` nas options do k6; no fallback Python use `verify=False`
   - Contém `VPN` ou `proxy` → adicione `[ENV] Ambiente pode exigir VPN/proxy` nos logs; se testes falharem com erro de conexão, inclua `"Possível causa: acesso via VPN/proxy necessário"` no campo `error`
@@ -94,6 +95,8 @@ Se a geração falhar em todos os endpoints tentados, passe para o passo 3.
 > - **Usuário e senha** para que eu gere o token automaticamente (informe também o endpoint de login se não for o padrão)"
 
 Após receber a resposta, aplique. Se o usuário confirmar que não há autenticação, prossiga sem auth.
+
+**Se `auto_get_token()` falhar e o teste requer auth:** inclua `"credentials_failed": true` no JSON de saída para que o orquestrador faça retry com novas credenciais. Não execute com token inválido.
 
 ---
 
@@ -279,6 +282,7 @@ metrics = run_stress_test(url, [s for s in stress_stages if s['vus'] > 0], heade
 {
   "executor": "k6",
   "environment": "https://staging.app.com",
+  "credentials_failed": false,
   "results": [
     {
       "id": "TC-020",
@@ -333,6 +337,35 @@ Durante a execução, colete um log de cada ação relevante para incluir no res
 - Taxas (`[METRIC] error_rate=X%, throughput=X rps`)
 - Resultado de cada threshold (`[THRESHOLD] p(95) < 200ms ✓ (atual: Xms)` ou `[THRESHOLD] p(95) < 200ms — FALHOU (atual: Xms)`)
 - Erros (`[ERROR] mensagem`)
+
+---
+
+## Persistência obrigatória em disco
+
+Ao final de cada execução, grave os artefatos no diretório correto:
+
+```python
+import os, json, datetime
+
+output_dir = f"{suite_dir}/performance" if suite_dir else f"tmp_perf_{timestamp}"
+os.makedirs(output_dir, exist_ok=True)
+
+# resultado.json
+with open(f"{output_dir}/resultado.json", "w", encoding="utf-8") as f:
+    json.dump(output_json, f, ensure_ascii=False, indent=2)
+
+# execution.log — log completo em texto puro
+def ts(): return datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+with open(f"{output_dir}/execution.log", "w", encoding="utf-8") as f:
+    f.write(f"[{ts()}] === executor-performance — início ===\n")
+    f.write(f"[{ts()}] Ambiente: {base_url}\n\n")
+    for result in results:
+        f.write(f"[{ts()}] [{result['id']}] {result['title']} ({result.get('type','')})\n")
+        for line in result.get("logs", []):
+            f.write(f"[{ts()}]   {line}\n")
+        f.write(f"[{ts()}]   → STATUS: {result['status'].upper()}\n\n")
+    f.write(f"[{ts()}] === Fim: {summary['passed']} passou, {summary['failed']} falhou ===\n")
+```
 
 ---
 

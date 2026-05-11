@@ -36,6 +36,7 @@ Se essa seção estiver presente:
 - `base_url` → defina `BASE_URL` no `.env`, não pergunte
 - `auth.token` → defina `AUTH_TOKEN` no `.env` e use diretamente, não pergunte nada
 - `auth.credentials` → defina `USER_EMAIL` e `USER_PASSWORD` no `.env`; o `globalSetup` gera o token
+- `suite_dir` → se presente, use `[suite_dir]/api/` como diretório de artefatos; crie com `fs.mkdirSync`
 - `environment_notes` → aplique as regras abaixo conforme palavras-chave:
   - Contém `certificado`, `SSL`, `autoassinado` ou `self-signed` → adicione `ignoreHTTPSErrors: true` no `playwright.config.ts`
   - Contém `VPN` ou `proxy` → adicione `[ENV] Ambiente pode exigir VPN/proxy` nos logs; se testes falharem com erro de conexão, inclua `"Possível causa: acesso via VPN/proxy necessário"` no campo `error`
@@ -210,6 +211,7 @@ export default async function globalSetup(_config: FullConfig): Promise<void> {
     }
     if (!process.env.AUTH_TOKEN) {
       process.env.SETUP_FAILED = 'Autenticação falhou — token não obtido em nenhum endpoint tentado. Verifique as credenciais e o endpoint de login.';
+      process.env.CREDENTIALS_FAILED = 'true';  // sinaliza ao orquestrador para retry
     }
     await apiCtx.dispose();
   }
@@ -369,6 +371,40 @@ Durante a execução, colete um log de cada ação relevante para incluir no res
 
 ---
 
+## Persistência obrigatória em disco
+
+Ao final de cada execução, grave os artefatos no diretório correto:
+
+```typescript
+import * as fs from 'fs';
+import * as path from 'path';
+
+const outputDir = suiteDir ? path.join(suiteDir, 'api') : `tmp_api_${timestamp}`;
+fs.mkdirSync(outputDir, { recursive: true });
+
+// resultado.json
+fs.writeFileSync(path.join(outputDir, 'resultado.json'), JSON.stringify(outputJson, null, 2));
+
+// execution.log — log completo em texto puro
+const ts = () => new Date().toISOString().replace('T', ' ').slice(0, 19);
+const logLines: string[] = [];
+logLines.push(`[${ts()}] === executor-api — início ===`);
+logLines.push(`[${ts()}] Ambiente: ${baseUrl}`);
+for (const result of results) {
+  logLines.push(`[${ts()}] [${result.id}] ${result.title}`);
+  for (const line of result.logs ?? []) {
+    logLines.push(`[${ts()}]   ${line}`);
+  }
+  logLines.push(`[${ts()}]   → STATUS: ${result.status.toUpperCase()}`);
+}
+logLines.push(`[${ts()}] === Fim: ${summary.passed} passou, ${summary.failed} falhou ===`);
+fs.writeFileSync(path.join(outputDir, 'execution.log'), logLines.join('\n'));
+```
+
+O orquestrador só considera o resultado desta execução se `resultado.json` existir e for legível.
+
+---
+
 ## Exibir código gerado
 
 **Exiba o código apenas se houver falhas.** Se todos os testes passarem, omita esta seção completamente.
@@ -393,6 +429,7 @@ O campo `generated_files` no JSON segue a mesma regra: preencha somente quando h
 {
   "executor": "api",
   "environment": "https://staging.app.com",
+  "credentials_failed": false,
   "generated_files": [
     { "path": "src/api/clients/ApiClient.ts", "content": "..." },
     { "path": "src/api/schemas/product.schema.ts", "content": "..." },
@@ -433,7 +470,10 @@ O campo `generated_files` no JSON segue a mesma regra: preencha somente quando h
     "total": 1,
     "passed": 1,
     "failed": 0,
-    "skipped": 0
+    "skipped": 0,
+    "credentials_failed": false
   }
 }
 ```
+
+Quando `process.env.CREDENTIALS_FAILED === 'true'` (auth falhou no globalSetup), defina `"credentials_failed": true` tanto na raiz do JSON quanto no `summary`. O orquestrador detectará este sinal e pedirá novas credenciais ao usuário antes de re-despachar.

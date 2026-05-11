@@ -36,6 +36,7 @@ Se essa seção estiver presente:
 - `base_url` → use como URL base, não pergunte
 - `auth.token` → use para autenticar no Playwright antes do screenshot, não pergunte nada
 - `auth.credentials` → use para fazer login no Playwright antes do screenshot, não pergunte nada
+- `suite_dir` → se presente, use `[suite_dir]/visual/` como diretório de artefatos; crie com `fs.mkdirSync`
 - `environment_notes` → aplique as regras abaixo conforme palavras-chave:
   - Contém `certificado`, `SSL`, `autoassinado` ou `self-signed` → adicione `ignoreHTTPSErrors: true` no `playwright.config.ts`
   - Contém `VPN` ou `proxy` → adicione `[ENV] Ambiente pode exigir VPN/proxy` nos logs; se testes falharem com erro de conexão, inclua `"Possível causa: acesso via VPN/proxy necessário"` no campo `error`
@@ -212,13 +213,35 @@ Durante a execução, colete um log de cada ação relevante para incluir no res
 
 ## Persistência obrigatória em disco
 
-Ao final de cada execução, **antes de encerrar**, grave o JSON de resultados em disco:
+Ao final de cada execução, **antes de encerrar**, grave os artefatos no diretório correto:
 
-```
-tmp_visual_[timestamp]/resultado.json
+```typescript
+import * as fs from 'fs';
+import * as path from 'path';
+
+const outputDir = suiteDir ? path.join(suiteDir, 'visual') : `tmp_visual_${timestamp}`;
+fs.mkdirSync(outputDir, { recursive: true });
+
+// resultado.json
+fs.writeFileSync(path.join(outputDir, 'resultado.json'), JSON.stringify(outputJson, null, 2));
+
+// execution.log — log completo em texto puro
+const ts = () => new Date().toISOString().replace('T', ' ').slice(0, 19);
+const logLines: string[] = [];
+logLines.push(`[${ts()}] === executor-visual — início ===`);
+logLines.push(`[${ts()}] Ambiente: ${baseUrl}`);
+for (const result of results) {
+  logLines.push(`[${ts()}] [${result.id}] ${result.title}`);
+  for (const line of result.logs ?? []) {
+    logLines.push(`[${ts()}]   ${line}`);
+  }
+  logLines.push(`[${ts()}]   → STATUS: ${result.status.toUpperCase()}`);
+}
+logLines.push(`[${ts()}] === Fim: ${summary.passed} passou, ${summary.failed} falhou, ${summary.baseline_created} baseline ===`);
+fs.writeFileSync(path.join(outputDir, 'execution.log'), logLines.join('\n'));
 ```
 
-O orquestrador só considera o resultado desta execução se este arquivo existir e for legível. Se a gravação falhar, inclua `"error": "falha ao persistir artefato em disco"` no summary.
+O orquestrador só considera o resultado desta execução se `resultado.json` existir e for legível. Se a gravação falhar, inclua `"error": "falha ao persistir artefato em disco"` no summary.
 
 ## Exibir código gerado
 
