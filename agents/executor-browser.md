@@ -240,6 +240,7 @@ export default async function globalSetup(config: FullConfig): Promise<void> {
         try {
           const resp = await apiCtx.post(endpoint, {
             data: { email: process.env.USER_EMAIL, password: process.env.USER_PASSWORD },
+            timeout: 5000,  // 5s por endpoint — evita travar por minutos em APIs lentas
           });
           if (resp.ok()) {
             const body = await resp.json();
@@ -259,7 +260,9 @@ export default async function globalSetup(config: FullConfig): Promise<void> {
     // registro não concluído". Não prossiga com o login usando outra conta.
     if (!tokenAcquired) {
       if (!isDemoEnv) {
-        process.env.SETUP_FAILED = `Auto-registro desabilitado para este ambiente (${baseHost}). Forneça credenciais válidas ou configure ALLOW_AUTO_REGISTER=true se este for um ambiente de demonstração.`;
+        const msg = `Credenciais inválidas para este ambiente (${baseHost}). Login falhou em todos os endpoints tentados.`;
+        process.env.SETUP_FAILED = msg;
+        fs.writeFileSync('setup_status.json', JSON.stringify({ credentials_failed: true, reason: msg }));
       } else {
         const registerEndpoints = [
           '/api/register', '/api/auth/register', '/register',
@@ -283,8 +286,9 @@ export default async function globalSetup(config: FullConfig): Promise<void> {
           } catch {}
         }
         if (!registered) {
-          process.env.SETUP_FAILED = 'Registro não concluído — nenhum endpoint de registro respondeu com sucesso. Marque cenários de login como FAIL com causa: falha no setup — registro não concluído.';
-          process.env.CREDENTIALS_FAILED = 'true';  // sinaliza ao orquestrador para retry
+          const msg = 'Registro não concluído — nenhum endpoint de registro respondeu com sucesso.';
+          process.env.SETUP_FAILED = msg;
+          fs.writeFileSync('setup_status.json', JSON.stringify({ credentials_failed: true, reason: msg }));
         }
       }
     }
@@ -410,7 +414,7 @@ Para cada conjunto de testes:
      timeout: 30_000,
      expect: { timeout: 5_000 },
      fullyParallel: true,
-     workers: 4,
+     workers: process.env.CI ? 2 : 4,
      retries: process.env.CI ? 2 : 0,
      testMatch: ['**/*.spec.ts'],
      reporter: [['html', { outputFolder: 'reports/html', open: 'never' }]],
@@ -430,9 +434,26 @@ Para cada conjunto de testes:
    ```
 
 6. **Instale dependências e execute:**
+
+   Use cache compartilhado para evitar `npm install` completo a cada execução:
+   ```powershell
+   # Windows
+   $cache = "$HOME\.claude-qa-cache\browser"
+   if (-not (Test-Path "$cache\node_modules")) {
+     npm install --prefix $cache
+     npx playwright install chromium --with-deps
+   }
+   cmd /c "mklink /J node_modules $cache\node_modules"
    ```
-   cd tmp_browser_[timestamp]
-   npm install
+   ```bash
+   # Linux/macOS
+   cache="$HOME/.claude-qa-cache/browser"
+   [ ! -d "$cache/node_modules" ] && npm install --prefix "$cache"
+   ln -sfn "$cache/node_modules" node_modules
+   ```
+   Se o cache falhar, caia em `npm install` normal sem interromper.
+
+   ```
    npx playwright test --reporter=json > resultado.json
    ```
 
@@ -451,12 +472,18 @@ Durante a execução, colete um log de cada ação relevante realizada por cada 
 
 ## Persistência obrigatória em disco
 
+**Inclua `SUITE_DIR` no `.env` gerado** (quando `suite_dir` vier no contexto):
+```
+SUITE_DIR=suite_browser_20260511_100000
+```
+
 Ao final de cada execução, grave os artefatos no diretório correto:
 
 ```typescript
 import * as fs from 'fs';
 import * as path from 'path';
 
+const suiteDir: string | null = process.env.SUITE_DIR || null;
 const outputDir = suiteDir ? path.join(suiteDir, 'browser') : `tmp_browser_${timestamp}`;
 fs.mkdirSync(outputDir, { recursive: true });
 
@@ -566,6 +593,14 @@ O campo `generated_files` no JSON segue a mesma regra: preencha somente quando h
 }
 ```
 
-Quando `process.env.CREDENTIALS_FAILED === 'true'` (auth falhou no globalSetup), defina `"credentials_failed": true` tanto na raiz do JSON quanto no `summary`. O orquestrador detectará este sinal e pedirá novas credenciais ao usuário antes de re-despachar.
+**Como detectar `credentials_failed` após a execução:**
+Após `npx playwright test` terminar, verifique se `setup_status.json` foi criado pelo globalSetup:
+```typescript
+const setupStatus = fs.existsSync('setup_status.json')
+  ? JSON.parse(fs.readFileSync('setup_status.json', 'utf-8'))
+  : { credentials_failed: false };
+fs.existsSync('setup_status.json') && fs.unlinkSync('setup_status.json');
+```
+Se `credentials_failed: true`, defina o campo na raiz e no `summary`. O orquestrador detecta e pede novas credenciais ao usuário antes de re-despachar.
 
 Se o ambiente não estiver acessível, retorne `"status": "error"` com a causa em `"error"` para cada teste afetado.

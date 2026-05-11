@@ -45,6 +45,7 @@ Gere o relatório completo no formato abaixo. Use sempre os dados reais recebido
 
 **Ambiente:** `[URL]`
 **Data/hora:** [data e hora da execução]
+**Artefatos:** `[suite_dir]/` — logs e JSONs de cada executor disponíveis neste diretório (omita se suite_dir não estiver nos dados recebidos)
 
 ---
 

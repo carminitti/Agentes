@@ -99,25 +99,15 @@ contexto = {
 
 ### Criação do diretório da suite
 
-Antes de despachar qualquer executor, crie o diretório da suite:
+Antes de despachar qualquer executor, derive o nome e **use a ferramenta Bash ou PowerShell** para criar o diretório fisicamente:
 
-```python
-import os, re, datetime
+1. Derive o nome: junte os tipos de executor presentes separados por `_` (ex: executores `http` + `db` → `http_db`). Aplique o timestamp: `suite_[nome]_[YYYYMMDD_HHMMSS]`.
+2. Crie com a ferramenta:
+   - **Bash:** `mkdir -p suite_http_db_20260511_100000`
+   - **PowerShell:** `New-Item -ItemType Directory -Force -Path suite_http_db_20260511_100000`
+3. Guarde o nome exato como `suite_dir` — ele será repassado no contexto para todos os executores.
 
-def make_suite_dir(tests):
-    """Deriva nome da suite a partir dos tipos de executor presentes."""
-    executors_present = sorted(set(t.get("executor", "") for t in tests if t.get("executor")))
-    name = "_".join(e for e in executors_present if e) or "suite"
-    name = re.sub(r'[^a-z0-9_]', '_', name.lower())[:40]
-    ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-    suite_dir = f"suite_{name}_{ts}"
-    os.makedirs(suite_dir, exist_ok=True)
-    return suite_dir
-
-suite_dir = make_suite_dir(classified_tests)
-```
-
-Inclua `suite_dir` no campo `suite_dir` do contexto de execução. Cada executor criará sua subpasta `[suite_dir]/[executor_type]/` automaticamente.
+**Não escreva nem execute um script Python para isso** — use diretamente a ferramenta de shell disponível.
 
 ---
 

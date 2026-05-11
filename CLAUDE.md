@@ -200,3 +200,4 @@ python mcp_server/server.py
 | v1.17.0 | 13 correções críticas (`networkidle`, `DEMO_HOSTS`, `beforeAll`, CORS OPTIONS, etc.) |
 | v1.18.0 | 6 bugs críticos: `domcontentloaded` no visual, `SETUP_FAILED` em specs browser/api, parallel exceptions no segurança, `mysql.connector` com urlparse, `low_confidence` visível no orquestrador e reporter |
 | v1.19.0 | Suite directory (`suite_[nome]_[timestamp]/`), `execution.log` em todos os executores, `credentials_failed` signal + retry loop no orquestrador, `suite_dir` propagado no contexto |
+| v1.19.1 | 8 bugs críticos/graves: `credentials_failed` via arquivo (não process.env), `suiteDir` declarado no TS, suite_dir via Bash (não pseudocódigo), banco conflito null resolvido, `connect_timeout` com ThreadPoolExecutor, soak 10min→3min, auth timeout 5s por endpoint, cache npm via junction/symlink, `workers` CI-aware |

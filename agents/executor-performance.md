@@ -121,8 +121,8 @@ Para cada teste, extraia dos steps:
 - Parâmetros de carga — use defaults razoáveis se não especificados:
   - `performance`: 10 VUs, 30s
   - `carga`: 50 VUs, 60s
-  - `stress`: rampa de 0 a 200 VUs em 2 min
-  - `soak`: 20 VUs, 10 min
+  - `stress`: rampa de 0 a 100 VUs em 2 min (nunca use 200 VUs como default — pode derrubar o ambiente)
+  - `soak`: 20 VUs, **3 min** (default conservador — se o usuário precisar de mais, deve especificar explicitamente nos steps; nunca assuma 10 min)
 
 ### Modo k6 (preferencial)
 
@@ -168,7 +168,7 @@ export const options = {
 ```javascript
 export const options = {
   vus: 20,
-  duration: '10m',
+  duration: '3m',  // default conservador; sobrescreva com o valor dos steps se explicitado
   thresholds: {
     http_req_duration: ['p(95)<300'],
     http_req_failed: ['rate<0.01'],

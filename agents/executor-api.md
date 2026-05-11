@@ -201,6 +201,7 @@ export default async function globalSetup(_config: FullConfig): Promise<void> {
       try {
         const resp = await apiCtx.post(endpoint, {
           data: { email: process.env.USER_EMAIL, password: process.env.USER_PASSWORD },
+          timeout: 5000,  // 5s por endpoint — evita travar por minutos em APIs lentas
         });
         if (resp.ok()) {
           const body = await resp.json();
@@ -210,8 +211,10 @@ export default async function globalSetup(_config: FullConfig): Promise<void> {
       } catch {}
     }
     if (!process.env.AUTH_TOKEN) {
-      process.env.SETUP_FAILED = 'Autenticação falhou — token não obtido em nenhum endpoint tentado. Verifique as credenciais e o endpoint de login.';
-      process.env.CREDENTIALS_FAILED = 'true';  // sinaliza ao orquestrador para retry
+      const msg = 'Autenticação falhou — token não obtido em nenhum endpoint tentado. Verifique as credenciais e o endpoint de login.';
+      process.env.SETUP_FAILED = msg;
+      // Escreve arquivo em disco — process.env não é legível pelo agente após o processo encerrar
+      fs.writeFileSync('setup_status.json', JSON.stringify({ credentials_failed: true, reason: msg }));
     }
     await apiCtx.dispose();
   }
@@ -335,7 +338,7 @@ Para cada conjunto de testes:
      timeout: 30_000,
      expect: { timeout: 5_000 },
      fullyParallel: true,
-     workers: 4,
+     workers: process.env.CI ? 2 : 4,
      retries: process.env.CI ? 2 : 0,
      testMatch: ['**/*.spec.ts'],
      reporter: [['html', { outputFolder: 'reports/html', open: 'never' }]],
@@ -350,9 +353,26 @@ Para cada conjunto de testes:
    ```
 
 5. **Instale dependências e execute:**
+
+   Use cache compartilhado para evitar `npm install` completo a cada execução:
+   ```powershell
+   # Windows
+   $cache = "$HOME\.claude-qa-cache\api"
+   if (-not (Test-Path "$cache\node_modules")) {
+     npm install --prefix $cache
+     npx playwright install chromium --with-deps
+   }
+   cmd /c "mklink /J node_modules $cache\node_modules"
    ```
-   cd tmp_api_[timestamp]
-   npm install
+   ```bash
+   # Linux/macOS
+   cache="$HOME/.claude-qa-cache/api"
+   [ ! -d "$cache/node_modules" ] && npm install --prefix "$cache"
+   ln -sfn "$cache/node_modules" node_modules
+   ```
+   Se o cache falhar por qualquer motivo, caia em `npm install` normal sem interromper.
+
+   ```
    npx playwright test --reporter=json > resultado.json
    ```
 
@@ -373,12 +393,18 @@ Durante a execução, colete um log de cada ação relevante para incluir no res
 
 ## Persistência obrigatória em disco
 
+**Inclua `SUITE_DIR` no `.env` gerado** (quando `suite_dir` vier no contexto):
+```
+SUITE_DIR=suite_api_20260511_100000
+```
+
 Ao final de cada execução, grave os artefatos no diretório correto:
 
 ```typescript
 import * as fs from 'fs';
 import * as path from 'path';
 
+const suiteDir: string | null = process.env.SUITE_DIR || null;
 const outputDir = suiteDir ? path.join(suiteDir, 'api') : `tmp_api_${timestamp}`;
 fs.mkdirSync(outputDir, { recursive: true });
 
@@ -476,4 +502,14 @@ O campo `generated_files` no JSON segue a mesma regra: preencha somente quando h
 }
 ```
 
-Quando `process.env.CREDENTIALS_FAILED === 'true'` (auth falhou no globalSetup), defina `"credentials_failed": true` tanto na raiz do JSON quanto no `summary`. O orquestrador detectará este sinal e pedirá novas credenciais ao usuário antes de re-despachar.
+**Como detectar `credentials_failed` após a execução:**
+Após `npx playwright test` terminar, verifique se o arquivo `setup_status.json` foi criado pelo globalSetup:
+```typescript
+// No agente, após rodar os testes:
+const setupStatus = fs.existsSync('setup_status.json')
+  ? JSON.parse(fs.readFileSync('setup_status.json', 'utf-8'))
+  : { credentials_failed: false };
+// Use setupStatus.credentials_failed no JSON de saída
+fs.unlinkSync('setup_status.json');  // limpa após leitura
+```
+Se `credentials_failed: true`, defina o mesmo campo tanto na raiz do JSON de saída quanto no `summary`. O orquestrador detecta este sinal e pede novas credenciais ao usuário antes de re-despachar.

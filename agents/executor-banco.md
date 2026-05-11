@@ -40,9 +40,9 @@ Se `suite_dir` estiver presente → use `[suite_dir]/banco/` como diretório par
 
 **Se a seção `## Contexto de execução` estiver presente com `db_connection` preenchido, ignore os passos abaixo e prossiga para a execução.**
 
-**Se `db_connection` for `null` e houver testes classificados com executor `db`:** não prossiga — pergunte ao usuário antes de executar qualquer teste:
-> "Os testes de banco requerem uma string de conexão que não foi fornecida pelo orquestrador. Por favor, informe no formato: `postgresql://user:pass@host:5432/db` (ou equivalente para MySQL/SQLite/SQL Server)."
-Aguarde a resposta e use como `db_connection` antes de continuar.
+**Se `db_connection` for `null`:** não caia no fluxo de Prioridade 1 — pergunte a string de conexão diretamente:
+> "Os testes de banco requerem uma string de conexão que não foi fornecida. Por favor, informe no formato: `postgresql://user:pass@host:5432/db` (ou MySQL/SQLite/SQL Server equivalente)."
+Aguarde a resposta, use como `db_connection` e prossiga para execução. **Não pergunte "banco real ou simulado?" neste caso** — o usuário acabou de fornecer uma string real.
 
 ---
 
@@ -198,12 +198,22 @@ def test_connection(cs):
     except Exception as e:
         return False, str(e)
 
-ok, err = test_connection(db_connection)
+import concurrent.futures as _cf
+
+def test_connection_with_hard_timeout(cs, hard_timeout=7):
+    """Envolve test_connection com timeout real — cobre hosts com firewall DROP que ignoram connect_timeout."""
+    with _cf.ThreadPoolExecutor(max_workers=1) as ex:
+        fut = ex.submit(test_connection, cs)
+        try:
+            return fut.result(timeout=hard_timeout)
+        except _cf.TimeoutError:
+            return False, f"Timeout de {hard_timeout}s — host inacessível ou firewall bloqueando"
+
+ok, err = test_connection_with_hard_timeout(db_connection)
 if not ok:
     results = [{"id": t["id"], "title": t["title"], "status": "skipped",
                 "error": f"Banco inacessível: {err}"} for t in tests]
     # Retorne JSON com credentials_failed: true para que o orquestrador possa fazer retry
-    # Veja o campo credentials_failed no Formato de saída
 ```
 
 Se a conexão falhar, **não tente executar nenhum teste** — retorne o JSON com todos como `skipped`, o motivo do erro, e `"credentials_failed": true` no summary para que o orquestrador saiba que deve pedir novas credenciais ao usuário.
