@@ -141,6 +141,7 @@
   .badge-orange { background: var(--orange-dim); color: var(--orange-light); }
   .badge-purple { background: var(--purple-dim); color: var(--purple-light); }
   .badge-cyan { background: var(--cyan-dim); color: var(--cyan); }
+  .badge-gray { background: var(--surface2); color: var(--text-muted); border: 1px solid var(--border); }
 
   /* ── PIPELINE GRID ── */
   .pipelines {
@@ -261,6 +262,7 @@
   .tag-orange { background: var(--orange-dim); color: var(--orange-light); }
   .tag-purple { background: var(--purple-dim); color: var(--purple-light); }
   .tag-gray { background: #1e2130; color: var(--text-muted); border: 1px solid var(--border); }
+  .tag-red { background: var(--red-dim); color: #fca5a5; }
 
   /* ── CLASSIFIER TABLE ── */
   .table-wrapper {
@@ -646,6 +648,22 @@
     overflow-x: auto;
   }
 
+  /* ── ARTIFACTS ── */
+  .artifact-tree {
+    background: rgba(0,0,0,.35);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 16px 20px;
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    line-height: 2;
+  }
+
+  .artifact-tree .dir { color: var(--cyan); font-weight: 700; }
+  .artifact-tree .file { color: var(--text-muted); }
+  .artifact-tree .file-key { color: var(--green-light); }
+  .artifact-tree .file-log { color: var(--orange-light); }
+
   /* ── DIVIDER ── */
   .divider {
     border: none;
@@ -685,6 +703,7 @@
   <a href="#classifier">Classificação</a>
   <a href="#executors">Executores</a>
   <a href="#lifecycle">Ciclo de Vida</a>
+  <a href="#artifacts">Artefatos</a>
   <a href="#auth">Auth &amp; Credenciais</a>
   <a href="#standalone">Standalone</a>
   <a href="#deps">Dependências</a>
@@ -750,7 +769,7 @@
                 <span class="tag tag-blue">CSV Azure DevOps</span>
               </div>
               <div style="margin-top:8px; font-size:12px; color:var(--text-muted);">
-                Oferece um formato por vez — só avança quando o usuário pede o próximo, até todos serem entregues.
+                Oferece um formato por vez — só avança quando o usuário pede o próximo.
               </div>
             </div>
           </div>
@@ -764,7 +783,7 @@
           <span>🚀</span>
           Pipeline 2 — Execução
         </div>
-        <div class="pipeline-subtitle">Casos de teste → Execução automatizada → Relatório consolidado</div>
+        <div class="pipeline-subtitle">Casos de teste → Execução automatizada → Relatório HTML</div>
 
         <div class="flow">
 
@@ -772,9 +791,11 @@
             <div class="flow-icon flow-icon-green">🎛️</div>
             <div class="flow-body">
               <h3>/orquestrador-qa</h3>
-              <p>Ponto de entrada único. Recebe os casos de teste e coordena todo o fluxo de execução.</p>
+              <p>Ponto de entrada único. Coleta URL, auth e opções (headed, diretório de código, modo dry-run). Detecta <code>credentials_failed</code> e faz retry de credenciais antes de re-despachar.</p>
               <div style="margin-top:6px">
                 <span class="tag tag-green">Orquestrador</span>
+                <span class="tag tag-green">--dry-run</span>
+                <span class="tag tag-green">headed</span>
               </div>
             </div>
           </div>
@@ -783,7 +804,7 @@
             <div class="flow-icon flow-icon-orange">🏷️</div>
             <div class="flow-body">
               <h3>classifier-testes</h3>
-              <p>Lê cada caso de teste e retorna JSON com <strong>tipo</strong> + <strong>executor</strong>. Exclui testes unitários e manuais.</p>
+              <p>Lê cada caso de teste e retorna JSON com <strong>tipo</strong> + <strong>executor</strong>. Threshold: &lt;0.50 bloqueia e pede clarificação; 0.50–0.69 retorna <code>low_confidence</code>; ≥0.70 normal.</p>
               <div style="margin-top:6px">
                 <span class="tag tag-gray">Agente folha</span>
                 <span class="tag tag-gray">Sem ferramentas</span>
@@ -795,7 +816,7 @@
             <div class="flow-icon flow-icon-green">⚡</div>
             <div class="flow-body">
               <h3>Executores em paralelo</h3>
-              <p>Cada grupo de testes é despachado ao executor adequado, todos rodando simultaneamente para máxima eficiência.</p>
+              <p>Cada grupo é despachado ao executor adequado, todos rodando simultaneamente. Cada executor grava <code>resultado.json</code> e <code>execution.log</code> no diretório da suite.</p>
               <div style="margin-top:6px">
                 <span class="tag tag-orange">executor-browser</span>
                 <span class="tag tag-orange">executor-api</span>
@@ -809,10 +830,11 @@
             <div class="flow-icon flow-icon-green">📊</div>
             <div class="flow-body">
               <h3>reporter-qa</h3>
-              <p>Consolida todos os resultados num relatório estruturado com sumário, falhas e recomendações.</p>
+              <p>Gera relatório <strong>HTML dual-mode</strong> autocontido: Modo Relatório (linguagem humana, fail-cards com causa e impacto, links de screenshot/vídeo) + Modo Técnico (código gerado, logs completos, JSON bruto).</p>
               <div style="margin-top:6px">
                 <span class="tag tag-gray">Agente folha</span>
                 <span class="tag tag-gray">Sem ferramentas</span>
+                <span class="tag tag-green">HTML dual-mode</span>
               </div>
             </div>
           </div>
@@ -835,7 +857,7 @@
       O agente lê os casos de teste (Gherkin, passo a passo ou CSV) e mapeia cada um para um tipo e executor específico.
     </p>
     <div class="info-box" style="margin-bottom:20px; font-size:13px;">
-      🎯 <strong style="color:#93c5fd;">Threshold de confiança (v1.17.0):</strong> confidence &lt; 0.50 → bloqueia pipeline e pede clarificação. 0.50–0.69 → classifica com melhor palpite + <code>low_confidence: true</code> (não bloqueia). ≥ 0.70 → classificação normal.
+      🎯 <strong style="color:#93c5fd;">Threshold de confiança:</strong> confidence &lt; 0.50 → bloqueia pipeline e pede clarificação. 0.50–0.69 → classifica com melhor palpite + <code>low_confidence: true</code> (não bloqueia, visível no relatório). ≥ 0.70 → classificação normal.
     </div>
 
     <div class="table-wrapper">
@@ -870,7 +892,7 @@
               </div>
             </td>
             <td><code>executor-api</code></td>
-            <td>Python requests</td>
+            <td>Playwright APIRequestContext + Zod</td>
             <td style="color:var(--text-muted); font-size:12px;">Recebe <code>http</code> do tipo integração</td>
           </tr>
           <tr>
@@ -884,7 +906,7 @@
             </td>
             <td><code>executor-performance</code></td>
             <td>k6 / fallback Python</td>
-            <td style="color:var(--text-muted); font-size:12px;">Instala k6 automaticamente</td>
+            <td style="color:var(--text-muted); font-size:12px;">Fallback automático se k6 ausente</td>
           </tr>
           <tr>
             <td>
@@ -894,7 +916,7 @@
             </td>
             <td><code>executor-visual</code></td>
             <td>Playwright screenshots</td>
-            <td style="color:var(--text-muted); font-size:12px;">Baseline na 1ª execução</td>
+            <td style="color:var(--text-muted); font-size:12px;">Baseline na 1ª execução · vídeo gravado</td>
           </tr>
           <tr>
             <td>
@@ -904,7 +926,7 @@
             </td>
             <td><code>executor-acessibilidade</code></td>
             <td>axe-core via Playwright</td>
-            <td style="color:var(--text-muted); font-size:12px;">WCAG 2.1 AA</td>
+            <td style="color:var(--text-muted); font-size:12px;">WCAG 2.1 AA · screenshot + vídeo</td>
           </tr>
           <tr>
             <td>
@@ -926,32 +948,40 @@
             <td>Python + drivers DB</td>
             <td style="color:var(--text-muted); font-size:12px;">Requer <code>DB_CONNECTION_STRING</code></td>
           </tr>
-          <tr>
-            <td>
-              <div class="type-list">
-                <span class="tag tag-gray">contrato (Pact)</span>
-              </div>
-            </td>
-            <td style="color:var(--text-muted);">— não executa</td>
-            <td style="color:var(--text-muted);">Pact Broker</td>
-            <td style="color:#fca5a5; font-size:12px;">⚠️ Requer Pact Broker externo</td>
-          </tr>
-          <tr>
-            <td>
-              <div class="type-list">
-                <span class="tag tag-gray">mobile (Appium)</span>
-              </div>
-            </td>
-            <td style="color:var(--text-muted);">— não executa</td>
-            <td style="color:var(--text-muted);">Appium</td>
-            <td style="color:#fca5a5; font-size:12px;">⚠️ Requer dispositivo/emulador</td>
-          </tr>
         </tbody>
       </table>
     </div>
 
     <div class="info-box" style="margin-top:16px; background:var(--surface); border-color:var(--border); color:var(--text-muted); font-size:13px;">
       💡 <strong style="color:var(--text);">Roteamento http:</strong> testes classificados como <code>http</code> vão para <code>executor-api</code> quando o tipo é <em>integração</em>, e para <code>executor-browser</code> quando o tipo é smoke/sanity/regressão/e2e.
+    </div>
+
+    <!-- Não suportados -->
+    <div style="margin-top:24px;">
+      <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
+        <span style="font-size:15px; font-weight:700; color:var(--text-muted);">⏳ Tipos Pendentes — Sem Suporte no Momento</span>
+        <span class="badge badge-gray">a implementar</span>
+      </div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+        <div style="background:var(--surface); border:1px solid rgba(239,68,68,.2); border-left:3px solid var(--red); border-radius:var(--radius-sm); padding:14px 16px;">
+          <div style="font-size:13px; font-weight:700; margin-bottom:6px; display:flex; align-items:center; gap:8px;">
+            <span class="tag tag-gray">contrato (Pact)</span>
+            <span style="font-size:11px; color:#fca5a5;">não suportado</span>
+          </div>
+          <div style="font-size:12px; color:var(--text-muted); line-height:1.5;">
+            Requer Pact Broker externo. O classificador identifica o tipo mas o orquestrador não despacha — registra como "não executado" no relatório.
+          </div>
+        </div>
+        <div style="background:var(--surface); border:1px solid rgba(239,68,68,.2); border-left:3px solid var(--red); border-radius:var(--radius-sm); padding:14px 16px;">
+          <div style="font-size:13px; font-weight:700; margin-bottom:6px; display:flex; align-items:center; gap:8px;">
+            <span class="tag tag-gray">mobile (Appium)</span>
+            <span style="font-size:11px; color:#fca5a5;">não suportado</span>
+          </div>
+          <div style="font-size:12px; color:var(--text-muted); line-height:1.5;">
+            Requer dispositivo físico ou emulador Android/iOS configurado. O classificador identifica o tipo mas o orquestrador não despacha — registra como "não executado".
+          </div>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -973,24 +1003,26 @@
             <div class="executor-icon" style="background:var(--blue-dim);">🌐</div>
             <div>
               <div class="executor-name">executor-browser</div>
-              <div class="executor-tech">Playwright + TypeScript</div>
+              <div class="executor-tech">Playwright + TypeScript + POM</div>
             </div>
           </div>
           <span class="chevron">▼</span>
         </div>
         <div class="executor-body">
           <ul>
-            <li>Gera <strong>Page Objects (POM)</strong> para cada página testada</li>
-            <li><strong>Seletores semânticos:</strong> getByRole, getByLabel, getByText — sem IDs frágeis</li>
-            <li><strong>Setup (beforeAll):</strong> cria massa de dados via API com <code>request.newContext()</code></li>
-            <li><strong>Testes:</strong> executam contra os dados criados no setup</li>
-            <li><strong>Teardown (afterAll):</strong> apaga tudo que foi criado, mesmo se testes falharem</li>
+            <li>Gera <strong>Page Objects (POM)</strong> para cada página — locators como getter accessors</li>
+            <li><strong>Ordem de seletores:</strong> getByRole → getByLabel → getByTestId → getByText → css (último recurso)</li>
+            <li><strong>Timeout adaptativo:</strong> herokuapp 60s/30s · DEMO_HOSTS 30s/15s · outros 30s/10s</li>
+            <li><strong>Espera estável pós-goto:</strong> seletor semântico → elemento visível específico → waitForTimeout(1500) como último recurso</li>
+            <li><strong>AUTH_REQUIRED guard:</strong> globalSetup só executa fluxo de auth quando <code>AUTH_REQUIRED=true</code> no .env — suites sem auth não travam no setup</li>
+            <li><strong>Auto-registro restrito:</strong> apenas em DEMO_HOSTS conhecidos ou com <code>ALLOW_AUTO_REGISTER=true</code></li>
+            <li><strong>Modo headed:</strong> <code>HEADED=true</code> abre Chrome visível com slowMo:300ms para depuração</li>
+            <li><strong>Vídeo + screenshot obrigatórios:</strong> <code>video:'on'</code> e <code>screenshot:'on'</code> no playwright.config — coletados de <code>reports/test-results/[hash]/</code> após execução via outputDir do JSON do Playwright</li>
+            <li><strong>Cache npm:</strong> <code>~/.claude-qa-cache/browser/node_modules</code> via junction/symlink — evita reinstalação completa</li>
             <li>Cobre smoke, sanity, regressão, e2e e cross-browser</li>
-            <li>Também processa testes <code>http</code> de smoke/sanity/regressão/e2e</li>
-            <li><strong>Auto-registro restrito:</strong> apenas em domínios de demonstração conhecidos (AutomationExercise, DemoQA, etc.) ou com <code>ALLOW_AUTO_REGISTER=true</code></li>
           </ul>
           <div class="info-box">
-            🔵 Tipos cobertos: smoke · sanity · regressão · e2e · cross-browser
+            🔵 Tipos cobertos: smoke · sanity · regressão · e2e · cross-browser · http (smoke/sanity/e2e)
           </div>
         </div>
       </div>
@@ -1002,7 +1034,7 @@
             <div class="executor-icon" style="background:var(--green-dim);">🔌</div>
             <div>
               <div class="executor-name">executor-api</div>
-              <div class="executor-tech">Python requests</div>
+              <div class="executor-tech">Playwright APIRequestContext + Zod</div>
             </div>
           </div>
           <span class="chevron">▼</span>
@@ -1010,10 +1042,11 @@
         <div class="executor-body">
           <ul>
             <li>Extrai <strong>método, endpoint, payload e headers</strong> dos steps de teste</li>
-            <li><strong>Setup:</strong> cria pré-condições via API</li>
-            <li><strong>Testes:</strong> valida status code, campos do body e tempo de resposta</li>
+            <li>Valida contrato de resposta com <strong>Zod schema</strong> — status code, campos obrigatórios e tipos</li>
+            <li><strong>Setup:</strong> cria pré-condições via API com APIRequestContext</li>
             <li><strong>Teardown (finally):</strong> bloco finally garante limpeza mesmo em falhas</li>
             <li>Suporta GET, POST, PUT, PATCH, DELETE, autenticação Bearer/Basic</li>
+            <li><strong>Cache npm:</strong> <code>~/.claude-qa-cache/api/node_modules</code> via junction/symlink</li>
           </ul>
           <div class="info-box" style="background:var(--green-dim); border-color:rgba(16,185,129,.3); color:#6ee7b7;">
             🟢 Tipos cobertos: integração · http (integração)
@@ -1025,7 +1058,7 @@
       <div class="executor-card" onclick="toggleCard(this)">
         <div class="executor-header">
           <div class="executor-title-wrap">
-            <div class="executor-icon" style="background:var(--orange-dim);">📈</div>
+            <div class="executor-icon" style="background:var(--orange-dim);">⚡</div>
             <div>
               <div class="executor-name">executor-performance</div>
               <div class="executor-tech">k6 ou fallback Python</div>
@@ -1037,8 +1070,9 @@
           <ul>
             <li>Se k6 disponível: gera script JS nativo e executa</li>
             <li>Se k6 ausente: <strong>fallback Python imediato</strong> (threading para simular VUs) — sem tentar instalar</li>
-            <li><strong>Perfis:</strong> performance (10VUs/30s) · carga (50VUs/60s) · stress (rampa) · soak (20VUs/10min)</li>
-            <li><strong>Métricas coletadas:</strong> p50 / p95 / p99, error rate, throughput</li>
+            <li><strong>Perfis:</strong> performance (10VUs/30s) · carga (50VUs/60s) · stress (rampa) · soak (20VUs/<strong>3min</strong> default conservador)</li>
+            <li><strong>HTTPS obrigatório:</strong> <code>insecureSkipTLSVerify: true</code> sempre que a URL usa <code>https://</code> — ausência causa error_rate 100% mascarando o resultado real</li>
+            <li><strong>Métricas coletadas:</strong> p50 / p95 / p99, error rate, throughput (req/s)</li>
           </ul>
           <div class="info-box" style="background:var(--orange-dim); border-color:rgba(245,158,11,.3); color:#fcd34d;">
             🟡 Tipos cobertos: performance · carga · stress · soak
@@ -1053,17 +1087,18 @@
             <div class="executor-icon" style="background:var(--purple-dim);">👁️</div>
             <div>
               <div class="executor-name">executor-visual</div>
-              <div class="executor-tech">Playwright screenshots</div>
+              <div class="executor-tech">Playwright toHaveScreenshot</div>
             </div>
           </div>
           <span class="chevron">▼</span>
         </div>
         <div class="executor-body">
           <ul>
-            <li><strong>1ª execução:</strong> captura e salva imagens de baseline + aviso obrigatório para validação visual</li>
-            <li><strong>Execuções seguintes:</strong> compara screenshots com o baseline</li>
-            <li>Threshold de diferença: <strong>2%</strong> — abaixo disso é aprovado</li>
-            <li>Oculta <strong>elementos dinâmicos</strong> (datas, animações) para evitar falsos positivos</li>
+            <li><strong>1ª execução:</strong> captura e salva baseline + aviso obrigatório de validação visual</li>
+            <li><strong>Execuções seguintes:</strong> compara com baseline usando <code>toHaveScreenshot()</code></li>
+            <li>Threshold de diferença: <strong>2%</strong> de pixels — abaixo disso é aprovado</li>
+            <li><strong>Máscara de elementos dinâmicos:</strong> oculta timestamps, contadores, badges, banners, <code>time[datetime]</code> e padrões de classe comuns antes do screenshot</li>
+            <li><strong>Vídeo + screenshot obrigatórios:</strong> <code>video:'on'</code> e <code>screenshot:'on'</code> no playwright.config — coletados de <code>reports/test-results/</code> por matching de nome do diretório</li>
           </ul>
           <div class="info-box" style="background:var(--purple-dim); border-color:rgba(139,92,246,.3); color:#c4b5fd;">
             🟣 Tipos cobertos: visual
@@ -1085,12 +1120,12 @@
         </div>
         <div class="executor-body">
           <ul>
-            <li>Padrão: <strong>WCAG 2.1 AA</strong></li>
-            <li><strong>critical / serious</strong> → falha o teste</li>
-            <li><strong>moderate / minor</strong> → reportado como warning</li>
-            <li>Analisa cada página ou componente especificado</li>
-            <li><strong>Falhas conhecidas de demo:</strong> violações anotadas como <code>known_demo_failure</code>, "violação conhecida", "aceito pelo time", etc. → não bloqueiam deploy; detecção case-insensitive</li>
-            <li>Ambientes de demonstração: <code>deploy_blocked: false</code> se todas as violações <code>failed</code> forem conhecidas</li>
+            <li>Padrão: <strong>WCAG 2.1 AA</strong> — tags: wcag2a, wcag2aa, wcag21aa</li>
+            <li><strong>critical / serious</strong> → <code>status: failed</code></li>
+            <li><strong>moderate / minor</strong> → <code>status: warning</code> (não bloqueia deploy)</li>
+            <li><strong>Falhas conhecidas de demo:</strong> anotadas como <code>known_demo_failure</code>, "violação conhecida", "aceito pelo time", etc. → <code>deploy_blocked: false</code> se todas as failed forem conhecidas</li>
+            <li><strong>playwright.config.ts gerado:</strong> com <code>video:'on'</code> e <code>screenshot:'on'</code> — vídeo coletado de <code>reports/test-results/</code></li>
+            <li>Screenshot capturado antes da análise axe-core como evidência</li>
           </ul>
           <div class="info-box" style="background:var(--purple-dim); border-color:rgba(139,92,246,.3); color:#c4b5fd;">
             🟣 Tipos cobertos: acessibilidade
@@ -1105,18 +1140,19 @@
             <div class="executor-icon" style="background:var(--red-dim);">🔒</div>
             <div>
               <div class="executor-name">executor-seguranca</div>
-              <div class="executor-tech">Python (não invasivo)</div>
+              <div class="executor-tech">Python requests (não invasivo)</div>
             </div>
           </div>
           <span class="chevron">▼</span>
         </div>
         <div class="executor-body">
           <ul>
-            <li><strong>Autenticação:</strong> verifica 401 em rotas sem token</li>
+            <li><strong>Autenticação:</strong> verifica 401 em rotas protegidas sem token</li>
             <li><strong>Autorização:</strong> verifica 403 em rotas sem permissão</li>
-            <li><strong>Headers:</strong> HSTS, X-Frame-Options, CSP, X-Content-Type</li>
-            <li><strong>CORS:</strong> valida via GET + <strong>OPTIONS preflight</strong> — detecta APIs que só respondem ao preflight</li>
-            <li><strong>Endpoints sensíveis:</strong> /admin, /env, /debug, /.git, etc.</li>
+            <li><strong>Headers de segurança:</strong> HSTS, X-Frame-Options, CSP, X-Content-Type, Referrer-Policy</li>
+            <li><strong>CORS:</strong> valida via GET + OPTIONS preflight — detecta APIs que só respondem ao preflight</li>
+            <li><strong>Endpoints sensíveis:</strong> /admin, /env, /debug, /.git, /actuator, etc.</li>
+            <li>ThreadPoolExecutor com timeout de 5s por endpoint — evita travamento em IPs lentos</li>
           </ul>
           <div class="warn-box">
             ⚠️ Nunca executa: SQL injection · XSS · fuzzing · força bruta — apenas verificações passivas e seguras.
@@ -1140,9 +1176,10 @@
           <ul>
             <li>Apenas <strong>SELECT</strong> e verificações de schema — somente leitura</li>
             <li>Suporta <strong>PostgreSQL</strong> (psycopg2), <strong>MySQL</strong> (connector), <strong>SQLite</strong>, <strong>SQL Server</strong> (pyodbc)</li>
-            <li>Driver instalado <strong>antes</strong> do teste de conexão — evita ImportError mascarado como "Banco inacessível"</li>
-            <li><strong>Modo real:</strong> conecta ao banco via <code>DB_CONNECTION_STRING</code> com credenciais mascaradas no relatório</li>
-            <li><strong>Modo simulado:</strong> cria SQLite <code>:memory:</code> com schema inferido dos steps — resultados marcados com <code>simulated: true</code></li>
+            <li>Driver instalado automaticamente antes do teste — evita ImportError mascarado</li>
+            <li><strong>Modo real:</strong> conecta ao banco via <code>DB_CONNECTION_STRING</code></li>
+            <li><strong>Modo simulado:</strong> SQLite <code>:memory:</code> com schema inferido dos steps — marcado com <code>simulated: true</code></li>
+            <li><strong>Fallback TCP automático (5s):</strong> recusa de conexão, timeout, DNS ou rede inacessível ativa <code>simulated_fallback</code> — sem perguntar, sem skipar</li>
           </ul>
           <div class="info-box" style="background:var(--cyan-dim); border-color:rgba(6,182,212,.3); color:#67e8f9;">
             🔵 Tipos cobertos: banco
@@ -1228,6 +1265,75 @@
 
   <hr class="divider">
 
+  <!-- ════ ARTIFACTS ════ -->
+  <section id="artifacts">
+    <div class="section-header">
+      <h2>📁 Artefatos da Suite</h2>
+      <span class="badge badge-cyan">Gerados automaticamente</span>
+    </div>
+    <p style="color:var(--text-muted); margin-bottom:20px; font-size:14px;">
+      O orquestrador cria um diretório único por execução. Cada executor grava seus artefatos lá. O relatório HTML é salvo ao lado.
+    </p>
+
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
+
+      <div>
+        <div style="font-size:13px; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:.4px; margin-bottom:10px;">Estrutura de diretórios</div>
+        <div class="artifact-tree">
+          <div><span class="dir">suite_[nome]_[YYYYMMDD_HHMMSS]/</span></div>
+          <div style="padding-left:20px"><span class="file-log">suite.log</span></div>
+          <div style="padding-left:20px"><span class="dir">browser/</span></div>
+          <div style="padding-left:40px"><span class="file-key">resultado.json</span></div>
+          <div style="padding-left:40px"><span class="file-log">execution.log</span></div>
+          <div style="padding-left:40px"><span class="file">screenshots/ · videos/</span></div>
+          <div style="padding-left:20px"><span class="dir">api/</span></div>
+          <div style="padding-left:40px"><span class="file-key">resultado.json</span> <span class="file-log">execution.log</span></div>
+          <div style="padding-left:20px"><span class="dir">performance/</span></div>
+          <div style="padding-left:40px"><span class="file-key">resultado.json</span> <span class="file-log">execution.log</span></div>
+          <div style="padding-left:20px"><span class="dir">visual/ · acessibilidade/</span></div>
+          <div style="padding-left:40px"><span class="file-key">resultado.json</span> <span class="file-log">execution.log</span></div>
+          <div style="padding-left:40px"><span class="file">screenshots/ · videos/</span></div>
+          <div style="padding-left:20px"><span class="dir">seguranca/ · banco/</span></div>
+          <div style="padding-left:40px"><span class="file-key">resultado.json</span> <span class="file-log">execution.log</span></div>
+          <div style="margin-top:6px"><span class="file-key">relatorio_[suite_dir].html</span></div>
+        </div>
+      </div>
+
+      <div>
+        <div style="font-size:13px; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:.4px; margin-bottom:10px;">Comportamentos chave</div>
+        <div style="display:flex; flex-direction:column; gap:10px;">
+          <div class="rule-item">
+            <span>📂</span>
+            <span>O orquestrador cria <code>suite_[nome]_[timestamp]/</code> e propaga o caminho para todos os executores via <code>suite_dir</code> no contexto de execução.</span>
+          </div>
+          <div class="rule-item">
+            <span>📋</span>
+            <span>Cada executor grava <code>execution.log</code> com timestamp em todas as ações — navegações, assertions, erros e status final.</span>
+          </div>
+          <div class="rule-item">
+            <span>🎬</span>
+            <span>Frontend executors (browser, visual, a11y) gravam <strong>vídeo (.webm)</strong> e <strong>screenshot (.png)</strong> por teste — links aparecem no relatório HTML.</span>
+          </div>
+          <div class="rule-item">
+            <span>🔑</span>
+            <span>Se credenciais falharem (<code>credentials_failed</code>), o orquestrador detecta via arquivo <code>setup_status.json</code> e solicita novas credenciais antes de re-despachar.</span>
+          </div>
+          <div class="rule-item">
+            <span>🚫</span>
+            <span><strong>Dry-run:</strong> prefixo <code>--dry-run</code> exibe o plano de execução (testes classificados + executores) sem despachar nenhum executor.</span>
+          </div>
+          <div class="rule-item">
+            <span>🗃️</span>
+            <span><strong>Cache npm:</strong> <code>~/.claude-qa-cache/browser|api/node_modules</code> via junction/symlink — instalação apenas na primeira execução por máquina.</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <hr class="divider">
+
   <!-- ════ AUTH ════ -->
   <section id="auth">
     <div class="section-header">
@@ -1253,13 +1359,7 @@
         <div class="auth-num">2</div>
         <div class="auth-body">
           <h4>Credenciais sem token</h4>
-          <p>Os steps têm usuário/senha mas não token. O executor tenta gerar o token automaticamente via:</p>
-          <div style="margin-top:8px; display:flex; flex-wrap:wrap; gap:4px;">
-            <code style="font-size:11px;">POST /auth/login</code>
-            <code style="font-size:11px;">POST /api/login</code>
-            <code style="font-size:11px;">POST /oauth/token</code>
-            <code style="font-size:11px;">POST /token</code>
-          </div>
+          <p>Os steps têm usuário/senha mas não token. O executor tenta gerar o token automaticamente via POST <code>/auth/login</code>, <code>/api/login</code>, <code>/oauth/token</code> (timeout 5s por endpoint).</p>
           <div class="auth-outcome outcome-blue">⚡ Gera token automaticamente</div>
         </div>
       </div>
@@ -1276,9 +1376,9 @@
       <div class="auth-step">
         <div class="auth-num">4</div>
         <div class="auth-body">
-          <h4>Usuário não fornece</h4>
-          <p>O usuário foi perguntado mas não forneceu as credenciais solicitadas.</p>
-          <div class="auth-outcome outcome-red">⏭️ Testes skipped com motivo registrado</div>
+          <h4>credentials_failed detectado</h4>
+          <p>Credenciais foram fornecidas mas falharam no login (globalSetup gravou <code>setup_status.json</code> com <code>credentials_failed: true</code>). O orquestrador detecta ao final da execução e solicita novas credenciais antes de re-despachar.</p>
+          <div class="auth-outcome outcome-red">🔄 Retry de credenciais pelo orquestrador</div>
         </div>
       </div>
 
@@ -1291,7 +1391,10 @@
           🌐 <strong style="color:var(--text);">URL do ambiente:</strong> orquestrador infere dos steps; se não conseguir, pergunta ao usuário antes de iniciar.
         </div>
         <div style="font-size:13px; color:var(--text-muted);">
-          🗄️ <strong style="color:var(--text);">DB_CONNECTION_STRING:</strong> executor-banco verifica variável de ambiente; se ausente, pede ao usuário ou skipa automaticamente.
+          🔒 <strong style="color:var(--text);">Mascaramento:</strong> tokens e senhas são mascarados no chat e no <code>suite.log</code> — nunca aparecem em texto puro.
+        </div>
+        <div style="font-size:13px; color:var(--text-muted);">
+          🗄️ <strong style="color:var(--text);">DB_CONNECTION_STRING:</strong> executor-banco verifica variável de ambiente; se ausente, pede ao usuário ou ativa modo simulado automaticamente.
         </div>
       </div>
     </div>
@@ -1341,26 +1444,28 @@
       <div class="dep-card" style="border-top:3px solid var(--blue);">
         <h4>🌐 executor-browser / visual / acessibilidade</h4>
         <p style="font-size:12px; color:var(--text-muted); margin-bottom:4px;">Node.js + Playwright + binários do Chrome</p>
-        <code>npm install -D @playwright/test</code>
+        <code>npm install -D @playwright/test @faker-js/faker zod dotenv</code>
         <code>npx playwright install chromium</code>
+        <p style="font-size:11px; color:var(--text-muted); margin-top:6px;">acessibilidade também: <code>npm install -D @axe-core/playwright</code></p>
       </div>
 
       <div class="dep-card" style="border-top:3px solid var(--orange);">
-        <h4>📈 executor-performance</h4>
+        <h4>⚡ executor-performance</h4>
         <p style="font-size:12px; color:var(--text-muted); margin-bottom:4px;">Binário k6 — não instalável via npm</p>
         <code>winget install k6</code>
-        <p style="font-size:11px; color:var(--text-muted); margin-top:6px;">Se ausente: fallback Python automático</p>
+        <p style="font-size:11px; color:var(--text-muted); margin-top:6px;">Se ausente: fallback Python automático com threading</p>
       </div>
 
       <div class="dep-card" style="border-top:3px solid var(--green);">
         <h4>🔌 executor-api / seguranca</h4>
         <p style="font-size:12px; color:var(--text-muted); margin-bottom:4px;">Python + biblioteca requests</p>
         <code>pip install requests</code>
+        <p style="font-size:11px; color:var(--text-muted); margin-top:6px;">executor-api também usa Node.js + Playwright</p>
       </div>
 
       <div class="dep-card" style="border-top:3px solid var(--cyan);">
         <h4>🗄️ executor-banco</h4>
-        <p style="font-size:12px; color:var(--text-muted); margin-bottom:4px;">Driver instalado automaticamente por tipo:</p>
+        <p style="font-size:12px; color:var(--text-muted); margin-bottom:4px;">Driver instalado automaticamente por tipo de banco:</p>
         <code>pip install -q psycopg2-binary</code>
         <code>pip install -q mysql-connector-python</code>
         <code>pip install -q pyodbc</code>
@@ -1373,10 +1478,10 @@
       </div>
 
       <div class="dep-card" style="border-top:3px solid var(--border);">
-        <h4>🗃️ Artefatos temporários</h4>
-        <p style="font-size:12px; color:var(--text-muted);">Os executores geram arquivos efêmeros na raiz do repositório durante a execução:</p>
-        <code>tmp_*.py · tmp_*.js · tmp_*.json</code>
-        <p style="font-size:11px; color:var(--text-muted); margin-top:6px;">Cobertos pelo .gitignore — não são commitados.</p>
+        <h4>🗃️ Artefatos temporários e cache</h4>
+        <p style="font-size:12px; color:var(--text-muted);">Arquivos efêmeros gerados durante execução:</p>
+        <code>tmp_*.py · tmp_*.js · tmp_*.json · tmp_*/</code>
+        <p style="font-size:11px; color:var(--text-muted); margin-top:6px;">Cobertos pelo .gitignore. Cache npm em <code>~/.claude-qa-cache/</code>.</p>
       </div>
 
     </div>
@@ -1385,7 +1490,7 @@
 </main>
 
 <footer>
-  Squad de Automação de Testes QA · Dois pipelines · Sete executores · Zero perguntas desnecessárias · v1.17.0
+  Squad de Automação de Testes QA · Dois pipelines · Sete executores · Zero perguntas desnecessárias · v1.22.3
 </footer>
 
 <script>

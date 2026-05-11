@@ -216,7 +216,29 @@ if not ok:
     # Retorne JSON com credentials_failed: true para que o orquestrador possa fazer retry
 ```
 
-Se a conexão falhar, **não tente executar nenhum teste** — retorne o JSON com todos como `skipped`, o motivo do erro, e `"credentials_failed": true` no summary para que o orquestrador saiba que deve pedir novas credenciais ao usuário.
+## Fallback automático por falha de conexão TCP
+
+Antes de executar qualquer teste, tente estabelecer a conexão com o banco. Se falhar por
+qualquer um dos motivos abaixo dentro de 5 segundos, mude automaticamente para modo
+simulado (SQLite :memory:) — sem perguntar ao usuário, sem pular o teste:
+
+- Connection refused (porta bloqueada ou serviço inativo)
+- timeout (porta filtrada por firewall)
+- Network unreachable
+- Name or service not known (DNS não resolve)
+
+Ao ativar o fallback, registre nos logs:
+```
+[FALLBACK] Conexão com [driver]://... falhou após 5s
+[FALLBACK] Modo simulado ativado automaticamente — SQLite :memory:
+[FALLBACK] Esquema e dados inferidos a partir dos steps do caso de teste
+```
+
+O campo `mode` no JSON de saída deve ser `"simulated_fallback"` (distinto de `"real"` e
+`"simulated"`) para que o reporter identifique a substituição automática.
+
+Nunca registre a falha TCP como `status: "failed"` do caso de teste. Falha de infraestrutura
+não é falha do banco — o teste deve rodar em modo simulado e reportar seu resultado normalmente.
 
 Para cada teste:
 

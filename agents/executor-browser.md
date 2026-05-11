@@ -35,8 +35,11 @@ O `orquestrador-qa` formata a mensagem com uma seção explícita. Procure no se
 Se essa seção estiver presente:
 - `base_url` → use como `BASE_URL` no `.env`, não pergunte
 - `auth.token` → defina `AUTH_TOKEN` no `.env` e use diretamente, não pergunte nada
-- `auth.credentials` → defina `USER_EMAIL` e `USER_PASSWORD` no `.env`; o `globalSetup` gera o token
+- `auth.credentials` → defina `USER_EMAIL`, `USER_PASSWORD` e `AUTH_REQUIRED=true` no `.env`; o `globalSetup` gera o token
+- `auth` null ou ausente → não defina `USER_EMAIL`/`USER_PASSWORD` no `.env` e não inclua `AUTH_REQUIRED`; o `globalSetup` retornará imediatamente sem tentar auth
 - `suite_dir` → se presente, use `[suite_dir]/browser/` como diretório de artefatos; crie com `fs.mkdirSync`
+- `headed` → se `true`, defina `HEADED=true` no `.env`; se `false` ou ausente, não defina (padrão headless)
+- `code_output_dir` → se presente, crie o diretório `tmp_browser_[timestamp]` dentro desse caminho em vez da raiz do projeto
 - `environment_notes` → aplique as regras abaixo conforme palavras-chave:
   - Contém `certificado`, `SSL`, `autoassinado` ou `self-signed` → adicione `ignoreHTTPSErrors: true` no `playwright.config.ts`
   - Contém `VPN` ou `proxy` → adicione `[ENV] Ambiente pode exigir VPN/proxy` nos logs; se testes falharem com erro de conexão, inclua `"Possível causa: acesso via VPN/proxy necessário"` no campo `error`
@@ -220,6 +223,9 @@ import * as fs from 'fs';
 
 export default async function globalSetup(config: FullConfig): Promise<void> {
   fs.mkdirSync('reports', { recursive: true });
+
+  // Pula o fluxo de auth quando nenhum teste da suite precisa de autenticação
+  if (!process.env.AUTH_REQUIRED) return;
 
   // Auto-registro restrito a ambientes de demonstração conhecidos
   // Em ambientes reais (produção/staging) não tentamos criar contas automaticamente
@@ -422,13 +428,14 @@ Para cada conjunto de testes:
      globalSetup: './src/support/globalSetup',
      globalTeardown: './src/support/globalTeardown',
      use: {
-       headless: true,
+       headless: process.env.HEADED !== 'true',
+       slowMo: process.env.HEADED === 'true' ? 300 : 0,
        viewport: { width: 1280, height: 720 },
        ignoreHTTPSErrors: true,
        baseURL: process.env.BASE_URL,
        trace: 'retain-on-failure',
-       screenshot: 'only-on-failure',
-       video: 'retain-on-failure',
+       screenshot: 'on',
+       video: 'on',
      },
    });
    ```
@@ -455,6 +462,47 @@ Para cada conjunto de testes:
 
    ```
    npx playwright test --reporter=json > resultado.json
+   ```
+
+   Após a execução, colete screenshots e vídeos usando o `outputDir` por teste do JSON do Playwright:
+
+   ```typescript
+   // Walk Playwright JSON: mapeia spec.title → outputDir do teste
+   const pwReport = JSON.parse(fs.readFileSync('resultado.json', 'utf-8'));
+   function walkPwSuites(suites: any[]): Map<string, string> {
+     const m = new Map<string, string>();
+     for (const s of suites || []) {
+       for (const [k, v] of walkPwSuites(s.suites || [])) m.set(k, v);
+       for (const spec of s.specs || []) {
+         const dir = spec.tests?.[0]?.results?.[0]?.outputDir ?? '';
+         if (dir) m.set(spec.title, dir);
+       }
+     }
+     return m;
+   }
+   const titleToDir = walkPwSuites(pwReport.suites || []);
+   const screenshotsDir = path.join(outputDir, 'screenshots');
+   const videosDir = path.join(outputDir, 'videos');
+   fs.mkdirSync(screenshotsDir, { recursive: true });
+   fs.mkdirSync(videosDir, { recursive: true });
+   for (const result of results) {
+     const pwOut = titleToDir.get(result.title) ?? '';
+     // Screenshot: Playwright grava como test-failed-1.png (falhas) ou screenshot.png (screenshot:'on')
+     const ssSrc = ['test-failed-1.png', 'screenshot.png']
+       .map(n => path.join(pwOut, n)).find(p => fs.existsSync(p)) ?? null;
+     if (ssSrc) {
+       const dest = path.join(screenshotsDir, `${result.id}.png`);
+       fs.copyFileSync(ssSrc, dest);
+       result.screenshot_path = path.resolve(dest);
+     } else { result.screenshot_path = null; }
+     // Vídeo: Playwright grava como video.webm no outputDir do teste (video:'on' no config)
+     const videoSrc = path.join(pwOut, 'video.webm');
+     if (fs.existsSync(videoSrc)) {
+       const dest = path.join(videosDir, `${result.id}.webm`);
+       fs.copyFileSync(videoSrc, dest);
+       result.video_path = path.resolve(dest);
+     } else { result.video_path = null; }
+   }
    ```
 
 ---
@@ -528,6 +576,50 @@ O campo `generated_files` no JSON segue a mesma regra: preencha somente quando h
 
 ---
 
+## Estratégia de espera e seletores resilientes
+
+### Ordem de preferência de seletores
+
+1. `getByRole` + `{ name: '...' }` — semântico e estável
+2. `getByLabel` — para campos de formulário
+3. `getByTestId` — quando o app expõe `data-testid`
+4. `getByText` — para elementos de texto visível
+5. `locator('css=...')` — último recurso
+
+Nunca use seletores por classe CSS gerada dinamicamente (ex: `.css-1x2y3z`).
+
+### Timeout adaptativo por tipo de ambiente
+
+- `*.herokuapp.com`: `defaultNavigationTimeout 60000ms`, `defaultTimeout 30000ms`
+- DEMO_HOSTS (saucedemo, demoqa, automationexercise, the-internet): `defaultNavigationTimeout 30000ms`, `defaultTimeout 15000ms`
+- Outros: `defaultNavigationTimeout 30000ms`, `defaultTimeout 10000ms`
+
+Configure no início de cada spec:
+```typescript
+page.setDefaultNavigationTimeout(60_000);
+page.setDefaultTimeout(30_000);
+```
+
+### Aguardar estado estável antes de interagir
+
+Após cada `page.goto()`, aguarde um indicador de conteúdo antes de interagir:
+
+```typescript
+// Preferência 1: seletor semântico de conteúdo
+await page.waitForSelector('[data-testid="content-loaded"]', { timeout: 30_000 });
+
+// Preferência 2: elemento visível específico da página
+await page.getByRole('heading', { name: /produtos|products/i }).waitFor({ timeout: 30_000 });
+
+// Último recurso
+await page.waitForTimeout(1_500);
+```
+
+Nunca confie apenas em `waitForLoadState('domcontentloaded')` para SPAs — o DOM pode estar
+pronto antes do conteúdo dinâmico ser renderizado.
+
+---
+
 ## Formato de saída
 
 ```json
@@ -549,6 +641,8 @@ O campo `generated_files` no JSON segue a mesma regra: preencha somente quando h
       "status": "passed",
       "duration_ms": 1240,
       "browser": "chromium",
+      "screenshot_path": "[outputDir]/screenshots/TC-001.png",
+      "video_path": "[outputDir]/videos/TC-001.webm",
       "steps": [
         { "step": "Realizar login", "status": "passed" },
         { "step": "Validar login com sucesso", "status": "passed" }

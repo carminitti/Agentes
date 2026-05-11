@@ -64,6 +64,40 @@ npm install -D @playwright/test @axe-core/playwright
 npx playwright install chromium
 ```
 
+Gere um `playwright.config.ts` com captura de vídeo e screenshot obrigatórios:
+```typescript
+import { defineConfig } from '@playwright/test';
+export default defineConfig({
+  use: {
+    headless: true,
+    video: 'on',
+    screenshot: 'on',
+  },
+  outputDir: 'reports/test-results',
+});
+```
+
+Após execução, colete vídeos de `reports/test-results/` usando correspondência pelo título do teste:
+```typescript
+const testResultsDir = path.join('reports', 'test-results');
+const videosDir = path.join(outputDir, 'videos');
+fs.mkdirSync(videosDir, { recursive: true });
+const testDirs = fs.existsSync(testResultsDir)
+  ? fs.readdirSync(testResultsDir, { withFileTypes: true })
+      .filter(d => d.isDirectory()).map(d => d.name)
+  : [];
+for (const result of results) {
+  const key = result.title.replace(/[^a-z0-9]/gi, '-').toLowerCase().slice(0, 30);
+  const matchDir = testDirs.find(d => d.toLowerCase().includes(key)) ?? '';
+  const videoSrc = matchDir ? path.join(testResultsDir, matchDir, 'video.webm') : '';
+  if (videoSrc && fs.existsSync(videoSrc)) {
+    const dest = path.join(videosDir, `${result.id}.webm`);
+    fs.copyFileSync(videoSrc, dest);
+    result.video_path = path.resolve(dest);
+  } else { result.video_path = null; }
+}
+```
+
 ---
 
 ## Como executar
@@ -102,6 +136,17 @@ Para cada teste:
      // analisados automaticamente sem configuração adicional.
      //
      // Para análise da página inteira (padrão):
+     // Screenshot de comprovação — capturado antes da análise axe-core
+     import * as fs from 'fs';
+     import * as path from 'path';
+     const suiteDir = process.env.SUITE_DIR || null;
+     const outputDir = suiteDir ? path.join(suiteDir, 'acessibilidade') : `tmp_a11y_${Date.now()}`;
+     const screenshotsDir = path.join(outputDir, 'screenshots');
+     fs.mkdirSync(screenshotsDir, { recursive: true });
+     const screenshotPath = path.join(screenshotsDir, `${testInfo.title.replace(/[^a-z0-9]/gi, '_')}.png`);
+     await page.screenshot({ path: screenshotPath, fullPage: true });
+     console.log(`[SCREENSHOT] Capturado: ${screenshotPath}`);
+
      const results = await new AxeBuilder({ page })
        .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
        .analyze();
@@ -175,9 +220,12 @@ Para cada teste:
           "known_failure_note": "falha conhecida do ambiente de demonstração — não corrigível pelo time"
         }
       ],
+      "screenshot_path": "[outputDir]/screenshots/[nome_do_teste].png",
+      "video_path": "[outputDir]/videos/[nome_do_teste].webm",
       "passes_count": 38,
       "logs": [
         "[NAV] Acessando https://staging.app.com/login",
+        "[SCREENSHOT] Capturado: [outputDir]/screenshots/[nome_do_teste].png",
         "[ANALYSIS] Executando axe-core (WCAG 2.1 AA)",
         "[VIOLATION] color-contrast (serious): 2 elementos afetados",
         "[VIOLATION] image-alt (critical): 1 elemento afetado — falha conhecida do ambiente",
@@ -202,9 +250,12 @@ Para cada teste:
           "known_failure_note": null
         }
       ],
+      "screenshot_path": "[outputDir]/screenshots/[nome_do_teste].png",
+      "video_path": "[outputDir]/videos/[nome_do_teste].webm",
       "passes_count": 41,
       "logs": [
         "[NAV] Acessando https://staging.app.com/cadastro",
+        "[SCREENSHOT] Capturado: [outputDir]/screenshots/[nome_do_teste].png",
         "[ANALYSIS] Executando axe-core (WCAG 2.1 AA)",
         "[VIOLATION] label (moderate): 1 elemento afetado",
         "[RESULT] 1 violação encontrada — warning"
@@ -217,9 +268,12 @@ Para cada teste:
       "status": "passed",
       "deploy_blocked": false,
       "violations": [],
+      "screenshot_path": "[outputDir]/screenshots/[nome_do_teste].png",
+      "video_path": "[outputDir]/videos/[nome_do_teste].webm",
       "passes_count": 45,
       "logs": [
         "[NAV] Acessando https://staging.app.com",
+        "[SCREENSHOT] Capturado: [outputDir]/screenshots/[nome_do_teste].png",
         "[ANALYSIS] Executando axe-core (WCAG 2.1 AA)",
         "[RESULT] 0 violações encontradas — passed"
       ],

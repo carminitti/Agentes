@@ -64,6 +64,55 @@ npx playwright --version
 ```
 Se não estiver: `npm install -D @playwright/test && npx playwright install chromium`
 
+Gere sempre um `playwright.config.ts` com captura obrigatória de evidências:
+```typescript
+import { defineConfig } from '@playwright/test';
+export default defineConfig({
+  use: {
+    headless: true,
+    screenshot: 'on',
+    video: 'on',
+  },
+  outputDir: 'reports/test-results',
+});
+```
+Após execução, colete screenshots e vídeos localizando os artefatos em `reports/test-results/`:
+
+```typescript
+const testResultsDir = path.join('reports', 'test-results');
+const screenshotsDir = path.join(outputDir, 'screenshots');
+const videosDir = path.join(outputDir, 'videos');
+fs.mkdirSync(screenshotsDir, { recursive: true });
+fs.mkdirSync(videosDir, { recursive: true });
+const testDirs = fs.existsSync(testResultsDir)
+  ? fs.readdirSync(testResultsDir, { withFileTypes: true })
+      .filter(d => d.isDirectory()).map(d => d.name)
+  : [];
+for (const result of results) {
+  // Playwright nomeia o diretório do teste com base no título (match parcial)
+  const key = result.title.replace(/[^a-z0-9]/gi, '-').toLowerCase().slice(0, 30);
+  const matchDir = testDirs.find(d => d.toLowerCase().includes(key)) ?? '';
+  // Vídeo: video.webm no diretório do teste
+  const videoSrc = matchDir ? path.join(testResultsDir, matchDir, 'video.webm') : '';
+  if (videoSrc && fs.existsSync(videoSrc)) {
+    const dest = path.join(videosDir, `${result.id}.webm`);
+    fs.copyFileSync(videoSrc, dest);
+    result.video_path = path.resolve(dest);
+  } else { result.video_path = null; }
+  // Screenshot: capturado via page.screenshot() — caminho já em result.screenshot_path
+  // Se não preenchido, procura no diretório do Playwright como fallback
+  if (!result.screenshot_path && matchDir) {
+    const ssSrc = ['test-failed-1.png', 'screenshot.png']
+      .map(n => path.join(testResultsDir, matchDir, n)).find(p => fs.existsSync(p)) ?? null;
+    if (ssSrc) {
+      const dest = path.join(screenshotsDir, `${result.id}.png`);
+      fs.copyFileSync(ssSrc, dest);
+      result.screenshot_path = path.resolve(dest);
+    }
+  }
+}
+```
+
 ---
 
 ## Como executar
@@ -88,11 +137,19 @@ Para cada teste:
      // await page.waitForSelector('[data-testid="content-loaded"]', { timeout: 10000 });
      // Último recurso quando não há seletor confiável de conclusão de render:
      // await page.waitForTimeout(500);
-     // Oculta elementos dinâmicos (datas, timers) que causam falso positivo
+     // Oculta elementos dinâmicos que causam falso positivo: timestamps, contadores,
+     // badges de notificação, banners e datas relativas (HTML5 <time> e padrões de classe)
      await page.evaluate(() => {
-       document.querySelectorAll('[data-testid="timestamp"]').forEach(el => {
-         (el as HTMLElement).style.visibility = 'hidden';
-       });
+       [
+         '[data-testid="timestamp"]',
+         '[data-testid*="counter"]', '[data-testid*="badge"]', '[data-testid*="banner"]',
+         'time[datetime]', '[class*="live-count"]', '[class*="notification-count"]',
+         '[class*="badge-count"]', '[class*="unread-count"]',
+       ].forEach(sel =>
+         document.querySelectorAll(sel).forEach(el => {
+           (el as HTMLElement).style.visibility = 'hidden';
+         })
+       );
      });
      await expect(page).toHaveScreenshot('checkout.png', {
        maxDiffPixelRatio: 0.02,
@@ -146,6 +203,7 @@ Para cada teste:
       "diff_pixels": 0,
       "diff_percent": 0.0,
       "screenshot_path": "screenshots/checkout.png",
+      "video_path": "videos/checkout.webm",
       "logs": [
         "[NAV] Acessando https://staging.app.com/checkout",
         "[SCREENSHOT] Capturado: checkout.png",

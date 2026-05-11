@@ -35,6 +35,24 @@ Aguarde confirmação do usuário. Se o usuário optar por revisar, apresente os
 
 ---
 
+## Etapa 1.5 — Dry-run (opcional)
+
+Se os casos de teste foram enviados com o prefixo `--dry-run` (ex: `--dry-run\n<casos de teste>`), ou se o usuário escreveu "dry-run" em qualquer mensagem, **não despache nenhum executor**. Exiba apenas:
+
+> **Plano de execução — dry-run**
+> Suite prevista: `suite_[executores]_[timestamp]`
+> Executores que seriam invocados: [lista]
+> Testes por executor:
+> - `[executor]`: [IDs] — [N] teste(s)
+> Auth necessária: [Sim | Não]
+> DB necessário: [Sim | Não]
+>
+> _Para executar de fato, reenvie os casos de teste sem o prefixo `--dry-run`._
+
+Após exibir o plano, encerre. Não prossiga para Etapa 2.
+
+---
+
 ## Etapa 2 — Coleta de informações obrigatórias
 
 Antes de despachar qualquer executor, analise o JSON classificado e colete **em uma única pergunta ao usuário** todas as informações que estiverem genuinamente ausentes ou ambíguas. **Se a informação estiver explícita nos steps ou na mensagem do usuário, use-a diretamente — não pergunte para confirmar o que já está claro.**
@@ -78,9 +96,22 @@ Leia todos os steps dos testes classificados. Se algum step for ambíguo ou der 
 
 > "O step '[trecho do step]' do teste [ID] não está claro. [pergunta específica para desambiguar]."
 
+### 2f — Diretórios de saída e modo de execução
+
+Inclua **sempre** na pergunta ao usuário, independentemente dos outros itens:
+
+> **Saída dos artefatos:**
+> - "Em qual diretório deseja salvar o código gerado pelos executores? (padrão: diretório atual)"
+> - "Em qual diretório deseja salvar o relatório HTML? (padrão: diretório atual)"
+>
+> **Modo de execução (browser):** *(apenas se houver testes com executor `magnitude` ou `http` de tipo browser)*
+> - "Deseja executar os testes de browser com o navegador visível em tempo real? (S/N — padrão: N, headless)"
+
+Se o usuário não informar um diretório, use `"."` (diretório atual). Armazene as respostas como `code_output_dir` e `report_output_dir`.
+
 ### Envio da pergunta
 
-Se houver qualquer item pendente dos itens 2a–2e, **agrupe tudo em uma única mensagem** e aguarde a resposta do usuário antes de continuar. Não prossiga com dados assumidos ou incompletos.
+Se houver qualquer item pendente dos itens 2a–2f, **agrupe tudo em uma única mensagem** e aguarde a resposta do usuário antes de continuar. Não prossiga com dados assumidos ou incompletos.
 
 Após receber as respostas, monte o **contexto de execução**:
 
@@ -93,9 +124,19 @@ contexto = {
   },
   db_connection: "postgresql://..." | null,
   environment_notes: "Requer VPN XYZ" | null,
-  suite_dir: "suite_[nome]_[YYYYMMDD_HHMMSS]"
+  suite_dir: "suite_[nome]_[YYYYMMDD_HHMMSS]",
+  code_output_dir: "/caminho/escolhido" | ".",
+  report_output_dir: "/caminho/escolhido" | ".",
+  headed: true | false
 }
 ```
+
+**Mascaramento de credenciais:** ao exibir o contexto no chat ou gravar em `suite.log`, substitua:
+- `auth.token` → `Bearer ***[últimos 6 chars]`
+- `auth.credentials.password` → `****`
+- `db_connection` → omita a senha: `tipo://user:****@host/db`
+
+Os executores recebem os valores reais no `## Contexto de execução` — o mascaramento é somente para exibição no chat e gravação em disco.
 
 ### Criação do diretório da suite
 
@@ -215,5 +256,20 @@ Após receber os resultados de todos os executores, invoque o subagente `reporte
 - Os resultados de cada executor (JSON de cada um)
 - A URL do ambiente testado
 - Os tipos que não foram executados e o motivo
+- O valor de `suite_dir` (para exibir no cabeçalho do relatório)
 
-Apresente integralmente o relatório retornado pelo `reporter-qa`.
+O `reporter-qa` retornará um HTML completo como resposta. Após recebê-lo:
+
+1. **Salve o HTML em disco** usando a ferramenta Bash ou PowerShell:
+   - Derive o nome do arquivo: `relatorio_[suite_dir].html`
+   - Caminho completo: `[report_output_dir]/relatorio_[suite_dir].html`
+   - **Bash:** `cat > "[report_output_dir]/relatorio_[suite_dir].html" << 'HTML_EOF'` + conteúdo + `HTML_EOF`
+   - **PowerShell:** `Set-Content -Path "[report_output_dir]\relatorio_[suite_dir].html" -Value $htmlContent -Encoding utf8`
+
+2. **Confirme ao usuário:**
+   > "📄 Relatório HTML salvo em: `[caminho completo do arquivo]`
+   > Abra no navegador para visualizar o relatório completo."
+
+3. **Exiba o conteúdo do relatório** (o HTML em si não é legível no chat — exiba o resumo textual retornado junto pelo reporter, se houver, ou o caminho do arquivo).
+
+**Não exiba o HTML bruto no chat** — apenas o caminho do arquivo salvo e o resumo de status (suite aprovada/reprovada, contagem de passed/failed).

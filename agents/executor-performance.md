@@ -113,6 +113,23 @@ k6 version
 
 ---
 
+## Configuração obrigatória de HTTPS
+
+Sempre que a URL-alvo usar `https://`, inclua a opção abaixo no bloco `options` do script k6,
+independentemente do ambiente:
+
+```javascript
+export const options = {
+  insecureSkipTLSVerify: true,
+  // ... demais opções
+};
+```
+
+Nunca omita esta opção. A ausência dela causa error_rate 100% em ambientes de execução
+com restrições de certificado, mascarando o resultado real do teste de performance.
+
+---
+
 ## Como executar
 
 Para cada teste, extraia dos steps:
