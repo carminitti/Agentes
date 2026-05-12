@@ -1,3 +1,28 @@
+# Artefatos temporarios gerados pelos executores
 tmp_*.py
 tmp_*.js
 tmp_*.json
+tmp_*.ts
+tmp_*.spec.ts
+tmp_*/
+
+# Diretorios de suites de execucao (gerados em runtime)
+suite*/
+suite_*/
+
+# Resultados de testes
+test-results/
+axe_results.json
+
+# Dependencias Node
+node_modules/
+
+# Logs de execucao
+*.log
+execution.log
+
+# Cache e artefatos web
+web/
+
+# Screenshots e videos capturados em execucao
+screenshots/

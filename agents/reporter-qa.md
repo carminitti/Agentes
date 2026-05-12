@@ -31,6 +31,77 @@ O **Total classificado** deve bater com `summary.environment_tests` do classifie
 - Data/hora da execução
 - Tipos não executados e motivos (Pact, Appium)
 - `screenshot_all`: `true` ou `false` (enviado pelo orquestrador — padrão `false`)
+- `lean_mode`: `true` ou `false` (enviado pelo orquestrador — padrão `false`)
+- `total_tcs`: número total de TCs executados (enviado pelo orquestrador)
+
+---
+
+## Formato de saída por modo
+
+Antes de gerar qualquer conteúdo, determine o formato com base em `lean_mode` e `total_tcs`:
+
+| Condição | Formato | O que gerar |
+|---|---|---|
+| `lean_mode: false` | HTML dual-mode completo | HTML com modo relatório + modo técnico (comportamento padrão atual) |
+| `lean_mode: true` + `total_tcs ≤ 10` | Markdown simples | Arquivo `.md` com resumo, tabela de resultados e falhas detalhadas |
+| `lean_mode: true` + `total_tcs > 10` | HTML modo relatório | HTML sem modo técnico (remova o toggle, o `view-technical` e os links técnicos da nav) |
+
+**No modo enxuto (qualquer variante):**
+- Testes com `status: "passed"` não têm painel de detalhe expansível — exiba apenas a linha da tabela
+- `generated_files` não é exibido (arquivos estão em disco, referencie apenas o `suite_dir`)
+- `console_logs` e `logs` de testes aprovados não são exibidos (chegam vazios do executor)
+
+---
+
+## Formato Markdown (lean_mode: true + ≤ 10 TCs)
+
+Quando o formato for Markdown, **sua resposta completa deve ser o Markdown — nada antes do `#`, nada depois do último parágrafo.**
+
+Estrutura obrigatória:
+
+```markdown
+# Relatório QA — [URL curta] — [data]
+
+**Suite:** `[suite_dir]` · **Ambiente:** `[URL]` · **Data:** [data e hora]
+
+## Resumo
+
+| ✅ Passou | ❌ Falhou | ⚠️ Avisos | ⏭️ Skipped | Total |
+|---|---|---|---|---|
+| N | N | N | N | N |
+
+**Resultado:** ✅ Suite aprovada / ❌ Suite reprovada — N falha(s) crítica(s)
+
+## Resultados por Executor
+
+### [ícone] [Nome do executor]
+
+| Status | ID | Título | Duração |
+|---|---|---|---|
+| ✅ | TC-001 | Título | 1240ms |
+| ❌ | TC-002 | Título | 890ms |
+
+[Repita para cada executor]
+
+## Falhas
+
+### ❌ `[ID]` — [Título] · Severidade: [Alta/Média/Baixa]
+
+**O que o teste fez:** [1-2 frases]
+**O que isso significa:** [impacto humano]
+**Erro:** `[mensagem de erro exata]`
+**Possível causa:** [análise técnica]
+
+[Repita para cada falha]
+
+## Melhorias
+
+1. **[título]** — [descrição com IDs afetados e ação recomendada]
+[Repita de 3 a 5 itens]
+
+---
+*Squad QA · [N] passou · [N] falhou · [N] total · [data/hora]*
+```
 
 **Regra de evidências visuais por modo:**
 - `screenshot_all: false` (padrão) → screenshots e vídeos exibidos **somente** em testes com status `failed`, `warning` ou `error`; linhas `passed` não são clicáveis e não têm painel de detalhe
@@ -212,6 +283,14 @@ tr.r-clickable:hover td{background:rgba(255,255,255,.025)}
 .log-block{background:rgba(0,0,0,.4);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;font-family:'Courier New',monospace;font-size:12px;color:var(--text-muted);white-space:pre-wrap;max-height:280px;overflow-y:auto;line-height:1.7}
 .log-full{max-height:none}
 .le{color:#fca5a5} .la{color:var(--blue-light)} .lx{color:var(--green-light)} .ln{color:var(--orange-light)}
+/* console log colors */
+.lce{color:#f87171;font-weight:600} /* CONSOLE:ERROR / PAGE_ERROR */
+.lcw{color:var(--orange-light)} /* CONSOLE:WARN */
+.lci{color:var(--cyan)} /* CONSOLE:INFO / CONSOLE:LOG */
+.lcf{color:#f472b6} /* REQUEST_FAILED */
+/* console log tab */
+.console-tab-wrap{margin-top:12px}
+.console-empty{font-size:12px;color:var(--text-muted);padding:8px 0;font-style:italic}
 
 /* ── METRIC TABLE ── */
 .mtbl{width:100%;border-collapse:collapse;font-size:13px}
@@ -523,6 +602,23 @@ footer{text-align:center;padding:28px;color:var(--text-muted);font-size:13px;bor
   Exiba no máximo 30 linhas. Se vazio → "Nenhum log disponível." -->
                   </div>
 
+                  <!-- CONSOLE LOGS DO BROWSER — exibir apenas para executor browser/visual/acessibilidade
+                       - screenshot_all: false → exibir apenas se status != passed OU se houver CONSOLE:ERROR ou PAGE_ERROR
+                       - screenshot_all: true  → exibir para todos os testes
+                       - Se console_logs[] estiver ausente ou vazio → omitir esta seção -->
+                  <!-- INSTRUÇÃO: se o resultado contiver console_logs[] não-vazio E (status != passed OU houver console_logs com [CONSOLE:ERROR] ou [PAGE_ERROR]):
+                       <div class="dl">🖥️ Console do Browser</div>
+                       <div class="log-block console-tab-wrap">
+                         Para cada linha em console_logs[], envolva em <span> com classe:
+                           [CONSOLE:ERROR] ou [PAGE_ERROR]  → class="lce"
+                           [CONSOLE:WARN]                   → class="lcw"
+                           [CONSOLE:INFO] ou [CONSOLE:LOG]  → class="lci"
+                           [REQUEST_FAILED]                 → class="lcf"
+                           demais                           → sem span
+                         Se vazio → <span class="console-empty">Nenhuma mensagem de console capturada.</span>
+                       </div>
+                       Se console_logs[] for null ou ausente → omitir seção completamente. -->
+
                   <!-- MÉTRICAS (só executor-performance) -->
                   <!-- <div class="dl">📊 Métricas de Performance</div>
                   <table class="mtbl" style="margin:8px 0">
@@ -789,7 +885,8 @@ footer{text-align:center;padding:28px;color:var(--text-muted);font-size:13px;bor
     </div>
     <p style="color:var(--text-muted);font-size:14px;margin-bottom:20px">
       Todos os scripts gerados pelos executores — TypeScript (Playwright), JavaScript (k6) e Python.
-      No modo técnico, o código é SEMPRE exibido independente de pass/fail.
+      O código é SEMPRE exibido no modo técnico, independente de pass/fail. Para executor-browser, inclui:
+      <code>playwright.config.ts</code>, <code>fixtures.ts</code>, <code>globalSetup.ts</code>, Page Objects e Specs.
     </p>
 
     <!-- Repita para cada executor que gerou código: -->
@@ -831,12 +928,33 @@ footer{text-align:center;padding:28px;color:var(--text-muted);font-size:13px;bor
         <span class="chevron">▼</span>
       </div>
       <div class="tech-exec-body">
+
+        <!-- ABA: Log de Execução (sempre presente) -->
+        <div style="padding:16px 20px 4px;font-size:12px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.4px">📋 Log de Execução</div>
         <!-- TODOS os logs de todos os testes deste executor, sem truncar.
              Concatene: para cada result em results[], todas as linhas de result.logs[].
+             Prefixe cada bloco com: [TC-ID] Título do teste ──────────
              Aplique spans coloridos (le, la, lx, ln) como no modo relatório. -->
-        <div class="log-block log-full" style="margin:16px 20px;max-height:600px">
+        <div class="log-block log-full" style="margin:0 20px 16px;max-height:600px">
           [log completo do executor — todas as linhas sem limite]
         </div>
+
+        <!-- ABA: Console do Browser — APENAS para executor browser/visual/acessibilidade
+             Renderize somente se ao menos um result contiver console_logs[] não-vazio.
+             Se nenhum result tiver console_logs → omitir esta sub-seção. -->
+        <!-- INSTRUÇÃO: se o executor for browser/visual/acessibilidade E houver console_logs:
+          <div style="padding:4px 20px 4px;font-size:12px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.4px">🖥️ Console do Browser</div>
+          <div class="log-block log-full" style="margin:0 20px 16px;max-height:400px">
+            Para cada result em results[]:
+              Linha separadora: "[TC-ID] Título ──────────"
+              Para cada linha em result.console_logs[]:
+                [CONSOLE:ERROR] ou [PAGE_ERROR]  → <span class="lce">linha</span>
+                [CONSOLE:WARN]                   → <span class="lcw">linha</span>
+                [CONSOLE:INFO] ou [CONSOLE:LOG]  → <span class="lci">linha</span>
+                [REQUEST_FAILED]                 → <span class="lcf">linha</span>
+              Se console_logs[] vazio para este TC → "(sem mensagens de console)"
+          </div> -->
+
       </div>
     </div>
     <!-- Fim tech-exec-block logs -->
@@ -975,11 +1093,18 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
 | segurança | HTTP status + headers esperados | o que foi recebido |
 | banco | resultado da query nos steps | valor retornado |
 
-**Log colorido:** envolva cada linha em `<span class="[le|la|lx|ln]">` conforme:
+**Log colorido — logs de execução** (`logs[]`): envolva cada linha em `<span class="...">` conforme:
 - `[ERROR]` ou `FALHOU` → `le` (vermelho)
 - `[ACTION]` → `la` (azul)
 - `[ASSERT]` com `✓` → `lx` (verde)
 - `[NAV]` → `ln` (laranja)
+
+**Log colorido — console do browser** (`console_logs[]`): use classes distintas:
+- `[CONSOLE:ERROR]` ou `[PAGE_ERROR]` → `lce` (vermelho intenso)
+- `[CONSOLE:WARN]` → `lcw` (laranja)
+- `[CONSOLE:INFO]` ou `[CONSOLE:LOG]` → `lci` (ciano)
+- `[REQUEST_FAILED]` → `lcf` (rosa)
+- demais → sem span
 
 **Ícones por executor:**
 - browser → 🌐 · api → 🔌 · performance → ⚡ · visual → 👁️ · acessibilidade → ♿ · segurança → 🔒 · banco → 🗄️

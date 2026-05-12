@@ -116,6 +116,19 @@ Para cada teste:
    import AxeBuilder from '@axe-core/playwright';
 
    test('acessibilidade — página de login', async ({ page }) => {
+     // Captura automática de console logs do frontend — obrigatório em testes de browser
+     const consoleLogs: string[] = [];
+     page.on('console', (msg) => {
+       const level = msg.type().toUpperCase();
+       consoleLogs.push(`[CONSOLE:${level}] ${msg.text()}`);
+     });
+     page.on('pageerror', (err) => {
+       consoleLogs.push(`[PAGE_ERROR] ${err.message}`);
+     });
+     page.on('requestfailed', (req) => {
+       consoleLogs.push(`[REQUEST_FAILED] ${req.method()} ${req.url()} — ${req.failure()?.errorText ?? 'unknown'}`);
+     });
+
      await page.goto('https://staging.app.com/login');
      await page.waitForLoadState('domcontentloaded');
      // 'domcontentloaded' é o padrão seguro — 'networkidle' trava em SPAs com polling/websocket
@@ -231,6 +244,10 @@ Para cada teste:
         "[VIOLATION] image-alt (critical): 1 elemento afetado — falha conhecida do ambiente",
         "[RESULT] 2 violações encontradas (1 nova, 1 conhecida do ambiente) — failed; deploy bloqueado"
       ],
+      "console_logs": [
+        "[CONSOLE:ERROR] TypeError: Cannot set properties of null (setting 'innerHTML')",
+        "[PAGE_ERROR] Uncaught TypeError: Cannot set properties of null"
+      ],
       "error": null
     },
     {
@@ -260,6 +277,7 @@ Para cada teste:
         "[VIOLATION] label (moderate): 1 elemento afetado",
         "[RESULT] 1 violação encontrada — warning"
       ],
+      "console_logs": [],
       "error": null
     },
     {
@@ -277,6 +295,7 @@ Para cada teste:
         "[ANALYSIS] Executando axe-core (WCAG 2.1 AA)",
         "[RESULT] 0 violações encontradas — passed"
       ],
+      "console_logs": [],
       "error": null
     }
   ],
@@ -307,6 +326,12 @@ Durante a execução, colete um log de cada ação relevante para incluir no res
 - Cada violação encontrada (`[VIOLATION] color-contrast (serious): 2 elementos afetados`)
 - Resultado final (`[RESULT] X violações encontradas — failed/warning/passed`)
 - Erros (`[ERROR] mensagem`)
+- Console do browser — via listeners registrados antes do `page.goto()` (automático):
+  - `[CONSOLE:ERROR]`, `[CONSOLE:WARN]`, `[CONSOLE:LOG]`, `[CONSOLE:INFO]`
+  - `[PAGE_ERROR]` — erros JavaScript não capturados na página
+  - `[REQUEST_FAILED]` — requisições de rede com falha
+
+**Inclua `console_logs` no objeto de resultado de cada teste**, separado de `logs`. Um array vazio `[]` é resultado válido para páginas sem erros de console.
 
 ---
 

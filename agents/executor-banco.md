@@ -70,7 +70,7 @@ Colete as credenciais **uma a uma**, na seguinte ordem, aguardando cada resposta
 
 Monte a connection string internamente após coletar todos os campos. **Nunca exiba a connection string em texto claro** no relatório, nos logs ou no campo `database` da saída — use sempre o formato mascarado: `postgresql://****@host:5432/nome_do_banco`.
 
-Se o usuário não fornecer todos os campos, marque todos os testes como `"status": "skipped"` com `"error": "Credenciais incompletas fornecidas pelo usuário"`.
+Se o usuário não fornecer todos os campos, pergunte uma segunda vez agrupando apenas os campos ausentes. Se ainda assim não forem fornecidos, marque os testes como `"status": "error"` com `"error": "Não foi possível executar — credenciais incompletas após duas tentativas de coleta"`.
 
 ---
 

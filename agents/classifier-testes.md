@@ -160,3 +160,26 @@ Retorne **apenas JSON válido**, sem texto adicional antes ou depois.
 Se o input contiver vários casos, processe todos antes de retornar — nunca retorne classificações parciais.
 
 Quando receber clarificações do orquestrador (no formato `"TC-XXX: tipo confirmado = [tipo]"`), reclassifique os testes pendentes com `confidence: 1.0` e o tipo informado, e retorne o JSON completo e final.
+
+---
+
+## Modo enxuto — output compacto
+
+Se o input contiver `"lean_mode": true` no contexto de execução, retorne output compacto para reduzir tokens trafegados:
+
+- Em `tests[]`, inclua apenas: `{ "id", "title", "type", "executor", "confidence", "low_confidence" }` — **omita** `steps`, `rationale` e `regression`
+- `summary`, `needs_clarification` e `excluded` permanecem iguais
+
+Exemplo de objeto compacto:
+```json
+{
+  "id": "TC-001",
+  "title": "Login com credenciais válidas",
+  "type": "e2e",
+  "executor": "magnitude",
+  "confidence": 0.95,
+  "low_confidence": false
+}
+```
+
+Quando `lean_mode: false` ou ausente, retorne o formato completo normalmente.

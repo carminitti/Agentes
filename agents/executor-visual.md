@@ -130,6 +130,19 @@ Para cada teste:
    import { test, expect } from '@playwright/test';
 
    test('regressão visual — página de checkout', async ({ page }) => {
+     // Captura automática de console logs do frontend — obrigatório em testes de browser
+     const consoleLogs: string[] = [];
+     page.on('console', (msg) => {
+       const level = msg.type().toUpperCase();
+       consoleLogs.push(`[CONSOLE:${level}] ${msg.text()}`);
+     });
+     page.on('pageerror', (err) => {
+       consoleLogs.push(`[PAGE_ERROR] ${err.message}`);
+     });
+     page.on('requestfailed', (req) => {
+       consoleLogs.push(`[REQUEST_FAILED] ${req.method()} ${req.url()} — ${req.failure()?.errorText ?? 'unknown'}`);
+     });
+
      await page.goto('https://staging.app.com/checkout');
      await page.waitForLoadState('domcontentloaded');
      // 'domcontentloaded' é o padrão seguro — 'networkidle' trava em SPAs com polling/websocket
@@ -210,6 +223,7 @@ Para cada teste:
         "[COMPARE] Comparando com baseline",
         "[RESULT] Diferença: 0.0% (threshold: 2%) ✓"
       ],
+      "console_logs": [],
       "error": null
     },
     {
@@ -226,6 +240,7 @@ Para cada teste:
         "[BASELINE] Criado baseline: login.png (primeira execução)",
         "[BASELINE] ATENÇÃO: valide visualmente o screenshot gerado antes de usar como referência — estado inicial pode conter defeitos visuais"
       ],
+      "console_logs": [],
       "error": null
     },
     {
@@ -242,6 +257,10 @@ Para cada teste:
         "[SCREENSHOT] Capturado: dashboard.png",
         "[COMPARE] Comparando com baseline",
         "[RESULT] Diferença: 3.1% (threshold: 2%) — FALHOU"
+      ],
+      "console_logs": [
+        "[CONSOLE:WARN] Image lazy loading skipped — element not in viewport",
+        "[REQUEST_FAILED] GET https://staging.app.com/api/dashboard/widgets — net::ERR_ABORTED"
       ],
       "error": "Diferença de 3.1% excede o threshold de 2.0% — possível alteração visual não intencional"
     }
@@ -266,6 +285,12 @@ Durante a execução, colete um log de cada ação relevante para incluir no res
 - Resultado da comparação (`[RESULT] Diferença: X% (threshold: 2%) ✓` ou `[RESULT] Diferença: X% (threshold: 2%) — FALHOU`)
 - Criação de baseline na primeira execução (`[BASELINE] Criado baseline: nome-do-arquivo.png (primeira execução)`) — seguida **obrigatoriamente** de `[BASELINE] ATENÇÃO: valide visualmente o screenshot gerado antes de usar como referência — estado inicial pode conter defeitos visuais`
 - Erros (`[ERROR] mensagem`)
+- Console do browser — via listeners registrados antes do `page.goto()` (automático):
+  - `[CONSOLE:ERROR]`, `[CONSOLE:WARN]`, `[CONSOLE:LOG]`, `[CONSOLE:INFO]`
+  - `[PAGE_ERROR]` — erros JavaScript não capturados na página
+  - `[REQUEST_FAILED]` — requisições de rede com falha
+
+**Inclua `console_logs` no objeto de resultado de cada teste**, separado de `logs`. Um `[CONSOLE:ERROR]` ou `[REQUEST_FAILED]` em um teste de regressão visual pode ser a causa raiz de uma diferença de pixels — por isso o campo é obrigatório mesmo em testes que passam.
 
 ---
 

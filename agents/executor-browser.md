@@ -148,7 +148,79 @@ export class ProductPage {
 }
 ```
 
-Use sempre seletores semânticos (`getByRole`, `getByLabel`, `getByText`, `getByPlaceholder`) — nunca CSS ou XPath.
+Use sempre seletores semânticos (`getByRole`, `getByLabel`, `getByText`,
+`getByPlaceholder`) — nunca CSS ou XPath.
+
+## Regra de geração de seletores — proibição de inferência
+
+**Nunca invente seletores a partir do texto do TC.** Se o TC não especificar
+o seletor exato de um elemento, siga esta ordem:
+
+**1. Seletor explícito no TC** — use exatamente como está no step:
+```
+Step: "clique no botão com data-testid='btn-login'"
+Código: await page.getByTestId('btn-login').click();
+```
+
+**2. Seletor semântico pelo texto visível** — use o texto que o usuário vê,
+não a estrutura HTML inferida:
+```typescript
+// CORRETO — baseado no texto visível do elemento
+await page.getByRole('button', { name: /login|entrar/i }).click();
+await page.getByRole('link', { name: /laptops/i }).click();
+
+// PROIBIDO — seletor CSS inferido sem ver o DOM
+await page.locator('app-popular-makes a').click();   // ❌ inferência
+await page.locator('.car-link').click();              // ❌ inferência
+await page.locator('h4 a').click();                  // ❌ inferência
+```
+
+**3. Quando o elemento não tiver texto visível claro** — use seletor genérico
+tolerante e registre nos logs que o seletor é aproximado:
+```typescript
+// Tenta múltiplos padrões semânticos antes de desistir
+const element = page.getByRole('link').filter({ hasText: /car|model|vehicle/i }).first();
+await element.waitFor({ timeout: 15_000 });
+// [LOG] Seletor aproximado usado — elemento sem texto explícito no TC
+```
+
+**Se nenhum seletor funcionar após 15s:** marque o TC como `failed` com
+`error: "Elemento não encontrado — seletor não especificado no TC e inferência
+proibida. Adicione o seletor exato ao caso de teste."` — nunca tente
+adivinhar estruturas de DOM alternativas em loop.
+
+## Estratégia de espera — ordem obrigatória
+
+Após qualquer `page.goto()`, aguarde o estado da página nesta ordem:
+
+**1. Seletor semântico específico** (preferido — mais rápido e preciso):
+```typescript
+await page.getByRole('heading', { name: /produtos|dashboard/i })
+  .waitFor({ timeout: 30_000 });
+// ou
+await page.waitForSelector('[data-testid="content-loaded"]', { timeout: 30_000 });
+```
+
+**2. waitForLoadState('domcontentloaded')** — para páginas sem seletor confiável (já presente no padrão navigate() — mantenha onde já existir).
+
+**3. waitForTimeout** — PROIBIDO como estratégia primária. Usar apenas quando 1 e 2 não forem aplicáveis, com valor máximo de 1500ms e comentário obrigatório:
+```typescript
+// waitForSelector não aplicável: SPA sem indicador de render confiável
+await page.waitForTimeout(1_500);
+```
+
+**Timeouts adaptativos por domínio** — aplique no início de cada spec:
+```typescript
+if (process.env.BASE_URL?.includes('herokuapp.com')) {
+  page.setDefaultNavigationTimeout(60_000);
+  page.setDefaultTimeout(30_000);
+} else {
+  page.setDefaultNavigationTimeout(30_000);
+  page.setDefaultTimeout(15_000);
+}
+```
+
+Esta estratégia reduz o tempo médio por TC de ~30s para ~5-8s sem perda de confiabilidade. O waitForSelector falha imediatamente quando o elemento não existe — ao contrário de um timeout fixo que desperdiça o tempo total mesmo com a página já carregada.
 
 ---
 
@@ -166,9 +238,26 @@ type MyFixtures = {
   productPage: ProductPage;
   apiRequest: APIRequestContext;
   screenShot: () => Promise<void>;
+  consoleLogs: string[];
 };
 
 export const test = base.extend<MyFixtures>({
+  // Captura automática de console logs e erros de página para TODOS os testes
+  consoleLogs: async ({ page }, use) => {
+    const logs: string[] = [];
+    page.on('console', (msg) => {
+      const level = msg.type().toUpperCase(); // 'LOG', 'ERROR', 'WARN', 'INFO', 'DEBUG'
+      const text = msg.text();
+      logs.push(`[CONSOLE:${level}] ${text}`);
+    });
+    page.on('pageerror', (err) => {
+      logs.push(`[PAGE_ERROR] ${err.message}`);
+    });
+    page.on('requestfailed', (req) => {
+      logs.push(`[REQUEST_FAILED] ${req.method()} ${req.url()} — ${req.failure()?.errorText ?? 'unknown'}`);
+    });
+    await use(logs);
+  },
   productPage: async ({ page }, use) => {
     await use(new ProductPage(page));
   },
@@ -186,6 +275,16 @@ export { expect } from '@playwright/test';
 ```
 
 Adicione um fixture por Page Object ou cliente presente nos testes. Adapte `MyFixtures` conforme o conjunto recebido.
+
+**Usando consoleLogs nos specs:**
+```typescript
+test('TC-001 — login válido', async ({ page, consoleLogs, screenShot }) => {
+  // ... ações do teste ...
+  // consoleLogs já está sendo preenchido automaticamente durante o teste
+  // Inclua no resultado ao final:
+  result.console_logs = consoleLogs;
+});
+```
 
 ---
 
@@ -516,6 +615,15 @@ Durante a execução, colete um log de cada ação relevante realizada por cada 
 - Assertions (`[ASSERT] Elemento 'Dashboard' visível ✓`, `[ASSERT] URL contém '/home' ✓`)
 - Erros (`[ERROR] Elemento não encontrado após 5000ms`)
 - Setup/Teardown (`[SETUP] Criado produto ID=42`, `[TEARDOWN] Removido produto ID=42`)
+- Console do browser — via fixture `consoleLogs` (automático):
+  - `[CONSOLE:LOG] mensagem`
+  - `[CONSOLE:ERROR] mensagem de erro JS`
+  - `[CONSOLE:WARN] aviso do frontend`
+  - `[CONSOLE:INFO] mensagem informativa`
+  - `[PAGE_ERROR] Uncaught ReferenceError: foo is not defined`
+  - `[REQUEST_FAILED] GET https://cdn.example.com/script.js — net::ERR_CONNECTION_REFUSED`
+
+**Inclua `console_logs` no objeto de resultado de cada teste** — separado de `logs`, que contém as ações do testador. O reporter exibe os dois grupos em abas distintas no modo técnico.
 
 ---
 
@@ -562,9 +670,9 @@ O orquestrador só considera o resultado desta execução se `resultado.json` ex
 
 ## Exibir código gerado
 
-**Exiba o código apenas se houver falhas.** Se todos os testes passarem, omita esta seção completamente.
+**Inclua SEMPRE todos os arquivos gerados no campo `generated_files`** — independente de pass/fail. O modo técnico do reporter exibe esses arquivos para qualquer execução, não apenas para falhas.
 
-Se houver ao menos um teste com status `failed` ou `error`, exiba somente os arquivos relevantes para o diagnóstico (spec + page object afetado + config):
+Exiba no chat apenas quando houver ao menos um teste `failed` ou `error` (para não poluir a saída em runs limpos). No chat, mostre somente os arquivos relevantes para o diagnóstico (spec + page object afetado + config):
 
 ```
 === src/specs/[feature].spec.ts ===
@@ -574,7 +682,14 @@ Se houver ao menos um teste com status `failed` ou `error`, exiba somente os arq
 [conteúdo do arquivo]
 ```
 
-O campo `generated_files` no JSON segue a mesma regra: preencha somente quando houver ao menos um `failed` ou `error`; defina como `null` em execuções sem falhas.
+O campo `generated_files` no JSON **sempre é preenchido** com todos os arquivos gerados na execução:
+- `playwright.config.ts`
+- `src/support/fixtures.ts`
+- `src/support/globalSetup.ts`
+- `src/support/globalTeardown.ts`
+- `src/support/utils.ts`
+- `src/pages/[NomePagina]Page.ts` (um por página)
+- `src/specs/[feature].spec.ts`
 
 ---
 
@@ -657,6 +772,10 @@ pronto antes do conteúdo dinâmico ser renderizado.
         "[ASSERT] Elemento 'Dashboard' visível ✓",
         "[ASSERT] URL contém '/dashboard' ✓"
       ],
+      "console_logs": [
+        "[CONSOLE:LOG] Loaded user session",
+        "[CONSOLE:WARN] Cookie 'session' will expire soon"
+      ],
       "error": null
     },
     {
@@ -675,6 +794,11 @@ pronto antes do conteúdo dinâmico ser renderizado.
         "[ACTION] Clicando em 'Finalizar Compra'",
         "[ASSERT] Elemento 'Cartão inválido' visível — FALHOU",
         "[ERROR] Elemento não localizado após 5000ms"
+      ],
+      "console_logs": [
+        "[CONSOLE:ERROR] TypeError: Cannot read properties of undefined (reading 'validate')",
+        "[PAGE_ERROR] Uncaught TypeError: Cannot read properties of undefined (reading 'validate')",
+        "[REQUEST_FAILED] POST https://staging.app.com/api/payment — net::ERR_ABORTED"
       ],
       "error": "Esperado: elemento 'Cartão inválido' visível. Encontrado: elemento não localizado após 5000ms."
     }

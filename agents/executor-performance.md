@@ -130,6 +130,37 @@ com restrições de certificado, mascarando o resultado real do teste de perform
 
 ---
 
+## Verificação de pipeline antes de gerar scripts
+
+**Execute esta verificação antes de processar qualquer TC — mesmo em invocação direta.**
+
+Para cada TC recebido, verifique o tipo classificado:
+
+| Tipo | Duração/VUs | Ação obrigatória |
+|---|---|---|
+| `soak` | qualquer | **SKIPAR** — nunca executar em pipeline rápido |
+| `stress` | soma de stages > 3 min | **SKIPAR** — nunca executar em pipeline rápido |
+| `performance` / `carga` | vus > 50 E duration > 60s | **SKIPAR** — nunca executar em pipeline rápido |
+
+**REGRA ABSOLUTA — sem exceção, sem interpretação:**
+- Tipo `soak` → **SEMPRE** retornar `status: "skipped"` com `reason: "pipeline_lento"`, mesmo que o orquestrador tenha despachado o TC (pode ser invocação direta ou bug no orquestrador).
+- Tipo `stress` longo ou `carga` pesada → idem.
+- **Nunca comprima duração** de soak/stress para tentar executá-los. Comprimir não é skip — é uma execução inválida que produz métricas sem significado.
+- A única exceção é quando a invocação contiver explicitamente a flag `--pipeline=full`, `full`, `completo` ou `release`.
+
+```json
+{
+  "id": "TC-XXX",
+  "status": "skipped",
+  "reason": "pipeline_lento",
+  "message": "Tipo 'soak' reservado para --pipeline=full. Use a flag para executar testes de longa duração."
+}
+```
+
+Após esta verificação, processe apenas os TCs que não foram marcados como skipped.
+
+---
+
 ## Como executar
 
 Para cada teste, extraia dos steps:
