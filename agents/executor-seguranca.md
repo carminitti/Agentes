@@ -380,10 +380,16 @@ with open(f"{output_dir}/execution.log", "w", encoding="utf-8") as f:
 ## Log de execução
 
 Durante a execução, colete um log de cada ação relevante para incluir no resultado. Capture:
-- Cada verificação realizada (`[CHECK] GET /api/admin sem token → esperado 401, recebido 401 ✓`)
-- Verificações de headers (`[CHECK] Header Strict-Transport-Security presente ✓`)
-- Verificações de CORS (`[CHECK] CORS origin malicious-site.com rejeitado ✓`)
-- Falhas (`[CHECK] GET /.env → esperado 401/403/404, recebido 200 — FALHOU`)
+- Requisição enviada (`[REQUEST] GET https://staging.app.com/api/admin — sem token`)
+- Resultado do check (`[CHECK] GET /api/admin sem token → esperado 401, recebido 401 ✓`)
+- Headers de segurança da resposta — liste cada header individualmente com seu valor real:
+  - `[RESP-HEADER] Strict-Transport-Security: max-age=31536000; includeSubDomains ✓`
+  - `[RESP-HEADER] X-Content-Type-Options: nosniff ✓`
+  - `[RESP-HEADER] Content-Security-Policy: AUSENTE — FALHOU`
+  - `[RESP-HEADER] X-Frame-Options: DENY ✓`
+- Detalhes de CORS (`[CORS-REQUEST] Origin: https://malicious-site.com → Access-Control-Allow-Origin: * — ABERTO (FALHOU)` ou `[CORS-REQUEST] Origin: https://malicious-site.com → sem header ACAO — rejeitado ✓`)
+- Endpoints sensíveis (`[ENDPOINT-CHECK] GET /admin → 200 — FALHOU (esperado 401/403/404)` ou `[ENDPOINT-CHECK] GET /.env → 404 ✓`)
+- Falhas detalhadas (`[FAIL] Header Content-Security-Policy ausente — aumenta risco de XSS`)
 - Aviso de SSL quando aplicável (`[SSL] WARNING — certificado inválido, execução com verify=False`)
 - Erros (`[ERROR] mensagem`)
 

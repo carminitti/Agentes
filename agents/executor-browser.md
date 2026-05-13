@@ -239,6 +239,7 @@ type MyFixtures = {
   apiRequest: APIRequestContext;
   screenShot: () => Promise<void>;
   consoleLogs: string[];
+  networkLogs: string[];
 };
 
 export const test = base.extend<MyFixtures>({
@@ -255,6 +256,21 @@ export const test = base.extend<MyFixtures>({
     });
     page.on('requestfailed', (req) => {
       logs.push(`[REQUEST_FAILED] ${req.method()} ${req.url()} — ${req.failure()?.errorText ?? 'unknown'}`);
+    });
+    await use(logs);
+  },
+  // Captura requisições de rede ao domínio do ambiente (filtrado — ignora CDN, analytics, fontes externas)
+  networkLogs: async ({ page }, use) => {
+    const logs: string[] = [];
+    const baseHost = (() => { try { return new URL(process.env.BASE_URL || '').hostname; } catch { return ''; } })();
+    page.on('response', (resp) => {
+      try {
+        const url = resp.url();
+        if (baseHost && url.includes(baseHost)) {
+          const path = new URL(url).pathname;
+          logs.push(`[NETWORK] ${resp.request().method()} ${path} → ${resp.status()}`);
+        }
+      } catch {}
     });
     await use(logs);
   },
@@ -276,13 +292,14 @@ export { expect } from '@playwright/test';
 
 Adicione um fixture por Page Object ou cliente presente nos testes. Adapte `MyFixtures` conforme o conjunto recebido.
 
-**Usando consoleLogs nos specs:**
+**Usando consoleLogs e networkLogs nos specs:**
 ```typescript
-test('TC-001 — login válido', async ({ page, consoleLogs, screenShot }) => {
+test('TC-001 — login válido', async ({ page, consoleLogs, networkLogs, screenShot }) => {
   // ... ações do teste ...
-  // consoleLogs já está sendo preenchido automaticamente durante o teste
+  // consoleLogs e networkLogs já estão sendo preenchidos automaticamente durante o teste
   // Inclua no resultado ao final:
   result.console_logs = consoleLogs;
+  result.network_logs = networkLogs;
 });
 ```
 
@@ -622,8 +639,12 @@ Durante a execução, colete um log de cada ação relevante realizada por cada 
   - `[CONSOLE:INFO] mensagem informativa`
   - `[PAGE_ERROR] Uncaught ReferenceError: foo is not defined`
   - `[REQUEST_FAILED] GET https://cdn.example.com/script.js — net::ERR_CONNECTION_REFUSED`
+- Requisições de rede ao domínio do ambiente — via fixture `networkLogs` (automático, filtrado):
+  - `[NETWORK] GET /api/users → 200`
+  - `[NETWORK] POST /api/login → 401`
+  - Apenas requisições cujo host corresponde a `BASE_URL` — CDN, analytics e fontes externas são ignorados
 
-**Inclua `console_logs` no objeto de resultado de cada teste** — separado de `logs`, que contém as ações do testador. O reporter exibe os dois grupos em abas distintas no modo técnico.
+**Inclua `console_logs` e `network_logs` no objeto de resultado de cada teste** — separados de `logs`, que contém as ações do testador. O reporter exibe os três grupos em blocos distintos no modo técnico.
 
 ---
 

@@ -226,10 +226,19 @@ export const options = {
 
 > Soak usa `vus` + `duration` fixos — **nunca use `stages`** para soak, pois o objetivo é medir degradação sob carga constante, não sob rampa.
 
-Execute e parse o resultado:
+Execute e capture o stdout completo:
 ```
-k6 run --summary-export=resultado.json script.js
+k6 run --summary-export=resultado.json script.js 2>&1 | tee k6_output.txt
 ```
+
+Após a execução, extraia as linhas relevantes do stdout para os logs:
+```python
+with open('k6_output.txt', 'r', encoding='utf-8', errors='replace') as f:
+    k6_lines = f.readlines()
+k6_failed_checks = [l.strip() for l in k6_lines if l.strip().startswith('✗')]
+k6_summary_lines = [l.rstrip() for l in k6_lines[-15:] if l.strip()]
+```
+Inclua `k6_failed_checks` como `[K6-OUT]` e `k6_summary_lines` como `[K6-SUMMARY]` nos logs do resultado (veja "Log de execução").
 
 ### Modo fallback Python (quando k6 não está disponível)
 
@@ -384,6 +393,10 @@ Durante a execução, colete um log de cada ação relevante para incluir no res
 - Métricas apuradas (`[METRIC] p50=Xms, p95=Xms, p99=Xms`)
 - Taxas (`[METRIC] error_rate=X%, throughput=X rps`)
 - Resultado de cada threshold (`[THRESHOLD] p(95) < 200ms ✓ (atual: Xms)` ou `[THRESHOLD] p(95) < 200ms — FALHOU (atual: Xms)`)
+- Checks com falha do stdout k6 (`[K6-OUT] ✗ status 200` — apenas linhas iniciadas com `✗`; omita as `✓`)
+- Sumário final do k6 (`[K6-SUMMARY] http_req_duration...: avg=Xms p(95)=Xms` — últimas 15 linhas não-vazias do stdout)
+- Amostras de erro quando `error_rate > 0` (`[ERROR-SAMPLE] status=502: N ocorrências`, `[ERROR-SAMPLE] timeout: N ocorrências`)
+- Progresso por stage em testes de stress/carga (`[STAGE-DONE] stage N — VUs=50 → p95=Xms, error_rate=X%`)
 - Erros (`[ERROR] mensagem`)
 
 ---

@@ -382,10 +382,14 @@ Para cada conjunto de testes:
 
 Durante a execução, colete um log de cada ação relevante para incluir no resultado. Capture:
 - Requisição enviada (`[REQUEST] GET https://.../api/products`)
-- Headers relevantes (`[HEADER] Authorization: Bearer ***`)
+- Headers enviados (`[HEADER] Authorization: Bearer ***`)
+- Payload da requisição (`[PAYLOAD] {"name":"Produto","price":50}` — apenas POST/PUT/PATCH; omita se body vazio; truncado em 500 chars)
 - Resposta recebida (`[RESPONSE] 200 OK — 145ms`)
+- Headers relevantes da resposta (`[RESP-HEADER] content-type: application/json; charset=utf-8` — capture: `content-type`, `location`, `www-authenticate`, `x-ratelimit-limit`, `x-ratelimit-remaining`, `cache-control`)
+- Body da resposta (`[RESP-BODY] {"id":1,"name":"Produto",...}` — primeiros 500 chars em testes aprovados; até 2000 chars em falhas; use `[RESP-BODY] (vazio)` se body vazio)
 - Cada validação (`[ASSERT] status == 200 ✓`, `[ASSERT] campo 'id' presente ✓`)
-- Contrato Zod (`[CONTRACT] Schema válido ✓` ou `[CONTRACT] Falha: campo 'price' esperado number, recebido string`)
+- Contrato Zod (`[CONTRACT] Schema válido ✓` ou `[CONTRACT] Falha: N campo(s) inválido(s)`)
+- Detalhes de erro Zod (`[CONTRACT-ERR] campo 'price': esperado number, recebido string "abc"` — apenas quando o contrato falha; liste cada campo com erro individualmente)
 - Erros (`[ERROR] Connection refused`)
 - Setup/Teardown (`[SETUP] POST /api/products → ID=42`, `[TEARDOWN] DELETE /api/products/42 → 204`)
 
@@ -484,6 +488,9 @@ O campo `generated_files` no JSON segue a mesma regra: preencha somente quando h
         "[REQUEST] GET https://staging.app.com/api/products",
         "[HEADER] Authorization: Bearer ***",
         "[RESPONSE] 200 OK — 145ms",
+        "[RESP-HEADER] content-type: application/json; charset=utf-8",
+        "[RESP-HEADER] x-ratelimit-remaining: 98",
+        "[RESP-BODY] [{\"id\":1,\"name\":\"Produto A\",\"price\":49.9},{\"id\":2,...}]",
         "[ASSERT] status == 200 ✓",
         "[ASSERT] ok() == true ✓",
         "[ASSERT] content-type contém application/json ✓",
