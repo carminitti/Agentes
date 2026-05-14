@@ -71,7 +71,8 @@ Use esta tabela como base de classificação. As palavras-chave são indicadores
 | `segurança` | "segurança", "security", "autenticação", "autorização", "401", "403", "permissão negada", "acesso negado", "CORS", "headers de segurança", "token inválido", "endpoint exposto", "vulnerabilidade" | `zap` |
 | `banco` | "banco de dados", "banco", "database", "db", "tabela", "registro", "query", "SQL", "dados persistidos", "migração", "schema do banco", "integridade dos dados" | `db` |
 | `cross-browser` | "cross-browser", "Chrome", "Firefox", "Safari", "Edge", "WebKit", "múltiplos navegadores", "compatibilidade entre navegadores" | `playwright-multibrowser` |
-| `mobile` | "mobile", "celular", "smartphone", "iOS", "Android", "app móvel", "responsivo", "tela pequena", "dispositivo", "Appium" | `appium` |
+| `mobile` (web) | "responsivo", "mobile web", "PWA", "viewport mobile", "tela pequena", "adaptativo", "layout mobile", "celular", "smartphone" — **sem** menção a app nativo, APK, IPA ou Appium | `playwright-mobile` |
+| `mobile` (nativo) | "app nativo", "app móvel", "APK", "IPA", "Appium", "emulador", "device", "gestos nativos", "push notification", "notificação", "instalado no dispositivo", "Android", "iOS" — com ação que só faz sentido em app instalado | `appium` |
 | `data-driven` | "data-driven", "parametrizado", "múltiplos conjuntos de dados", "Scenario Outline", "Examples:", "para cada", "combinações de dados", "iteração com dados" | `parameterized` |
 
 ---
@@ -104,6 +105,17 @@ Um teste que "abre a página e verifica se ela carrega" parece visual, mas é sm
 | Verifica layout como parte de um fluxo funcional (sem comparação baseline) | `smoke` / `e2e` |
 
 Na dúvida genuína entre `visual` e `smoke`, classifique como `smoke` com `low_confidence: true`.
+
+**Regra de desambiguação: mobile web vs. mobile nativo**
+
+| Indicador | Tipo correto |
+|---|---|
+| Menciona APK, IPA, instalação do app, gestos nativos, push notification | `mobile` nativo → `appium`, `mobile_target: "native"` |
+| Menciona Appium explicitamente | `mobile` nativo → `appium`, `mobile_target: "native"` |
+| Menciona "responsivo", "mobile web", "PWA", "viewport", "tela pequena" — sem ação de app instalado | `mobile` web → `playwright-mobile`, `mobile_target: "web"` |
+| Ambíguo (apenas "celular", "smartphone", "iOS", "Android" sem contexto) | `playwright-mobile`, `mobile_target: "web"`, `low_confidence: true` |
+
+Para testes com `type: "mobile"`, sempre inclua o campo `mobile_target: "web"` ou `mobile_target: "native"` no objeto de saída.
 5. **Threshold de confiança:**
    - `confidence < 0.50` → inclua no array `needs_clarification` (bloqueia o pipeline). O orquestrador apresentará as opções ao usuário.
    - `0.50 ≤ confidence < 0.70` → classifique com o melhor palpite E adicione `"low_confidence": true` no objeto do teste. **Não bloqueia** — o orquestrador prossegue com a classificação informada, mas o reporter sinalizará a incerteza.

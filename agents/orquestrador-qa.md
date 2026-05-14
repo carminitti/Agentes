@@ -197,9 +197,33 @@ Se o usuário responder **S** para evidências visuais (apenas no modo full), ar
 
 Se o usuário responder **S** (ou não responder) para a permissão geral, armazene `blanket_permission: true` e **não solicite confirmação para nenhuma operação de ferramenta durante toda a execução** — criação de arquivos, execução de scripts, leitura de diretórios e qualquer outra ação de ferramenta devem ser realizadas diretamente. Se o usuário responder **N**, armazene `blanket_permission: false` e solicite confirmação antes de cada operação destrutiva ou de escrita em disco.
 
+### 2g — Mobile (quando houver testes mobile)
+
+**Se houver testes com executor `playwright-mobile` (mobile web):**
+
+> "Qual dispositivo deseja emular para os testes mobile web? (padrão: `iPhone 13`)
+> Exemplos: `iPhone 14`, `iPhone 15`, `Pixel 5`, `Pixel 7`, `Galaxy S9+`, `iPad Pro`"
+
+Se o usuário não informar, use `iPhone 13`. Armazene como `mobile_device`.
+
+**Se houver testes com executor `appium` (app nativo):**
+
+> "Para os testes de app nativo ([IDs afetados]), forneça:
+> - **Plataforma:** Android ou iOS
+> - **Appium URL:** (padrão: `http://localhost:4723`)
+> - **Nome do device/emulador:** (ex: `emulator-5554`, `iPhone 14 Simulator`)
+> - **Android:** `appPackage` (ex: `com.exemplo.app`) e `appActivity` (ex: `.MainActivity`) — ou caminho do APK
+> - **iOS:** `bundleId` (ex: `com.exemplo.app`) — ou caminho do IPA; `udid` para device real (deixe em branco para simulador)"
+
+Armazene em `appium_config: { url, platform, device_name, app_package, app_activity, app, bundle_id, udid }`.
+
+> ⚠️ Se `lean_mode: true`, inclua a pergunta 2g **apenas** se houver testes mobile — não modifique as demais regras do lean mode.
+
+---
+
 ### Envio da pergunta
 
-Se houver qualquer item pendente dos itens 2a–2f, **agrupe tudo em uma única mensagem** e aguarde a resposta do usuário antes de continuar. Não prossiga com dados assumidos ou incompletos.
+Se houver qualquer item pendente dos itens 2a–2g, **agrupe tudo em uma única mensagem** e aguarde a resposta do usuário antes de continuar. Não prossiga com dados assumidos ou incompletos.
 
 Após receber as respostas, monte o **contexto de execução**:
 
@@ -218,7 +242,18 @@ contexto = {
   headed: true | false,
   screenshot_all: true | false,
   lean_mode: true | false,
-  blanket_permission: true | false
+  blanket_permission: true | false,
+  mobile_device: "iPhone 13" | null,           // para playwright-mobile
+  appium_config: {                              // para appium (app nativo)
+    url: "http://localhost:4723",
+    platform: "Android" | "iOS",
+    device_name: "emulator-5554",
+    app_package: "com.exemplo.app" | null,
+    app_activity: ".MainActivity" | null,
+    app: "/caminho/app.apk" | null,
+    bundle_id: "com.exemplo.app" | null,
+    udid: "..." | null
+  } | null
 }
 ```
 
@@ -244,6 +279,8 @@ Antes de despachar qualquer executor, derive o nome e **use a ferramenta Bash ou
    | `axe-core` | `acc` |
    | `zap` | `sec` |
    | `db` | `db` |
+   | `playwright-mobile` | `mob_web` |
+   | `appium` | `mob_nat` |
 
    Junte as abreviações presentes separadas por `_`, aplique o timestamp: `suite_[abrev1]_[abrev2]_[YYYYMMDD_HHMMSS]`. Exemplo: executores `http` (api) + `db` → `suite_api_db_20260511_100000`.
 
@@ -353,9 +390,10 @@ Execute **todos** os tipos identificados. Nunca pergunte se deve executar um sub
 | `zap` | `executor-seguranca` |
 | `db` | `executor-banco` |
 | `playwright-multibrowser` | `executor-browser` com instrução de rodar em Chromium, Firefox e WebKit |
+| `playwright-mobile` | `executor-browser` com `device_emulation: true` e `device_name` coletado na Etapa 2g |
 | `parameterized` | executor adequado ao tipo base, passando os conjuntos de dados dos steps |
 | `pact` | não execute — registre como não executado: tipo `contrato (Pact)`, motivo `Requer Pact Broker` |
-| `appium` | não execute — registre como não executado: tipo `mobile (Appium)`, motivo `Requer configuração de dispositivo/emulador` |
+| `appium` | `executor-mobile` com capabilities coletadas na Etapa 2g |
 
 **Para cada executor invocado, formate a mensagem exatamente assim:**
 
@@ -373,12 +411,30 @@ Execute **todos** os tipos identificados. Nunca pergunte se deve executar um sub
   "code_output_dir": "/caminho/escolhido",
   "headed": true | false,
   "screenshot_all": true | false,
-  "lean_mode": true | false
+  "lean_mode": true | false,
+  "device_emulation": true | false,
+  "device_name": "iPhone 13" | null,
+  "appium": {
+    "url": "http://localhost:4723",
+    "platform": "Android" | "iOS",
+    "device_name": "emulator-5554",
+    "app_package": "com.exemplo.app" | null,
+    "app_activity": ".MainActivity" | null,
+    "app": null,
+    "bundle_id": null,
+    "udid": null
+  } | null
 }
 
 ## Testes a executar
 [lista filtrada de testes em JSON, exatamente como retornado pelo classifier]
 ```
+
+Regras de preenchimento por executor:
+- **`executor-browser`** (browser comum): `device_emulation: false`, `device_name: null`, `appium: null`
+- **`executor-browser`** (mobile web via `playwright-mobile`): `device_emulation: true`, `device_name: "[mobile_device coletado na 2g]"`, `appium: null`
+- **`executor-mobile`** (app nativo via `appium`): `device_emulation: false`, `device_name: null`, `appium: { ...appium_config coletado na 2g }`
+- Todos os outros executores: `device_emulation: false`, `device_name: null`, `appium: null`
 
 Substitua cada campo pelo valor real coletado na Etapa 2. Use `null` nos campos que não se aplicam (ex: `"db_connection": null` para executores que não são banco, `"auth": null` para testes sem autenticação). Nunca omita `suite_dir` — sempre repasse o valor criado nesta etapa.
 

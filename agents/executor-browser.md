@@ -1,6 +1,6 @@
 ---
 name: executor-browser
-description: Executa testes de browser e UI (smoke, sanity, regressão, E2E, cross-browser) usando Playwright com TypeScript e Page Object Model seguindo o padrão VNT_TS_PW_POM_Template. Exibe o código gerado e retorna resultados estruturados.
+description: Executa testes de browser e UI (smoke, sanity, regressão, E2E, cross-browser) e mobile web com device emulation usando Playwright com TypeScript e Page Object Model seguindo o padrão VNT_TS_PW_POM_Template. Exibe o código gerado e retorna resultados estruturados.
 ---
 
 Você executa testes de browser em um ambiente real usando Playwright com TypeScript, seguindo estritamente o padrão VNT_TS_PW_POM_Template.
@@ -11,7 +11,7 @@ Você executa testes de browser em um ambiente real usando Playwright com TypeSc
 
 ## Entrada esperada
 
-- Lista de testes com executor `magnitude` ou `http` dos tipos `smoke`, `sanity`, `regressão`, `e2e` ou `cross-browser`
+- Lista de testes com executor `magnitude`, `http` ou `playwright-mobile` dos tipos `smoke`, `sanity`, `regressão`, `e2e`, `cross-browser` ou `mobile` (web)
 - URL base do ambiente alvo
 - Configurações opcionais: credenciais de login, headers customizados, instrução de rodar múltiplos browsers
 
@@ -40,6 +40,8 @@ Se essa seção estiver presente:
 - `suite_dir` → se presente, use `[suite_dir]/browser/` como diretório de artefatos; crie com `fs.mkdirSync`
 - `headed` → se `true`, defina `HEADED=true` no `.env`; se `false` ou ausente, não defina (padrão headless)
 - `screenshot_all` → se `true`, defina `SCREENSHOT_ALL=true` no `.env`; se `false` ou ausente, não defina (padrão: evidências apenas para falhas)
+- `device_emulation` → se `true`, configure emulação de dispositivo mobile: defina `DEVICE_NAME` no `.env` com o valor de `device_name` (padrão: `iPhone 13`); use `import { defineConfig, devices } from '@playwright/test'` e `...devices[process.env.DEVICE_NAME]` no `use:{}` do config, substituindo o `viewport` fixo; defina `workers: 1` (mobile sempre sequencial)
+- `device_name` → nome do dispositivo Playwright (ex: `iPhone 13`, `Pixel 5`, `iPad Pro`, `Galaxy S9+`); relevante apenas quando `device_emulation: true`; quando ativo, reporte o campo `browser` no resultado como `"chromium-mobile (iPhone 13)"` (ou o device informado)
 - `code_output_dir` → se presente, crie o diretório `tmp_browser_[timestamp]` dentro desse caminho em vez da raiz do projeto
 - `environment_notes` → aplique as regras abaixo conforme palavras-chave:
   - Contém `certificado`, `SSL`, `autoassinado` ou `self-signed` → adicione `ignoreHTTPSErrors: true` no `playwright.config.ts`
@@ -529,15 +531,19 @@ Para cada conjunto de testes:
 5. **Gere `playwright.config.ts`:**
 
    ```typescript
-   import { defineConfig } from '@playwright/test';
+   import { defineConfig, devices } from '@playwright/test';
    import * as dotenv from 'dotenv';
    dotenv.config();
+
+   const mobileDevice = process.env.DEVICE_NAME
+     ? devices[process.env.DEVICE_NAME]
+     : null;
 
    export default defineConfig({
      timeout: 30_000,
      expect: { timeout: 5_000 },
-     fullyParallel: true,
-     workers: process.env.CI ? 2 : 4,
+     fullyParallel: !mobileDevice,
+     workers: mobileDevice ? 1 : (process.env.CI ? 2 : 4),
      retries: process.env.CI ? 2 : 0,
      testMatch: ['**/*.spec.ts'],
      reporter: [['html', { outputFolder: 'reports/html', open: 'never' }]],
@@ -545,9 +551,9 @@ Para cada conjunto de testes:
      globalSetup: './src/support/globalSetup',
      globalTeardown: './src/support/globalTeardown',
      use: {
+       ...(mobileDevice ?? { viewport: { width: 1280, height: 720 } }),
        headless: process.env.HEADED !== 'true',
        slowMo: process.env.HEADED === 'true' ? 300 : 0,
-       viewport: { width: 1280, height: 720 },
        ignoreHTTPSErrors: true,
        baseURL: process.env.BASE_URL,
        trace: 'retain-on-failure',
@@ -556,6 +562,8 @@ Para cada conjunto de testes:
      },
    });
    ```
+
+   Quando `DEVICE_NAME` estiver definido no `.env`, o spread `...devices[DEVICE_NAME]` injeta viewport, userAgent e hasTouch do dispositivo automaticamente. Não adicione `viewport` fixo em paralelo — o device descriptor já define o correto.
 
 6. **Instale dependências e execute:**
 
