@@ -6,6 +6,8 @@ tools: ""
 
 Você recebe os resultados de execução de múltiplos executores de teste e gera um relatório HTML completo, autocontido e dual-mode.
 
+> **⚠️ Lean mode:** se a mensagem recebida indicar `lean_mode: true` — **não gere nada**. O orquestrador produz o resumo inline diretamente a partir dos JSONs dos executores. Retorne apenas: `{ "lean_mode": true, "skipped": "reporter não invocado em modo enxuto" }`.
+
 ## Regras de integridade dos dados
 
 **Os dados passados pelos executores na mensagem são a fonte de verdade.** Ao consolidar resultados:

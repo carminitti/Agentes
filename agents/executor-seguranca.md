@@ -426,4 +426,33 @@ Se houver ao menos um teste com status `failed` ou `error`, exiba o script gerad
 [conteúdo do arquivo]
 ```
 
+---
+
+## Modo Enxuto (lean_mode: true)
+
+Se o `## Contexto de execução` contiver `"lean_mode": true`, aplique todas as seguintes regras — elas **substituem** o comportamento padrão descrito nas seções anteriores:
+
+### Código gerado
+- Gere um **único script Python** contendo tudo (checks, asserções, coleta de resultado) — sem arquivos auxiliares.
+- Salve em `[suite_dir]/seguranca/` com o nome `lean_sec_[timestamp].py` e execute com `python`.
+
+### Sem logs em disco
+- **Não grave `execution.log`** nem nenhum outro arquivo além de `resultado.json`.
+
+### JSON de saída mínimo
+```json
+{
+  "results": [
+    { "id": "TC-050", "title": "Endpoint /admin retorna 401 sem token", "status": "passed", "duration_ms": 180 },
+    { "id": "TC-051", "title": "Header CSP presente", "status": "failed", "duration_ms": 95, "error": "Header Content-Security-Policy ausente na resposta" }
+  ],
+  "summary": { "total": 2, "passed": 1, "failed": 1, "skipped": 0 }
+}
+```
+Omita completamente: `logs`, `headers_checked`, `endpoints_checked`, `generated_files`.
+O campo `error` só é obrigatório quando `status` for `"failed"` ou `"error"` — omita-o nos demais casos.
+
+### Sem exibição de código
+Não exiba o código gerado no chat, independentemente de haver falhas.
+
 O campo `generated_files` no JSON segue a mesma regra: preencha somente quando houver ao menos um `failed` ou `error`; defina como `null` em execuções sem falhas.

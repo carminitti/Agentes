@@ -449,4 +449,34 @@ Se houver ao menos um teste com status `failed` ou `error`, exiba o script gerad
 [conteúdo do script]
 ```
 
+---
+
+## Modo Enxuto (lean_mode: true)
+
+Se o `## Contexto de execução` contiver `"lean_mode": true`, aplique todas as seguintes regras — elas **substituem** o comportamento padrão descrito nas seções anteriores:
+
+### Código gerado
+- Gere um **único script** (`.js` para k6 ou `.py` para fallback) contendo tudo — sem arquivos auxiliares.
+- Salve em `[suite_dir]/performance/` com o nome `lean_perf_[timestamp].js` (ou `.py`) e execute diretamente.
+
+### Sem logs em disco
+- **Não grave `execution.log`** nem nenhum outro arquivo além de `resultado.json`.
+- A saída bruta do k6 (`k6_output.txt`) também não deve ser copiada.
+
+### JSON de saída mínimo
+```json
+{
+  "results": [
+    { "id": "TC-030", "title": "Carga 50 VUs por 60s", "status": "passed", "duration_ms": 62000 },
+    { "id": "TC-031", "title": "Stress 200 VUs", "status": "failed", "duration_ms": 30000, "error": "p95=4200ms — limite 3000ms excedido" }
+  ],
+  "summary": { "total": 2, "passed": 1, "failed": 1, "skipped": 0 }
+}
+```
+Omita completamente: `logs`, `metrics`, `thresholds_detail`, `generated_files`.
+O campo `error` só é obrigatório quando `status` for `"failed"` ou `"error"` — omita-o nos demais casos.
+
+### Sem exibição de código
+Não exiba o código gerado no chat, independentemente de haver falhas.
+
 O campo `generated_files` no JSON segue a mesma regra: preencha somente quando houver ao menos um `failed` ou `error`; defina como `null` em execuções sem falhas.

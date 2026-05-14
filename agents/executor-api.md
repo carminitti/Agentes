@@ -524,4 +524,34 @@ const setupStatus = fs.existsSync('setup_status.json')
 // Use setupStatus.credentials_failed no JSON de saída
 fs.unlinkSync('setup_status.json');  // limpa após leitura
 ```
+
+---
+
+## Modo Enxuto (lean_mode: true)
+
+Se o `## Contexto de execução` contiver `"lean_mode": true`, aplique todas as seguintes regras — elas **substituem** o comportamento padrão descrito nas seções anteriores:
+
+### Código gerado
+- Gere um **único script Python** contendo tudo (token fetch, requests, asserções) — sem `playwright.config.ts`, sem POM, sem fixtures, sem arquivos auxiliares.
+- Use `requests` diretamente, sem Playwright `APIRequestContext`.
+- Salve em `[suite_dir]/api/` com o nome `lean_api_[timestamp].py` e execute com `python`.
+
+### Sem logs em disco
+- **Não grave `execution.log`** nem nenhum outro arquivo além de `resultado.json`.
+
+### JSON de saída mínimo
+```json
+{
+  "results": [
+    { "id": "TC-010", "title": "GET /users retorna 200", "status": "passed", "duration_ms": 145 },
+    { "id": "TC-011", "title": "POST /login retorna token", "status": "failed", "duration_ms": 302, "error": "Status 401 — credenciais inválidas" }
+  ],
+  "summary": { "total": 2, "passed": 1, "failed": 1, "skipped": 0, "credentials_failed": false }
+}
+```
+Omita completamente: `logs`, `steps`, `request_body`, `response_body`, `generated_files`.
+O campo `error` só é obrigatório quando `status` for `"failed"` ou `"error"` — omita-o nos demais casos.
+
+### Sem exibição de código
+Não exiba o código gerado no chat, independentemente de haver falhas.
 Se `credentials_failed: true`, defina o mesmo campo tanto na raiz do JSON de saída quanto no `summary`. O orquestrador detecta este sinal e pede novas credenciais ao usuário antes de re-despachar.

@@ -887,4 +887,38 @@ fs.existsSync('setup_status.json') && fs.unlinkSync('setup_status.json');
 ```
 Se `credentials_failed: true`, defina o campo na raiz e no `summary`. O orquestrador detecta e pede novas credenciais ao usuário antes de re-despachar.
 
+---
+
+## Modo Enxuto (lean_mode: true)
+
+Se o `## Contexto de execução` contiver `"lean_mode": true`, aplique todas as seguintes regras — elas **substituem** o comportamento padrão descrito nas seções anteriores:
+
+### Código gerado
+- Gere um **único arquivo `.spec.ts`** contendo tudo (configuração inline via `use:{}`, testes, asserções) — sem `playwright.config.ts` separado, sem POM, sem fixtures, sem `globalSetup.ts`, sem `.env`, sem `package.json`, sem `tsconfig.json`.
+- O arquivo deve usar `import { chromium } from 'playwright'` e executar os testes sequencialmente via `for` loop — sem `test.describe`, sem `test()` API, sem runner do Playwright.
+- Salve o arquivo em `[suite_dir]/browser/` com o nome `lean_browser_[timestamp].ts` e execute com `npx ts-node`.
+
+### Sem artefatos visuais
+- **Sem screenshots** — não chame `page.screenshot()` em nenhum cenário (nem para falhas).
+- **Sem vídeos** — não configure `video` no contexto do browser.
+
+### Sem logs em disco
+- **Não grave `execution.log`** nem nenhum outro arquivo além de `resultado.json`.
+
+### JSON de saída mínimo
+```json
+{
+  "results": [
+    { "id": "TC-001", "title": "Login com credenciais válidas", "status": "passed", "duration_ms": 420 },
+    { "id": "TC-002", "title": "Checkout inválido", "status": "failed", "duration_ms": 1850, "error": "Elemento 'Cartão inválido' não localizado após 5000ms" }
+  ],
+  "summary": { "total": 2, "passed": 1, "failed": 1, "skipped": 0, "credentials_failed": false }
+}
+```
+Omita completamente: `logs`, `console_logs`, `network_logs`, `screenshot_path`, `video_path`, `steps`, `flaky`, `attempts`, `generated_files`.
+O campo `error` só é obrigatório quando `status` for `"failed"` ou `"error"` — omita-o nos demais casos.
+
+### Sem exibição de código
+Não exiba o código gerado no chat, independentemente de haver falhas.
+
 Se o ambiente não estiver acessível, retorne `"status": "error"` com a causa em `"error"` para cada teste afetado.

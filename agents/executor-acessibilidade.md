@@ -410,4 +410,38 @@ Se houver ao menos um teste com status `failed` ou `error`, exiba o script gerad
 [conteúdo do arquivo]
 ```
 
+---
+
+## Modo Enxuto (lean_mode: true)
+
+Se o `## Contexto de execução` contiver `"lean_mode": true`, aplique todas as seguintes regras — elas **substituem** o comportamento padrão descrito nas seções anteriores:
+
+### Código gerado
+- Gere um **único arquivo `.ts`** contendo tudo (browser launch, axe-core inject, asserções) — sem `playwright.config.ts`, sem POM, sem fixtures.
+- Execute com `npx ts-node` diretamente, sem o runner do Playwright.
+- Salve em `[suite_dir]/acessibilidade/` com o nome `lean_a11y_[timestamp].ts`.
+
+### Sem artefatos visuais
+- **Sem screenshots** — não chame `page.screenshot()` em nenhum cenário.
+- **Sem vídeos** — não configure `video` no contexto do browser.
+
+### Sem logs em disco
+- **Não grave `execution.log`** nem nenhum outro arquivo além de `resultado.json`.
+
+### JSON de saída mínimo
+```json
+{
+  "results": [
+    { "id": "TC-070", "title": "Página inicial — WCAG 2.1 AA", "status": "passed", "duration_ms": 1200 },
+    { "id": "TC-071", "title": "Formulário de login — WCAG 2.1 AA", "status": "failed", "duration_ms": 980, "error": "2 violações críticas: button-name, label" }
+  ],
+  "summary": { "total": 2, "passed": 1, "failed": 0, "warning": 0, "skipped": 0 }
+}
+```
+Omita completamente: `logs`, `violations`, `screenshot_path`, `generated_files`.
+O campo `error` só é obrigatório quando `status` for `"failed"` ou `"error"` — omita-o nos demais casos.
+
+### Sem exibição de código
+Não exiba o código gerado no chat, independentemente de haver falhas.
+
 O campo `generated_files` no JSON segue a mesma regra: preencha somente quando houver ao menos um `failed` ou `error`; defina como `null` em execuções sem falhas.

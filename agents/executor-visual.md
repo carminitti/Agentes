@@ -377,4 +377,38 @@ Se houver ao menos um teste com status `failed` ou `error`, exiba o script gerad
 [conteúdo do arquivo]
 ```
 
+---
+
+## Modo Enxuto (lean_mode: true)
+
+Se o `## Contexto de execução` contiver `"lean_mode": true`, aplique todas as seguintes regras — elas **substituem** o comportamento padrão descrito nas seções anteriores:
+
+### Código gerado
+- Gere um **único arquivo `.ts`** contendo tudo (browser launch, screenshot, comparação) — sem `playwright.config.ts`, sem POM, sem fixtures.
+- Execute com `npx ts-node` diretamente, sem o runner do Playwright.
+- Salve em `[suite_dir]/visual/` com o nome `lean_visual_[timestamp].ts`.
+
+### Screenshots de comparação
+- As screenshots de baseline e atual **ainda são necessárias** para o teste visual (são a própria asserção).
+- No entanto: **não salve diffs visuais**, **não salve screenshots de evidência** além das estritamente usadas para comparação, e **não configure vídeo**.
+
+### Sem logs em disco
+- **Não grave `execution.log`** nem nenhum outro arquivo além de `resultado.json` e das screenshots de baseline/atual.
+
+### JSON de saída mínimo
+```json
+{
+  "results": [
+    { "id": "TC-040", "title": "Homepage — regressão visual", "status": "passed", "duration_ms": 890 },
+    { "id": "TC-041", "title": "Checkout — regressão visual", "status": "failed", "duration_ms": 1100, "error": "Diferença visual detectada: 3.2% dos pixels alterados" }
+  ],
+  "summary": { "total": 2, "passed": 1, "failed": 1, "skipped": 0, "baseline_created": 0 }
+}
+```
+Omita completamente: `logs`, `screenshot_path`, `diff_path`, `generated_files`.
+O campo `error` só é obrigatório quando `status` for `"failed"` ou `"error"` — omita-o nos demais casos.
+
+### Sem exibição de código
+Não exiba o código gerado no chat, independentemente de haver falhas.
+
 O campo `generated_files` no JSON segue a mesma regra: preencha somente quando houver ao menos um `failed` ou `error`; defina como `null` em execuções sem falhas.

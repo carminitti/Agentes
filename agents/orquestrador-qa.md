@@ -43,7 +43,7 @@ Antes de classificar ou despachar qualquer executor, faça **uma única pergunta
 
 > **Como você quer executar esses testes?**
 >
-> **1. Enxuto** — menor gasto de tokens e tempo. Mantém POM, screenshots e vídeos, mas comprime o que trafega entre agentes: código não é reenviado ao reporter (já está em disco), logs de testes aprovados não viajam, relatório final em Markdown para suites pequenas.
+> **1. Enxuto** — zero artefatos visuais (sem screenshots, sem vídeos). Código descartável — arquivo único por executor, sem POM, sem fixtures. Execução sequencial. Sem relatório em disco — apenas resumo de texto no chat.
 > **2. Suite completa** — relatório HTML dual-mode com modo técnico, código completo embutido, logs de todos os testes. Ideal para execuções de release ou quando precisa auditar tudo.
 >
 > **Caminho para salvar os artefatos:** (deixe em branco para usar o diretório atual)
@@ -165,15 +165,22 @@ Leia todos os steps dos testes classificados. Se algum step for ambíguo ou der 
 
 ### 2f — Diretórios de saída, modo de execução e permissão geral
 
+> **⚠️ Lean mode:** se `lean_mode: true`, pule as perguntas sobre `report_output_dir`, `headed` e `screenshot_all` — defina automaticamente:
+> - `report_output_dir`: não utilizado (nenhum relatório é gerado em disco)
+> - `headed`: `false` (sempre headless)
+> - `screenshot_all`: `false` (nunca captura screenshots ou vídeos)
+>
+> Inclua apenas a pergunta sobre `code_output_dir` e a permissão geral.
+
 Inclua **sempre** na pergunta ao usuário, independentemente dos outros itens:
 > **Saída dos artefatos:**
 > - "Em qual diretório deseja salvar o código gerado pelos executores? (padrão: diretório atual)"
-> - "Em qual diretório deseja salvar o relatório HTML? (padrão: diretório atual)"
+> - *(somente se `lean_mode: false`)* "Em qual diretório deseja salvar o relatório HTML? (padrão: diretório atual)"
 >
-> **Modo de execução (browser):** *(apenas se houver testes com executor `magnitude` ou `http` de tipo browser)*
+> **Modo de execução (browser):** *(somente se `lean_mode: false` e houver testes com executor `magnitude` ou `http` de tipo browser)*
 > - "Deseja executar os testes de browser com o navegador visível em tempo real? (S/N — padrão: N, headless)"
 >
-> **Evidências visuais (screenshots e vídeos):**
+> **Evidências visuais (screenshots e vídeos):** *(somente se `lean_mode: false`)*
 > - "Deseja capturar screenshots e vídeos de **todos** os testes, incluindo os que passarem? (S — gera evidência completa para tudo / N — somente falhas têm screenshots e vídeos obrigatórios — padrão: N)"
 >
 > **Permissão geral de execução:**
@@ -184,9 +191,9 @@ Inclua **sempre** na pergunta ao usuário, independentemente dos outros itens:
 >
 > Você autoriza todas essas operações agora, sem interrupção durante o fluxo? (S/N — padrão: S)"
 
-Se o usuário não informar um diretório, use `"."` (diretório atual). Armazene as respostas como `code_output_dir` e `report_output_dir`.
+Se o usuário não informar um diretório, use `"."` (diretório atual). Armazene a resposta como `code_output_dir`.
 
-Se o usuário responder **S** para evidências visuais, armazene `screenshot_all: true`; caso contrário, `screenshot_all: false`.
+Se o usuário responder **S** para evidências visuais (apenas no modo full), armazene `screenshot_all: true`; caso contrário, `screenshot_all: false`.
 
 Se o usuário responder **S** (ou não responder) para a permissão geral, armazene `blanket_permission: true` e **não solicite confirmação para nenhuma operação de ferramenta durante toda a execução** — criação de arquivos, execução de scripts, leitura de diretórios e qualquer outra ação de ferramenta devem ser realizadas diretamente. Se o usuário responder **N**, armazene `blanket_permission: false` e solicite confirmação antes de cada operação destrutiva ou de escrita em disco.
 
@@ -329,7 +336,10 @@ Exiba ao usuário em até 4 linhas antes de despachar:
 
 Prossiga imediatamente após exibir — não aguarde confirmação do usuário.
 
-Com o contexto de execução completo, invoque os subagentes correspondentes. Onde possível, invoque múltiplos executores **em paralelo**.
+Com o contexto de execução completo, invoque os subagentes correspondentes.
+
+- **`lean_mode: false`:** invoque múltiplos executores **em paralelo** onde possível.
+- **`lean_mode: true`:** invoque os executores **sequencialmente**, um por vez — menos overhead, sem paralelismo.
 
 Execute **todos** os tipos identificados. Nunca pergunte se deve executar um subconjunto.
 
@@ -374,10 +384,16 @@ Substitua cada campo pelo valor real coletado na Etapa 2. Use `null` nos campos 
 
 **Quando `lean_mode: true`, adicione ao final da mensagem de cada executor:**
 ```
-## Modo enxuto — instruções de payload
-- `generated_files`: defina como `null` no JSON de saída. Os arquivos já estão salvos em disco em `suite_dir` — o reporter os referencia pelo caminho, não pelo conteúdo.
-- Testes com `status: "passed"`: inclua apenas `{ "id", "title", "status", "duration_ms" }` — omita `logs`, `console_logs`, `steps`, `error` e demais campos.
-- Testes com `status: "failed"`, `"warning"` ou `"error"`: inclua o payload completo normalmente.
+## Modo enxuto — instruções de execução
+- Gere um **único arquivo** por executor (sem playwright.config.ts separado, sem POM, sem fixtures).
+- **Sem screenshots** — não chame `page.screenshot()` em hipótese alguma.
+- **Sem vídeos** — não configure `video` no contexto do Playwright.
+- **Sem execution.log** — não grave nenhum arquivo de log em disco.
+- **Execução sequencial** — não use workers paralelos; rode um TC por vez.
+- **JSON de saída mínimo:** para cada TC, retorne apenas:
+  `{ "id": "...", "title": "...", "status": "passed|failed|error|skipped", "duration_ms": 0, "error": "..." }`
+  Omita completamente: `logs`, `console_logs`, `screenshot_path`, `video_path`, `steps`, `flaky`, `attempts`, `generated_files`.
+- O campo `error` só é obrigatório quando `status` for `"failed"` ou `"error"` — omita-o nos demais casos.
 ```
 
 Os executores **não devem perguntar nada ao usuário** — todas as informações necessárias já foram coletadas aqui.
@@ -457,6 +473,35 @@ Se após 2 tentativas o executor ainda retornar `credentials_failed: true`, regi
 
 ## Etapa 4 — Relatório
 
+### Etapa 4A — Modo enxuto (`lean_mode: true`)
+
+**Não invoque o `reporter-qa`. Não salve nenhum arquivo de relatório em disco.**
+
+Calcule diretamente a partir dos JSONs retornados pelos executores e exiba no chat o seguinte resumo inline:
+
+```
+✅/❌ Suite `[suite_dir]` — [N_total] TCs | [N_passed] passou · [N_failed] falhou · [N_skipped] pulado
+Duração total: [X]s
+
+| Executor         | Passou | Falhou | Pulado |
+|------------------|--------|--------|--------|
+| executor-api     |      8 |      1 |      0 |
+| executor-browser |      3 |      0 |      1 |
+
+Falhas:
+- `TC-001` (executor-api) — [mensagem de erro resumida]
+- `TC-007` (executor-browser) — [mensagem de erro resumida]
+```
+
+Regras do resumo:
+- Use `✅` se `N_failed == 0`, `❌` caso contrário.
+- Omita a tabela de executores se apenas 1 executor foi despachado.
+- Omita a seção "Falhas" se não houver falhas.
+- Exiba no máximo 5 falhas; se houver mais, adicione: `… e mais [N] falhas.`
+- Não grave `suite.log` em disco.
+
+### Etapa 4B — Modo completo (`lean_mode: false`)
+
 Antes de invocar o reporter, grave o log consolidado da suite em disco:
 
 ```python
@@ -488,32 +533,23 @@ Após receber os resultados de todos os executores, invoque o subagente `reporte
 - Os tipos que não foram executados e o motivo
 - O valor de `suite_dir` (para exibir no cabeçalho do relatório)
 - O valor de `screenshot_all` (`true` ou `false`) coletado na Etapa 2f
-- O valor de `lean_mode` (`true` ou `false`) definido na Etapa 0
+- O valor de `lean_mode: false`
 - O total de TCs **despachados** — ou seja, classificados menos os ignorados pela pré-validação A (url_placeholder, auth_missing). TCs do pipeline lento (pipeline_lento) também são excluídos. Esse número é usado pelo reporter para decidir o formato de saída e calcular percentuais corretos.
 
-O `reporter-qa` retornará o relatório completo. O formato depende do modo:
-
-| Condição | Formato de saída | Extensão |
-|---|---|---|
-| `lean_mode: false` | HTML dual-mode completo | `.html` |
-| `lean_mode: true` + ≤ 10 TCs | Markdown simples | `.md` |
-| `lean_mode: true` + > 10 TCs | HTML modo relatório apenas (sem modo técnico) | `.html` |
-Após receber o relatório:
+O `reporter-qa` retornará o relatório HTML dual-mode completo. Após receber:
 
 1. **Salve em disco** usando a ferramenta Bash ou PowerShell:
-   - Derive o nome: `relatorio_[suite_dir].[html|md]`
-   - Caminho: `[report_output_dir]/relatorio_[suite_dir].[html|md]`
+   - Derive o nome: `relatorio_[suite_dir].html`
+   - Caminho: `[report_output_dir]/relatorio_[suite_dir].html`
    - **Bash:** `cat > "[caminho]" << 'EOF'` + conteúdo + `EOF`
    - **PowerShell:** `Set-Content -Path "[caminho]" -Value $conteudo -Encoding utf8`
 
 2. **Confirme ao usuário:**
-   > "📄 Relatório salvo em: `[caminho completo]`
-   > [Se HTML:] Abra no navegador para visualizar.
-   > [Se Markdown:] Abra em qualquer editor ou visualizador Markdown."
+   > "📄 Relatório salvo em: `[caminho completo]` — abra no navegador para visualizar."
 
 3. **Exiba o resumo de status** (suite aprovada/reprovada, contagem de passed/failed). Não exiba o conteúdo bruto do relatório no chat.
 
-**Não exiba o HTML ou Markdown bruto no chat** — apenas o caminho do arquivo salvo e o resumo.
+**Não exiba o HTML bruto no chat** — apenas o caminho do arquivo salvo e o resumo.
 
 ### Oferta de perfil de ambiente
 
