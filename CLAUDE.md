@@ -208,3 +208,4 @@ python mcp_server/server.py
 | v1.24.0 | Modo técnico do reporter detalhado: classificação de tipo de erro, resposta raw completa, aba Código mostra apenas o bloco do TC com linha falhou marcada, diff esperado×obtido específico por executor, stack trace opcional |
 | v1.25.0 | 6 correções: lean browser usa JS puro (node) em vez de ts-node; executor-api cache Windows com fallback; seção lean_mode morta removida do classifier; profile save corrige report_output_dir em lean mode; aviso cross-browser em lean mode; descrição "Sem relatório HTML em disco" |
 | v1.25.1 | executor-mobile documentado no CLAUDE.md (Pipeline 2, Runtime Dependencies) |
+| v1.25.2 | 2 bugs críticos: lean visual usa JS+config (não ts-node) com snapshotDir correto; `--rerun-failed` bloqueia em lean mode com aviso explícito |

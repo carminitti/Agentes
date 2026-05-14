@@ -384,9 +384,38 @@ Se houver ao menos um teste com status `failed` ou `error`, exiba o script gerad
 Se o `## Contexto de execução` contiver `"lean_mode": true`, aplique todas as seguintes regras — elas **substituem** o comportamento padrão descrito nas seções anteriores:
 
 ### Código gerado
-- Gere um **único arquivo `.ts`** contendo tudo (browser launch, screenshot, comparação) — sem `playwright.config.ts`, sem POM, sem fixtures.
-- Execute com `npx ts-node` diretamente, sem o runner do Playwright.
-- Salve em `[suite_dir]/visual/` com o nome `lean_visual_[timestamp].ts`.
+- Gere dois arquivos mínimos (sem POM, sem fixtures):
+  - `lean_visual_[timestamp].spec.js` — casos de teste em CommonJS (`const { test, expect } = require('@playwright/test')`)
+  - `lean_playwright.config.js` — config mínimo contendo apenas `snapshotDir` (obrigatório para que baselines persistam entre execuções)
+- Salve ambos em `[suite_dir]/visual/`.
+- Execute via Playwright test runner (não `ts-node`):
+  ```
+  # PowerShell
+  $env:SUITE_DIR = "[suite_dir]"; npx playwright test lean_visual_[timestamp].spec.js --config=lean_playwright.config.js --reporter=json 2>&1 | Tee-Object resultado_raw.txt
+  # Bash
+  SUITE_DIR="[suite_dir]" npx playwright test lean_visual_[timestamp].spec.js --config=lean_playwright.config.js --reporter=json 2>&1 | tee resultado_raw.txt
+  ```
+
+`lean_playwright.config.js`:
+```javascript
+const path = require('path');
+const suiteDir = process.env.SUITE_DIR || '.';
+module.exports = {
+  use: { headless: true },
+  snapshotDir: path.join(suiteDir, 'visual', 'baselines'),
+};
+```
+
+Exemplo de `lean_visual_[timestamp].spec.js`:
+```javascript
+const { test, expect } = require('@playwright/test');
+
+test('TC-040 — Homepage — regressão visual', async ({ page }) => {
+  await page.goto('https://staging.app.com');
+  await page.waitForLoadState('domcontentloaded');
+  await expect(page).toHaveScreenshot('homepage.png', { maxDiffPixelRatio: 0.02, animations: 'disabled' });
+});
+```
 
 ### Screenshots de comparação
 - As screenshots de baseline e atual **ainda são necessárias** para o teste visual (são a própria asserção).

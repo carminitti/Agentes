@@ -85,6 +85,10 @@ Aguarde confirmação do usuário. Se o usuário optar por revisar, apresente os
 
 Se a mensagem contiver o prefixo `--rerun-failed` (ex: `--rerun-failed\n<casos de teste>`), aplique este fluxo:
 
+**Verificação prévia:** se `lean_mode: true`, encerre imediatamente:
+> ⚠️ `--rerun-failed` não está disponível em lean mode — o modo enxuto não grava `resultado.json` em disco.
+> Para usar esta funcionalidade, re-execute os testes com `--full`.
+
 1. **Leia o `resultado.json` mais recente** no `suite_dir` informado (ou peça o caminho se não estiver claro). Extraia os IDs de todos os testes com `status: "failed"` ou `status: "error"`.
 
 2. **Filtre os casos de teste recebidos** mantendo apenas os IDs que estão na lista de falhas. Se nenhum TC corresponder, informe o usuário e encerre:
