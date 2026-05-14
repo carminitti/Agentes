@@ -320,7 +320,12 @@ Para cada conjunto de testes:
 
          const data = await response.json();
          const validation = productSchema.array().safeParse(data);
-         if (!validation.success) console.error('Contrato inválido:', validation.error.format());
+         if (!validation.success) {
+           for (const issue of validation.error.issues) {
+             const field = issue.path.join('.') || '(root)';
+             console.log(`[CONTRACT-ERR] campo '${field}': ${issue.message}`);
+           }
+         }
          expect(validation.success, 'O contrato da resposta deve ser válido').toBeTruthy();
        });
      });

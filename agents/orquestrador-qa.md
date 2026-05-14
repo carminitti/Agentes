@@ -15,6 +15,30 @@ Você é o orquestrador do squad de automação de testes de ambiente.
 
 ## Etapa 0 — Modo de execução
 
+### Perfis de ambiente
+
+**Se a mensagem contiver `--profile=nome`** (ex: `--profile=staging`), execute antes de qualquer pergunta:
+
+```python
+import json, os
+profile_name = "[nome extraído após --profile=]"
+profile_file = ".qa-profiles.json"
+profiles = json.load(open(profile_file)) if os.path.exists(profile_file) else {}
+profile = profiles.get(profile_name)
+```
+
+- **Perfil encontrado** → carregue `base_url`, `auth`, `environment_notes`, `code_output_dir`, `report_output_dir`, `headed`, `screenshot_all` diretamente do perfil. Exiba confirmação e **pule toda a Etapa 2** — não faça nenhuma pergunta:
+  > ✅ Perfil `[nome]` carregado — ambiente: `[base_url]`
+  >
+  > ⚠️ Token e senha não são persistidos em perfis por segurança. Forneça as credenciais para continuar (ou deixe em branco se o ambiente não requer autenticação):
+
+  Aguarde as credenciais, preencha `auth` no contexto e prossiga para Etapa 1.
+
+- **Perfil não encontrado** → avise e prossiga com perguntas normais:
+  > ⚠️ Perfil `[nome]` não encontrado em `.qa-profiles.json`. Prosseguindo com configuração manual.
+
+---
+
 Antes de classificar ou despachar qualquer executor, faça **uma única pergunta** ao usuário com as duas opções abaixo:
 
 > **Como você quer executar esses testes?**
@@ -54,6 +78,27 @@ Aguarde confirmação do usuário. Se o usuário optar por revisar, apresente os
    - TC-YYY: tipo confirmado = [tipo informado]
    ```
 4. Aguarde o JSON final sem `needs_clarification` antes de continuar para a Etapa 2.
+
+---
+
+## Etapa 1.4 — Reexecução de falhas (--rerun-failed)
+
+Se a mensagem contiver o prefixo `--rerun-failed` (ex: `--rerun-failed\n<casos de teste>`), aplique este fluxo:
+
+1. **Leia o `resultado.json` mais recente** no `suite_dir` informado (ou peça o caminho se não estiver claro). Extraia os IDs de todos os testes com `status: "failed"` ou `status: "error"`.
+
+2. **Filtre os casos de teste recebidos** mantendo apenas os IDs que estão na lista de falhas. Se nenhum TC corresponder, informe o usuário e encerre:
+   > "Nenhum teste com falha encontrado no resultado anterior. Todos passaram."
+
+3. **Prossiga normalmente** com o subconjunto filtrado a partir da Etapa 2 — autenticação, dispatch e relatório seguem o fluxo padrão.
+
+4. **No relatório final**, inclua uma seção de comparação:
+   - Quantos testes estavam falhando antes
+   - Quantos agora passaram (recuperados)
+   - Quantos continuam falhando
+
+Se o `resultado.json` não existir ou não puder ser lido, avise o usuário e prossiga com todos os TCs recebidos (comportamento normal):
+> "Não encontrei resultado anterior em `[caminho]`. Executando todos os testes recebidos."
 
 ---
 
@@ -181,11 +226,25 @@ Os executores recebem os valores reais no `## Contexto de execução` — o masc
 
 Antes de despachar qualquer executor, derive o nome e **use a ferramenta Bash ou PowerShell** para criar o diretório fisicamente:
 
-1. Derive o nome: junte os tipos de executor presentes separados por `_` (ex: executores `http` + `db` → `http_db`). Aplique o timestamp: `suite_[nome]_[YYYYMMDD_HHMMSS]`.
-2. Crie com a ferramenta:
-   - **Bash:** `mkdir -p suite_http_db_20260511_100000`
-   - **PowerShell:** `New-Item -ItemType Directory -Force -Path suite_http_db_20260511_100000`
-3. Guarde o nome exato como `suite_dir` — ele será repassado no contexto para todos os executores.
+1. Derive o nome usando as abreviações abaixo (evita nomes longos que excedem o limite MAX_PATH do Windows):
+
+   | Executor/tipo classificado | Abreviação |
+   |---|---|
+   | `magnitude` ou `http` (browser) | `brw` |
+   | `http` (integração/api) | `api` |
+   | `k6` | `perf` |
+   | `playwright-visual` | `vis` |
+   | `axe-core` | `acc` |
+   | `zap` | `sec` |
+   | `db` | `db` |
+
+   Junte as abreviações presentes separadas por `_`, aplique o timestamp: `suite_[abrev1]_[abrev2]_[YYYYMMDD_HHMMSS]`. Exemplo: executores `http` (api) + `db` → `suite_api_db_20260511_100000`.
+
+2. Prefixe com `code_output_dir` se informado na Etapa 2f; caso contrário, crie no diretório atual:
+   - **Bash:** `mkdir -p "$CODE_OUTPUT_DIR/suite_api_db_20260511_100000"` (use `"."` se `code_output_dir` for `.`)
+   - **PowerShell:** `New-Item -ItemType Directory -Force -Path "$code_output_dir\suite_api_db_20260511_100000"`
+
+3. Guarde o **caminho completo** como `suite_dir` — ele será repassado no contexto para todos os executores. Exemplo: `/home/qa/projetos/suite_api_db_20260511_100000` ou `C:\projetos\suite_api_db_20260511_100000`.
 
 **Não escreva nem execute um script Python para isso** — use diretamente a ferramenta de shell disponível.
 
@@ -196,6 +255,26 @@ Antes de despachar qualquer executor, derive o nome e **use a ferramenta Bash ou
 ### Etapa 2.9 — Pré-validação e classificação de pipeline
 
 Execute estas verificações antes de despachar qualquer executor. Não pergunte ao usuário — execute silenciosamente e registre os resultados.
+
+#### 0) Health check do ambiente
+
+Antes de validar os TCs individualmente, verifique se o `base_url` é acessível:
+
+```python
+import requests
+try:
+    resp = requests.head(base_url, timeout=5, verify=False, allow_redirects=True)
+    env_reachable = resp.status_code < 500
+except Exception as e:
+    env_reachable = False
+    env_error = str(e)
+```
+
+- **Se `env_reachable: true`** → prossiga normalmente.
+- **Se `env_reachable: false`** → exiba ao usuário antes de prosseguir:
+  > ⚠️ O ambiente `[base_url]` não respondeu (`[env_error]`). Verifique a URL, VPN ou certificado e confirme para continuar — ou cancele.
+
+  Aguarde confirmação. Se o usuário confirmar, prossiga mesmo assim (o erro pode ser intermitente); se cancelar, encerre sem despachar executores.
 
 #### A) Validação rápida de TCs (fail-fast)
 
@@ -281,6 +360,8 @@ Execute **todos** os tipos identificados. Nunca pergunte se deve executar um sub
   "db_connection": "postgresql://...",
   "environment_notes": "...",
   "suite_dir": "suite_[nome]_[YYYYMMDD_HHMMSS]",
+  "code_output_dir": "/caminho/escolhido",
+  "headed": true | false,
   "screenshot_all": true | false,
   "lean_mode": true | false
 }
@@ -320,6 +401,32 @@ Regras:
 
 ---
 
+## Etapa 3.3 — Smoke gate
+
+Após receber os resultados de **todos** os executores despachados, verifique antes de qualquer retry:
+
+1. Há testes com `type: "smoke"` na suite executada?
+2. **Todos** eles retornaram `status: "failed"` ou `status: "error"`?
+
+**Se ambas as condições forem verdadeiras**, exiba ao usuário antes de prosseguir:
+
+> ❌ **Smoke gate ativado** — todos os [N] teste(s) de smoke falharam.
+> Isso indica falha crítica no ambiente `[base_url]` — os demais resultados podem não refletir o comportamento real do sistema.
+>
+> Falhas detectadas:
+> - `[ID]` — [erro resumido do campo `error`]
+>
+> **Deseja gerar o relatório com os resultados atuais, ou prefere investigar o ambiente primeiro?**
+> 1. Gerar relatório mesmo assim
+> 2. Encerrar e investigar o ambiente
+
+- Opção **1** → prossiga para Etapa 3.5 normalmente.
+- Opção **2** → encerre sem relatório. Exiba apenas os logs completos dos smoke tests para diagnóstico.
+
+Se não houver testes de smoke na suite, ou se ao menos um smoke passou → prossiga para Etapa 3.5 silenciosamente, sem exibir nada.
+
+---
+
 ## Etapa 3.5 — Retry de credenciais
 
 Após receber os resultados de todos os executores da Etapa 3, verifique se algum retornou `"credentials_failed": true` no JSON de resultado (campo no `summary` ou na raiz).
@@ -328,7 +435,7 @@ Para cada executor com `credentials_failed: true` (máximo **2 tentativas** por 
 
 1. Identifique o tipo de credencial que falhou com base no executor:
    - `executor-banco` → string de conexão inválida ou host inacessível
-   - `executor-api`, `executor-browser` → token inválido ou credenciais de login erradas
+   - `executor-api`, `executor-browser`, `executor-acessibilidade` → token inválido ou credenciais de login erradas
    - `executor-seguranca`, `executor-performance` → token de autorização inválido
 
 2. Informe o usuário antes de re-despachar:
@@ -382,7 +489,7 @@ Após receber os resultados de todos os executores, invoque o subagente `reporte
 - O valor de `suite_dir` (para exibir no cabeçalho do relatório)
 - O valor de `screenshot_all` (`true` ou `false`) coletado na Etapa 2f
 - O valor de `lean_mode` (`true` ou `false`) definido na Etapa 0
-- O total de TCs executados (para o reporter decidir o formato de saída)
+- O total de TCs **despachados** — ou seja, classificados menos os ignorados pela pré-validação A (url_placeholder, auth_missing). TCs do pipeline lento (pipeline_lento) também são excluídos. Esse número é usado pelo reporter para decidir o formato de saída e calcular percentuais corretos.
 
 O `reporter-qa` retornará o relatório completo. O formato depende do modo:
 
@@ -407,3 +514,40 @@ Após receber o relatório:
 3. **Exiba o resumo de status** (suite aprovada/reprovada, contagem de passed/failed). Não exiba o conteúdo bruto do relatório no chat.
 
 **Não exiba o HTML ou Markdown bruto no chat** — apenas o caminho do arquivo salvo e o resumo.
+
+### Oferta de perfil de ambiente
+
+Ao final de cada execução bem-sucedida (pelo menos 1 executor retornou resultados), se `--profile` **não** foi usado nesta execução, pergunte ao usuário:
+
+> "Deseja salvar as configurações desta execução como um perfil reutilizável para próximas suites?
+> Se sim, informe um nome (ex: `staging`, `homolog`, `prod`). Deixe em branco para não salvar."
+
+Se o usuário informar um nome, salve em `.qa-profiles.json` no `code_output_dir`:
+
+```python
+import json, os
+
+profile_entry = {
+    "base_url": base_url,
+    "auth": {
+        "token": None,           # nunca persiste token em disco
+        "credentials": {"email": credentials_email} if credentials_email else None  # senha não é salva
+    },
+    "environment_notes": environment_notes,
+    "code_output_dir": code_output_dir,
+    "report_output_dir": report_output_dir,
+    "headed": headed,
+    "screenshot_all": screenshot_all
+}
+
+profile_file = os.path.join(code_output_dir, ".qa-profiles.json")
+profiles = json.load(open(profile_file)) if os.path.exists(profile_file) else {}
+profiles[profile_name] = profile_entry
+with open(profile_file, "w", encoding="utf-8") as f:
+    json.dump(profiles, f, indent=2, ensure_ascii=False)
+```
+
+Confirme ao usuário:
+> ✅ Perfil `[nome]` salvo em `[profile_file]`.
+> Na próxima execução use: `--profile=[nome]`
+> **Nota:** token e senha não são persistidos por segurança — serão solicitados ao carregar o perfil.

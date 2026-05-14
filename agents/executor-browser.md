@@ -567,15 +567,24 @@ Para cada conjunto de testes:
      npm install --prefix $cache
      npx playwright install chromium --with-deps
    }
-   cmd /c "mklink /J node_modules $cache\node_modules"
+   # mklink /J (junction) pode falhar sem privilégios de admin ou em sistemas de arquivo sem suporte
+   $linked = $false
+   try {
+     cmd /c "mklink /J node_modules $cache\node_modules" 2>$null
+     $linked = ($LASTEXITCODE -eq 0) -and (Test-Path "node_modules")
+   } catch {}
+   if (-not $linked) {
+     Write-Host "[CACHE] Junction falhou — executando npm install normal"
+     npm install
+   }
    ```
    ```bash
    # Linux/macOS
    cache="$HOME/.claude-qa-cache/browser"
    [ ! -d "$cache/node_modules" ] && npm install --prefix "$cache"
-   ln -sfn "$cache/node_modules" node_modules
+   ln -sfn "$cache/node_modules" node_modules || npm install
    ```
-   Se o cache falhar, caia em `npm install` normal sem interromper.
+   Se o cache falhar por qualquer motivo, caia em `npm install` normal sem interromper.
 
    ```
    npx playwright test --reporter=json > resultado.json
@@ -622,6 +631,32 @@ Para cada conjunto de testes:
    }
    ```
 
+   Após mapear screenshots e vídeos, aplique **flaky detection** — detecta testes que passaram somente após retry:
+
+   ```typescript
+   // Flaky detection: teste com múltiplas tentativas que passou na última
+   for (const result of results) {
+     const pwSpec = (function findSpec(suites: any[]): any {
+       for (const s of suites) {
+         const found = (s.specs ?? []).find((sp: any) => sp.title === result.title)
+           ?? findSpec(s.suites ?? []);
+         if (found) return found;
+       }
+       return null;
+     })(pwReport.suites ?? []);
+
+     const testResults = pwSpec?.tests?.[0]?.results ?? [];
+     const attempts = testResults.length || 1;
+     const flaky = attempts > 1 && result.status === 'passed';
+
+     result.flaky = flaky;
+     result.attempts = attempts;
+     if (flaky) {
+       result.logs.push(`[RETRY] Flaky detectado — passou na tentativa ${attempts}/${attempts} (${attempts - 1} falha(s) anteriore(s))`);
+     }
+   }
+   ```
+
 ---
 
 ## Log de execução
@@ -632,6 +667,7 @@ Durante a execução, colete um log de cada ação relevante realizada por cada 
 - Assertions (`[ASSERT] Elemento 'Dashboard' visível ✓`, `[ASSERT] URL contém '/home' ✓`)
 - Erros (`[ERROR] Elemento não encontrado após 5000ms`)
 - Setup/Teardown (`[SETUP] Criado produto ID=42`, `[TEARDOWN] Removido produto ID=42`)
+- Retry e flaky (`[RETRY] Flaky detectado — passou na tentativa N/N (N falha(s) anteriore(s))` — apenas quando o teste passou após retry)
 - Console do browser — via fixture `consoleLogs` (automático):
   - `[CONSOLE:LOG] mensagem`
   - `[CONSOLE:ERROR] mensagem de erro JS`
@@ -797,6 +833,10 @@ pronto antes do conteúdo dinâmico ser renderizado.
         "[CONSOLE:LOG] Loaded user session",
         "[CONSOLE:WARN] Cookie 'session' will expire soon"
       ],
+      "network_logs": [
+        "[NETWORK] GET /api/users → 200",
+        "[NETWORK] POST /api/auth/session → 200"
+      ],
       "error": null
     },
     {
@@ -820,6 +860,9 @@ pronto antes do conteúdo dinâmico ser renderizado.
         "[CONSOLE:ERROR] TypeError: Cannot read properties of undefined (reading 'validate')",
         "[PAGE_ERROR] Uncaught TypeError: Cannot read properties of undefined (reading 'validate')",
         "[REQUEST_FAILED] POST https://staging.app.com/api/payment — net::ERR_ABORTED"
+      ],
+      "network_logs": [
+        "[NETWORK] POST /api/payment → 500"
       ],
       "error": "Esperado: elemento 'Cartão inválido' visível. Encontrado: elemento não localizado após 5000ms."
     }

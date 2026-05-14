@@ -200,10 +200,11 @@ export default function () {
 **Stress (rampa crescente):**
 ```javascript
 export const options = {
+  // Soma total: 3 min — dentro do limite do pipeline rápido (soma > 3 min → skipped automaticamente)
   stages: [
-    { duration: '2m', target: 100 },
-    { duration: '5m', target: 200 },
-    { duration: '2m', target: 0 },
+    { duration: '1m', target: 50 },
+    { duration: '1m', target: 100 },
+    { duration: '1m', target: 0 },
   ],
   thresholds: {
     http_req_duration: ['p(95)<500'],
@@ -320,10 +321,10 @@ def run_stress_test(url, stages, headers=None, method='GET', payload=None):
     }
 
 # Exemplo de uso para stress (equivalente ao k6 stages):
+# Soma total: 3 min (180s) — dentro do limite do pipeline rápido (> 3 min → skipped automaticamente)
 stress_stages = [
     {'vus': 50,  'duration_s': 60},
-    {'vus': 100, 'duration_s': 120},
-    {'vus': 200, 'duration_s': 120},
+    {'vus': 100, 'duration_s': 60},
     {'vus': 0,   'duration_s': 60},   # rampa de descida (pula se vus==0)
 ]
 metrics = run_stress_test(url, [s for s in stress_stages if s['vus'] > 0], headers=auth_headers)
@@ -406,7 +407,7 @@ Durante a execução, colete um log de cada ação relevante para incluir no res
 Ao final de cada execução, grave os artefatos no diretório correto:
 
 ```python
-import os, json, datetime
+import os, json, datetime, shutil
 
 output_dir = f"{suite_dir}/performance" if suite_dir else f"tmp_perf_{timestamp}"
 os.makedirs(output_dir, exist_ok=True)
@@ -414,6 +415,10 @@ os.makedirs(output_dir, exist_ok=True)
 # resultado.json
 with open(f"{output_dir}/resultado.json", "w", encoding="utf-8") as f:
     json.dump(output_json, f, ensure_ascii=False, indent=2)
+
+# k6_output.txt — saída bruta do k6 (presente apenas quando k6 foi usado, não no fallback Python)
+if os.path.exists("k6_output.txt"):
+    shutil.copy("k6_output.txt", os.path.join(output_dir, "k6_output.txt"))
 
 # execution.log — log completo em texto puro
 def ts(): return datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")

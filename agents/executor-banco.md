@@ -211,25 +211,41 @@ def test_connection_with_hard_timeout(cs, hard_timeout=7):
 
 ok, err = test_connection_with_hard_timeout(db_connection)
 if not ok:
-    results = [{"id": t["id"], "title": t["title"], "status": "skipped",
-                "error": f"Banco inacessível: {err}"} for t in tests]
-    # Retorne JSON com credentials_failed: true para que o orquestrador possa fazer retry
+    # Distingue falha de autenticação (pede retry ao usuário) de falha de rede (ativa fallback).
+    # credentials_failed: true APENAS quando a string de erro indica credencial inválida —
+    # nunca para timeout, DNS, connection refused ou outros erros de infraestrutura.
+    AUTH_ERROR_KEYWORDS = (
+        'password authentication failed', 'invalid password', 'authentication failed',
+        'Access denied', 'Login failed', 'FATAL:', '28P01', '28000',
+        'autenticação', 'credencial', 'senha inválida',
+    )
+    is_auth_error = any(kw.lower() in err.lower() for kw in AUTH_ERROR_KEYWORDS)
+
+    if is_auth_error:
+        results = [{"id": t["id"], "title": t["title"], "status": "skipped",
+                    "error": f"Falha de autenticação no banco: {err}"} for t in tests]
+        # Retorne JSON com credentials_failed: true → orquestrador solicita novas credenciais
+    else:
+        pass  # Falha de rede/infraestrutura → ativa fallback automático (seção abaixo)
 ```
 
 ## Fallback automático por falha de conexão TCP
 
-Antes de executar qualquer teste, tente estabelecer a conexão com o banco. Se falhar por
-qualquer um dos motivos abaixo dentro de 5 segundos, mude automaticamente para modo
-simulado (SQLite :memory:) — sem perguntar ao usuário, sem pular o teste:
+Se `test_connection_with_hard_timeout` falhar **e a falha NÃO for de autenticação** (ver
+classificação acima), mude automaticamente para modo simulado (SQLite :memory:) — sem
+perguntar ao usuário, sem pular o teste. Erros que ativam o fallback:
 
 - Connection refused (porta bloqueada ou serviço inativo)
-- timeout (porta filtrada por firewall)
+- Timeout (porta filtrada por firewall)
 - Network unreachable
 - Name or service not known (DNS não resolve)
 
+Erros de autenticação (senha errada, usuário inválido) **não** ativam o fallback — retornam
+`credentials_failed: true` para que o orquestrador solicite novas credenciais ao usuário.
+
 Ao ativar o fallback, registre nos logs:
 ```
-[FALLBACK] Conexão com [driver]://... falhou após 5s
+[FALLBACK] Conexão com [driver]://... falhou após 5s (motivo de rede/infraestrutura)
 [FALLBACK] Modo simulado ativado automaticamente — SQLite :memory:
 [FALLBACK] Esquema e dados inferidos a partir dos steps do caso de teste
 ```
@@ -265,6 +281,34 @@ Para cada teste:
 - Execute apenas queries **SELECT** e verificações de schema (information_schema)
 - **Não execute INSERT, UPDATE, DELETE, DROP** — apenas leia o estado do banco
 - Se o step sugerir uma modificação no banco, informe o usuário que o executor de banco é somente leitura
+
+**Validação obrigatória antes de executar qualquer query:**
+
+```python
+import re as _re
+
+def is_safe_query(query: str) -> bool:
+    """Rejeita qualquer query que não seja SELECT ou leitura de schema."""
+    q = query.strip().upper()
+    # Permite SELECT e comandos de leitura de schema
+    allowed = re.compile(
+        r'^(SELECT|WITH|EXPLAIN|SHOW|DESCRIBE|DESC|PRAGMA|EXEC\s+SP_HELP)',
+        _re.IGNORECASE
+    )
+    # Bloqueia explicitamente comandos destrutivos
+    blocked = _re.compile(
+        r'\b(INSERT|UPDATE|DELETE|DROP|TRUNCATE|ALTER|CREATE|REPLACE|MERGE|UPSERT|EXEC(?!.*SP_HELP))\b',
+        _re.IGNORECASE
+    )
+    return bool(allowed.match(q)) and not bool(blocked.search(q))
+
+# Antes de executar cada query:
+if not is_safe_query(query):
+    results.append({"id": tc["id"], "title": tc["title"], "status": "error",
+                    "error": f"Query bloqueada por segurança: apenas SELECT é permitido. "
+                             f"Query recebida: {query[:100]}..."})
+    continue
+```
 
 ---
 

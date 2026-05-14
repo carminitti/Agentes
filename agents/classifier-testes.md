@@ -34,6 +34,18 @@ Scenario: ...
 ,,,Ação do passo,Resultado esperado
 ```
 
+**Normalização de CSV:** ao processar um CSV do Azure DevOps com colunas separadas "Ação do passo" e "Resultado esperado", combine-as em uma única string de step seguindo esta regra:
+- Se ambas estiverem preenchidas: `"[Ação do passo] → [Resultado esperado]"`
+- Se apenas "Ação do passo" estiver preenchida: use somente a ação
+- Se apenas "Resultado esperado" estiver preenchida: use somente o resultado esperado
+- Ignore linhas completamente vazias
+
+Exemplo:
+```
+Ação: "Clique em Entrar"   |  Esperado: "O dashboard é exibido"
+→ step normalizado: "Clique em Entrar → O dashboard é exibido"
+```
+
 Aceite qualquer combinação desses formatos na mesma entrada.
 
 ---
@@ -79,6 +91,19 @@ Não inclua na saída os seguintes tipos — eles não são testes de ambiente:
 2. **Prefira o tipo mais específico.** Um teste que verifica layout após deploy é `visual`, não `regressão`.
 3. **Regressão é contexto, não tipo exclusivo.** Use `"regression": true` como flag separada.
 4. **Normalize os steps** para uma lista de strings simples, independente do formato original.
+
+**Regra de desambiguação: `visual` vs. `smoke`/`sanity`**
+
+Um teste que "abre a página e verifica se ela carrega" parece visual, mas é smoke. Um teste que "compara a aparência com um estado de referência aprovado" é visual. Use estes critérios:
+
+| Indicador | Tipo correto |
+|---|---|
+| Compara screenshot atual com baseline / referência aprovada | `visual` |
+| Menciona "diff", "pixel", "regressão visual", "mudou visualmente" | `visual` |
+| Verifica apenas que elementos estão presentes e a página funciona | `smoke` / `sanity` |
+| Verifica layout como parte de um fluxo funcional (sem comparação baseline) | `smoke` / `e2e` |
+
+Na dúvida genuína entre `visual` e `smoke`, classifique como `smoke` com `low_confidence: true`.
 5. **Threshold de confiança:**
    - `confidence < 0.50` → inclua no array `needs_clarification` (bloqueia o pipeline). O orquestrador apresentará as opções ao usuário.
    - `0.50 ≤ confidence < 0.70` → classifique com o melhor palpite E adicione `"low_confidence": true` no objeto do teste. **Não bloqueia** — o orquestrador prossegue com a classificação informada, mas o reporter sinalizará a incerteza.

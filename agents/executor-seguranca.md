@@ -49,7 +49,7 @@ Se essa seção estiver presente:
 - `auth.credentials` → gere o token automaticamente via `auto_get_token()`, não pergunte nada
 - `suite_dir` → se presente, use `[suite_dir]/seguranca/` como diretório de artefatos; crie com `os.makedirs`
 - `environment_notes` → aplique as regras abaixo conforme palavras-chave:
-  - Contém `certificado`, `SSL`, `autoassinado` ou `self-signed` → inicie com `verify=False` direto em `safe_request()` sem esperar o `SSLError`; registre `ssl_warning` com a mensagem padrão
+  - Contém `certificado`, `SSL`, `autoassinado` ou `self-signed` → defina `_ssl_bypass = True` antes de criar `safe_request()` para que ela inicie direto com `verify=False` sem esperar o `SSLError`; registre `ssl_warning` com a mensagem padrão
   - Contém `VPN` ou `proxy` → adicione `[ENV] Ambiente pode exigir VPN/proxy` nos logs; se testes falharem com erro de conexão, inclua `"Possível causa: acesso via VPN/proxy necessário"` no campo `error`
 
 **Se a seção `## Contexto de execução` estiver presente, ignore os passos abaixo e prossiga para a execução.**
@@ -122,8 +122,28 @@ if environment_notes and any(kw in environment_notes.lower()
             "Considere migrar para HTTPS antes do deploy em produção."
         )
 
+_ssl_bypass = False  # True quando environment_notes indica certificado autoassinado/SSL
+
 def safe_request(method, url, **kwargs):
+    """Realiza requisição com tratamento automático de SSL.
+
+    Se _ssl_bypass=True (definido via environment_notes com palavras-chave SSL),
+    inicia direto com verify=False — sem aguardar SSLError. Isso cobre cenários
+    onde o certificado é inválido mas o Python não levanta SSLError imediatamente
+    (ex: certificados expirados aceitos silenciosamente em algumas versões).
+
+    Se _ssl_bypass=False, tenta verify=True primeiro e recai para False apenas
+    ao capturar SSLError — modo seguro para ambientes sem anotação SSL.
+    """
     global ssl_warning
+    if _ssl_bypass:
+        if ssl_warning is None:
+            ssl_warning = (
+                "Certificado SSL inválido ou autoassinado detectado (via environment_notes). "
+                "As verificações foram executadas com verify=False. "
+                "Recomenda-se substituir o certificado por um válido antes do deploy."
+            )
+        return requests.request(method, url, verify=False, **kwargs)
     try:
         return requests.request(method, url, verify=True, **kwargs)
     except SSLError:
@@ -286,7 +306,7 @@ Para paths que retornam 200:
 
 ```json
 {
-  "executor": "security",
+  "executor": "seguranca",
   "environment": "https://staging.app.com",
   "environment_type": "production",
   "credentials_failed": false,

@@ -67,6 +67,10 @@ Se não estiver: `npm install -D @playwright/test && npx playwright install chro
 Gere sempre um `playwright.config.ts` com captura obrigatória de evidências:
 ```typescript
 import { defineConfig } from '@playwright/test';
+import * as path from 'path';
+import * as dotenv from 'dotenv';
+dotenv.config();
+
 export default defineConfig({
   use: {
     headless: true,
@@ -74,8 +78,20 @@ export default defineConfig({
     video: 'on',
   },
   outputDir: 'reports/test-results',
+  // snapshotDir fixo garante que os baselines sobrevivam entre execuções.
+  // Sem isso, cada execução recria tmp_visual_[timestamp]/ e o Playwright nunca
+  // encontra o baseline anterior — todos os testes resultam em baseline_created.
+  snapshotDir: process.env.SUITE_DIR
+    ? path.join(process.env.SUITE_DIR, 'visual', 'baselines')
+    : path.join(process.cwd(), 'visual_baselines'),
 });
 ```
+
+**Inclua `SUITE_DIR` no arquivo `.env` gerado** (quando `suite_dir` vier no contexto):
+```
+SUITE_DIR=suite_vis_20260511_100000
+```
+
 Após execução, colete screenshots e vídeos localizando os artefatos em `reports/test-results/`:
 
 ```typescript
@@ -197,6 +213,30 @@ Para cada teste:
    Para forçar criação/atualização de baseline:
    ```
    npx playwright test arquivo.spec.ts --update-snapshots
+   ```
+
+5. **Flaky detection** — detecta testes que passaram somente após retry:
+
+   ```typescript
+   for (const result of results) {
+     const pwSpec = (function findSpec(suites: any[]): any {
+       for (const s of suites) {
+         const found = (s.specs ?? []).find((sp: any) => sp.title === result.title)
+           ?? findSpec(s.suites ?? []);
+         if (found) return found;
+       }
+       return null;
+     })(pwReport.suites ?? []);
+
+     const testResults = pwSpec?.tests?.[0]?.results ?? [];
+     const attempts = testResults.length || 1;
+     const flaky = attempts > 1 && result.status === 'passed';
+     result.flaky = flaky;
+     result.attempts = attempts;
+     if (flaky) {
+       result.logs.push(`[RETRY] Flaky detectado — passou na tentativa ${attempts}/${attempts} (${attempts - 1} falha(s) anteriore(s))`);
+     }
+   }
    ```
 
 ---

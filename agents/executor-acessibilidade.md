@@ -114,8 +114,10 @@ Para cada teste:
    ```typescript
    import { test, expect } from '@playwright/test';
    import AxeBuilder from '@axe-core/playwright';
+   import * as fs from 'fs';
+   import * as path from 'path';
 
-   test('acessibilidade — página de login', async ({ page }) => {
+   test('acessibilidade — página de login', async ({ page }, testInfo) => {
      // Captura automática de console logs do frontend — obrigatório em testes de browser
      const consoleLogs: string[] = [];
      page.on('console', (msg) => {
@@ -150,8 +152,6 @@ Para cada teste:
      //
      // Para análise da página inteira (padrão):
      // Screenshot de comprovação — capturado antes da análise axe-core
-     import * as fs from 'fs';
-     import * as path from 'path';
      const suiteDir = process.env.SUITE_DIR || null;
      const outputDir = suiteDir ? path.join(suiteDir, 'acessibilidade') : `tmp_a11y_${Date.now()}`;
      const screenshotsDir = path.join(outputDir, 'screenshots');
@@ -196,6 +196,30 @@ Para cada teste:
    - `production` ou `staging` → `deploy_blocked: true` se houver qualquer `failed`
    - `demo` ou `demonstração` → `deploy_blocked: false` se todas as violações `failed` forem `known_environment_failure: true`; caso contrário, `deploy_blocked: true` normalmente
 
+6. **Flaky detection** — detecta testes que passaram somente após retry:
+
+   ```typescript
+   for (const result of results) {
+     const pwSpec = (function findSpec(suites: any[]): any {
+       for (const s of suites) {
+         const found = (s.specs ?? []).find((sp: any) => sp.title === result.title)
+           ?? findSpec(s.suites ?? []);
+         if (found) return found;
+       }
+       return null;
+     })(pwReport.suites ?? []);
+
+     const testResults = pwSpec?.tests?.[0]?.results ?? [];
+     const attempts = testResults.length || 1;
+     const flaky = attempts > 1 && result.status === 'passed';
+     result.flaky = flaky;
+     result.attempts = attempts;
+     if (flaky) {
+       result.logs.push(`[RETRY] Flaky detectado — passou na tentativa ${attempts}/${attempts} (${attempts - 1} falha(s) anteriore(s))`);
+     }
+   }
+   ```
+
 ---
 
 ## Formato de saída
@@ -236,6 +260,8 @@ Para cada teste:
       "screenshot_path": "[outputDir]/screenshots/[nome_do_teste].png",
       "video_path": "[outputDir]/videos/[nome_do_teste].webm",
       "passes_count": 38,
+      "flaky": false,
+      "attempts": 1,
       "logs": [
         "[NAV] Acessando https://staging.app.com/login",
         "[SCREENSHOT] Capturado: [outputDir]/screenshots/[nome_do_teste].png",
@@ -270,6 +296,8 @@ Para cada teste:
       "screenshot_path": "[outputDir]/screenshots/[nome_do_teste].png",
       "video_path": "[outputDir]/videos/[nome_do_teste].webm",
       "passes_count": 41,
+      "flaky": false,
+      "attempts": 1,
       "logs": [
         "[NAV] Acessando https://staging.app.com/cadastro",
         "[SCREENSHOT] Capturado: [outputDir]/screenshots/[nome_do_teste].png",
@@ -289,6 +317,8 @@ Para cada teste:
       "screenshot_path": "[outputDir]/screenshots/[nome_do_teste].png",
       "video_path": "[outputDir]/videos/[nome_do_teste].webm",
       "passes_count": 45,
+      "flaky": false,
+      "attempts": 1,
       "logs": [
         "[NAV] Acessando https://staging.app.com",
         "[SCREENSHOT] Capturado: [outputDir]/screenshots/[nome_do_teste].png",
@@ -330,6 +360,7 @@ Durante a execução, colete um log de cada ação relevante para incluir no res
   - `[CONSOLE:ERROR]`, `[CONSOLE:WARN]`, `[CONSOLE:LOG]`, `[CONSOLE:INFO]`
   - `[PAGE_ERROR]` — erros JavaScript não capturados na página
   - `[REQUEST_FAILED]` — requisições de rede com falha
+- `[RETRY] Flaky detectado — passou na tentativa N/N (N-1 falha(s) anteriore(s))` — quando `flaky: true`
 
 **Inclua `console_logs` no objeto de resultado de cada teste**, separado de `logs`. Um array vazio `[]` é resultado válido para páginas sem erros de console.
 
