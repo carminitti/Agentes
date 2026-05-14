@@ -375,6 +375,17 @@ hr.divider{border:none;border-top:1px solid var(--border);margin:40px 0}
 .wf-error-block{background:rgba(0,0,0,.5);border:1px solid rgba(239,68,68,.4);border-radius:var(--radius-sm);padding:16px 18px;margin-bottom:16px}
 .wf-error-block .label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--red-light);margin-bottom:8px}
 .wf-error-block pre{font-family:'Courier New',monospace;font-size:13px;color:var(--red-light);white-space:pre-wrap;word-break:break-all;line-height:1.6}
+.error-type-row{display:flex;align-items:center;gap:10px;margin-bottom:14px;font-size:13px}
+.error-type-row .label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted)}
+.response-block{background:rgba(0,0,0,.45);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:14px 16px;margin-bottom:16px}
+.response-block .rb-header{display:flex;align-items:center;gap:10px;margin-bottom:10px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--cyan)}
+.response-block .rb-status{font-size:13px;font-weight:700;padding:2px 10px;border-radius:20px;background:var(--red-dim);color:var(--red-light);border:1px solid rgba(239,68,68,.3)}
+.response-block .rb-status.ok{background:var(--green-dim);color:var(--green-light);border-color:rgba(16,185,129,.3)}
+.response-block pre{font-family:'Courier New',monospace;font-size:12px;color:var(--text-muted);white-space:pre-wrap;word-break:break-all;line-height:1.7;max-height:300px;overflow-y:auto}
+.stacktrace-block{background:rgba(0,0,0,.3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:16px;font-family:'Courier New',monospace;font-size:11.5px;color:var(--text-dim);white-space:pre-wrap;word-break:break-all;line-height:1.6;max-height:180px;overflow-y:auto}
+.stacktrace-block .st-highlight{color:var(--red-light);font-weight:600}
+.code-fail-line{background:rgba(239,68,68,.12);border-left:3px solid var(--red);padding-left:6px;color:var(--red-light) !important;display:block}
+.code-file-hdr .fail-tag{font-size:10px;background:var(--red-dim);color:var(--red-light);border:1px solid rgba(239,68,68,.4);border-radius:4px;padding:1px 6px;margin-left:4px}
 .diff-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
 @media(max-width:640px){.diff-grid{grid-template-columns:1fr}}
 .diff-col{border-radius:var(--radius-sm);padding:14px 16px;overflow:auto}
@@ -944,114 +955,254 @@ footer{text-align:center;padding:28px;color:var(--text-muted);font-size:13px;bor
         </div>
 
         <!-- ── TAB: O QUE FALHOU — apenas para status failed/error ──
-             INSTRUÇÃO: esta aba é o coração do diagnóstico técnico.
-             Mostre TUDO que explica a falha:
-             1. Mensagem de erro exata (caixa vermelha grande)
-             2. Comparação esperado × obtido (lado a lado)
-             3. Para executor-visual: images baseline vs atual vs diff
-             4. Para executor-acessibilidade: tabela completa de violações
-             5. Para executor-performance: quais thresholds falharam e por quanto
-             6. Para executor-seguranca: qual check falhou e o que foi recebido
-             7. Para executor-banco: resultado da query vs esperado
-             8. Linhas de log relevantes que levaram à falha (últimas 10-15 antes do erro) -->
+             INSTRUÇÃO GERAL: esta aba é o coração do diagnóstico técnico.
+             Preencha TODOS os blocos abaixo com dados reais extraídos de result.error,
+             result.logs[], result.console_logs[] e result.network_logs[].
+             Nunca deixe um bloco vazio ou com texto genérico — se o dado não existir,
+             omita o bloco inteiro em vez de deixar placeholder.
+
+             ESTRUTURA OBRIGATÓRIA (nesta ordem):
+             A. Classificação do erro (tipo)
+             B. Mensagem de erro completa + stack trace se disponível
+             C. Esperado × Obtido (lado a lado, específico por executor)
+             D. Resposta/Retorno obtido completo (raw — específico por executor)
+             E. Violações detalhadas (apenas acessibilidade)
+             F. Imagens (apenas visual)
+             G. Log relevante (últimas 10-15 linhas antes da falha) -->
         <div class="tab-panel" data-tc="[ID]" data-tab="error">
 
-          <!-- 1. ERRO PRINCIPAL -->
-          <div class="wf-error-block">
-            <div class="label">❌ Mensagem de erro</div>
-            <pre>[mensagem de erro exata do campo error — não truncar]</pre>
+          <!-- A. CLASSIFICAÇÃO DO ERRO
+               INSTRUÇÃO: derive o tipo a partir do conteúdo de result.error e result.logs[]:
+               - "Assertion" → erro de assert/expect (valor diferente do esperado)
+               - "Timeout" → "Timeout waiting for", "exceeded", "timed out"
+               - "Elemento não encontrado" → "locator.click", "not found", "no element"
+               - "Falha de rede" → "net::ERR_", "ECONNREFUSED", "fetch failed"
+               - "Erro de servidor" → status 5xx
+               - "Threshold ultrapassado" → performance — p95/error_rate acima do limite
+               - "Violação WCAG" → acessibilidade — critical/serious violations
+               - "Header ausente" → segurança — header de segurança não encontrado
+               - "Inconsistência de dados" → banco — query retornou resultado inesperado -->
+          <div class="error-type-row">
+            <span class="label">Tipo de erro:</span>
+            <span class="badge b-red">[Assertion | Timeout | Elemento não encontrado | Falha de rede | Erro de servidor | Threshold ultrapassado | Violação WCAG | Header ausente | Inconsistência de dados]</span>
           </div>
 
-          <!-- 2. ESPERADO × OBTIDO
-               INSTRUÇÃO por executor:
-               browser  → estado/locator/URL esperado nos steps vs. o que realmente aconteceu
-               api      → status code + body esperado (do schema Zod ou dos steps) vs. resposta real
-               perf     → threshold (ex: "p95 < 200ms") vs. valor medido (ex: "p95 = 387ms")
-               visual   → "diff ≤ 2%" vs. diff real; inclua imagens na aba Evidências
-               a11y     → "0 violações critical/serious" vs. N violações encontradas
-               security → header/status esperado vs. recebido
-               banco    → resultado esperado da query vs. valor retornado -->
+          <!-- B. ERRO COMPLETO
+               INSTRUÇÃO: use result.error integralmente — não truncar, não resumir.
+               Se result.logs[] contiver linhas após [ERROR] com stack trace (ex: "at Object.<anonymous>",
+               "at page.goto", linhas com "Error:" indentadas), inclua-as no bloco stacktrace abaixo. -->
+          <div class="wf-error-block">
+            <div class="label">❌ Mensagem de erro</div>
+            <pre>[result.error — completo, sem truncar]</pre>
+          </div>
+          <!-- Stack trace — inclua APENAS se result.logs[] contiver linhas de rastreamento de pilha
+               (ex: linhas começando com "    at " ou "Error:" após [ERROR]).
+               <div style="font-size:11px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin:0 0 6px">Stack trace</div>
+               <div class="stacktrace-block">
+                 Para cada linha do stack trace:
+                 - linha com o arquivo de spec ou POM (ex: login.spec.ts, LoginPage.ts): <span class="st-highlight">linha</span>
+                 - demais linhas (node_modules, internos): sem span
+               </div> -->
+
+          <!-- C. ESPERADO × OBTIDO
+               INSTRUÇÃO POR EXECUTOR — preencha com dados reais, não genéricos:
+
+               executor-api:
+                 Esperado → status code + schema esperado pelos steps (ex: "200 OK\nbody.data[].id: number")
+                 Obtido   → status code real + body completo recebido (extraído de result.logs[] linha [RESP-BODY])
+
+               executor-browser:
+                 Esperado → locator + estado esperado pelo step (ex: "Elemento '#confirm-btn' visível")
+                 Obtido   → o que realmente aconteceu (ex: "Elemento não encontrado após 5000ms"
+                            ou "URL atual: /error em vez de /checkout/success")
+
+               executor-performance:
+                 Esperado → threshold exato do step (ex: "p(95) < 200ms  error_rate < 1%")
+                 Obtido   → valores medidos (ex: "p(95) = 387ms  error_rate = 3.2%")
+
+               executor-visual:
+                 Esperado → "Diferença ≤ 2% (threshold configurado)"
+                 Obtido   → "Diferença detectada: [X]% — [N] pixels alterados"
+
+               executor-acessibilidade:
+                 Esperado → "0 violações critical ou serious"
+                 Obtido   → "[N] violação(ões): [lista de rule_ids com impacto]"
+
+               executor-seguranca:
+                 Esperado → header/status esperado (ex: "Content-Security-Policy: presente  /admin: 401")
+                 Obtido   → o que foi realmente recebido (ex: "Content-Security-Policy: AUSENTE  /admin: 200")
+
+               executor-banco:
+                 Esperado → resultado esperado da query descrito no step
+                 Obtido   → resultado real retornado (extraído de result.logs[]) -->
           <div class="diff-grid">
             <div class="diff-col diff-expected">
               <div class="label">🎯 Esperado</div>
-              <pre>[o que o teste esperava encontrar]</pre>
+              <pre>[preencha conforme instruções acima — específico para este executor]</pre>
             </div>
-            <div class="diff-col [diff-actual-fail|diff-actual-ok]">
+            <div class="diff-col diff-actual-fail">
               <div class="label">🔍 Obtido</div>
-              <pre>[o que realmente aconteceu]</pre>
+              <pre>[preencha conforme instruções acima — valor real, não genérico]</pre>
             </div>
           </div>
 
-          <!-- 3. PARA executor-acessibilidade — tabela de violações (deploy_blocked) -->
+          <!-- D. RESPOSTA / RETORNO OBTIDO COMPLETO
+               INSTRUÇÃO: este bloco mostra o retorno bruto completo da operação — não um resumo.
+               Renderize de acordo com o tipo de executor:
+
+               executor-api → extraia de result.logs[] as linhas [RESP-HEADER] e [RESP-BODY]:
+                 rb-status = status code real (ex: "404 Not Found") — use classe "ok" se 2xx
+                 rb-header: cada linha [RESP-HEADER] como "Header: Valor"
+                 rb-body: conteúdo de [RESP-BODY] integralmente (JSON formatado se possível)
+
+               executor-browser → extraia de result.logs[] a URL atual + estado da página
+               no momento da falha (linhas [NAV] + [ASSERT]+FALHOU + [PAGE_ERROR] se houver)
+
+               executor-performance → extraia de result.logs[] o bloco [K6-SUMMARY] ou
+               linhas [THRESHOLD] e [STAGE-DONE] com métricas reais (p50, p95, p99, RPS, errors)
+
+               executor-seguranca → lista completa de headers recebidos ([RESP-HEADER] dos logs)
+               e status codes reais de cada endpoint verificado
+
+               executor-banco → resultado bruto da query (linhas [QUERY-RESULT] dos logs)
+
+               executor-visual → percentual de diff + número de pixels (linha [RESULT] dos logs)
+
+               executor-acessibilidade → contagem de violações por nível de impacto (dos logs)
+
+               SE o executor não produz uma "resposta" clara (ex: browser com timeout puro):
+               omita este bloco. -->
+          <div class="response-block">
+            <div class="rb-header">
+              📡 Retorno obtido
+              <!-- para api: adicione o status badge -->
+              <!-- <span class="rb-status [ok se 2xx]">[STATUS CODE + TEXT]</span> -->
+            </div>
+            <!-- para api: headers recebidos
+            <pre style="font-size:11px;color:var(--text-dim);margin-bottom:8px;border-bottom:1px solid var(--border);padding-bottom:8px">[cada header: "Nome: Valor"]</pre> -->
+            <!-- body / resultado bruto: -->
+            <pre>[retorno bruto completo — JSON, texto, métricas ou estado da página]</pre>
+          </div>
+
+          <!-- E. VIOLAÇÕES DETALHADAS — apenas executor-acessibilidade
+               INSTRUÇÃO: preencha uma linha por violação retornada em result.logs[].
+               rule_id = identificador axe-core (ex: "color-contrast", "button-name")
+               impacto = critical | serious | moderate | minor
+               elementos = seletor CSS do elemento afetado (ex: "button#submit", ".nav-link")
+               como corrigir = instrução técnica específica para esta regra -->
           <!-- <table class="viol-table">
             <tr><th>Regra (rule_id)</th><th>Impacto</th><th>Elementos afetados</th><th>Como corrigir</th></tr>
-            [<tr><td>[rule_id]</td>
-                 <td class="[impact-c|impact-s|impact-m]">[critical|serious|moderate]</td>
-                 <td><code>[seletor CSS do elemento]</code></td>
-                 <td>[descrição da correção]</td></tr>]
+            [<tr>
+              <td><code>[rule_id]</code></td>
+              <td class="[impact-c|impact-s|impact-m]">[critical|serious|moderate]</td>
+              <td><code>[seletor CSS]</code></td>
+              <td>[instrução técnica de correção]</td>
+            </tr>]
           </table> -->
 
-          <!-- 4. PARA executor-visual — imagens lado a lado -->
+          <!-- F. IMAGENS LADO A LADO — apenas executor-visual
+               INSTRUÇÃO: inclua as 3 imagens (baseline, atual, diff) se os paths existirem.
+               Normalize os paths com .replace(/\\/g, '/') antes de usar em src="file:///". -->
           <!-- <div class="visual-diff-grid">
             <div class="visual-img-wrap">
               <label>Baseline (referência aprovada)</label>
-              <img src="file:///[baseline_path normalizado]" onerror="this.style.display='none'">
+              <img src="file:///[baseline_path]" onerror="this.style.display='none'">
             </div>
             <div class="visual-img-wrap">
               <label>Atual (capturado nesta execução)</label>
-              <img src="file:///[screenshot_path normalizado]" onerror="this.style.display='none'">
+              <img src="file:///[screenshot_path]" onerror="this.style.display='none'">
             </div>
             <div class="visual-img-wrap">
-              <label>Diff (pixels diferentes destacados)</label>
-              <img src="file:///[diff_path normalizado]" onerror="this.style.display='none'">
+              <label>Diff (pixels diferentes)</label>
+              <img src="file:///[diff_path]" onerror="this.style.display='none'">
             </div>
           </div> -->
 
-          <!-- 5. LOG RELEVANTE — últimas linhas antes da falha -->
+          <!-- G. LOG RELEVANTE — últimas 10-15 linhas antes de [ERROR] ou FALHOU
+               INSTRUÇÃO: percorra result.logs[] de trás para frente; pare quando encontrar
+               [ERROR] ou FALHOU; colete as 10-15 linhas imediatamente anteriores + a linha
+               de erro em si. Aplique spans coloridos:
+               [ERROR] / FALHOU  → <span class="le">linha</span>
+               [ACTION]          → <span class="la">linha</span>
+               [ASSERT] + ✓      → <span class="lx">linha</span>
+               [NAV]             → <span class="ln">linha</span>
+               [REQUEST]         → <span class="lci">linha</span>
+               demais            → sem span -->
           <div style="font-size:11px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">
-            📋 Log relevante (linhas que levaram à falha)
+            📋 Log relevante (sequência que levou à falha)
           </div>
-          <div class="wf-log">
-<!-- INSTRUÇÃO: extraia de result.logs[] as últimas 10-15 linhas antes de [ERROR] ou FALHOU.
-     Aplique spans coloridos: [ERROR]/FALHOU → le, [ACTION] → la, [ASSERT]+✓ → lx, [NAV] → ln -->
-          </div>
+          <div class="wf-log">[extraia os logs conforme instrução G acima]</div>
 
         </div>
 
         <!-- ── TAB: CÓDIGO ──
-             INSTRUÇÃO: mostre o código exato que foi executado para este teste.
-             Ordem de exibição:
-             1. O SPEC FILE que contém este teste (busque em generated_files pelo arquivo
-                que contém test('[ID]' ou test.describe com o título deste TC).
-                Marque com a tag "📌 Arquivo principal" no cabeçalho.
-             2. Para executor-browser: fixtures.ts, globalSetup.ts, Page Object relevante
-             3. Para executor-api: ApiClient.ts, schema Zod do recurso, playwright.config.ts
-             4. Para executor-performance: script k6 (.js) ou script Python (.py)
-             5. Para executor-visual: visual.spec.ts, playwright.config.ts
-             6. Para executor-acessibilidade: accessibility.spec.ts
-             7. Para executor-seguranca: security.py
-             8. Para executor-banco: db_tests.py
-             SE generated_files for null (testes passed de executores não-browser):
-             mostre aviso e caminho em disco. -->
+             INSTRUÇÃO GERAL: mostre o código que realmente rodou para este TC.
+             Prioridade: legibilidade e diagnóstico — não dump do arquivo inteiro.
+
+             BLOCO 1 — FUNÇÃO/BLOCO DO TESTE (obrigatório se generated_files disponível):
+             - Extraia APENAS o bloco test() / def test_xxx() / função que corresponde
+               a este TC (pelo título ou ID). Não inclua o arquivo inteiro.
+             - Dentro do bloco, marque com comentário a linha exata da assertion que falhou:
+               TypeScript: // ← FALHOU: [mensagem curta do erro]
+               Python:     # ← FALHOU: [mensagem curta do erro]
+             - Use a classe CSS "code-fail-line" no <span> que envolve essa linha
+               (ou escreva o comentário inline se span não for possível).
+             - Marque o cabeçalho com tag "📌 Arquivo principal" + "⚠️ Falhou" se status=failed.
+
+             BLOCO 2 — ARQUIVOS DE SUPORTE (inclua apenas os relevantes para a falha):
+               executor-browser  → Page Object do elemento que falhou + globalSetup.ts
+               executor-api      → schema Zod da rota + ApiClient.ts (apenas métodos usados)
+               executor-visual   → configuração de threshold (playwright.config.ts)
+               executor-perf     → script k6 completo (é arquivo único — pode incluir tudo)
+               executor-a11y     → nenhum arquivo extra necessário normalmente
+               executor-seguranca→ nenhum arquivo extra necessário normalmente
+               executor-banco    → nenhum arquivo extra necessário normalmente
+
+             SE generated_files for null (sem falhas ou executor não retornou código):
+             Mostre apenas o aviso com o caminho em disco. Não invente código. -->
         <div class="tab-panel" data-tc="[ID]" data-tab="code">
 
           <!-- SE generated_files for null: -->
           <!-- <div class="code-null-notice">
-            📁 Arquivos em disco (execução sem falhas — código não retornado pelo executor):
+            📁 Código em disco (não retornado pelo executor):
             <code>[suite_dir]/[executor]/</code>
           </div> -->
 
-          <!-- SE generated_files disponível: -->
-          <!-- Repita para cada arquivo relevante a este teste: -->
+          <!-- BLOCO 1: FUNÇÃO DO TESTE — extraia apenas o bloco deste TC -->
           <div class="code-file">
             <div class="code-file-hdr">
-              📄 <span>[path do arquivo, ex: src/specs/login.spec.ts]</span>
-              <!-- apenas no arquivo principal: -->
-              <!-- <span class="primary-tag">📌 Arquivo principal</span> -->
+              📄 <span>[nome-do-arquivo.spec.ts | test_xxx.py | script.js]</span>
+              <span class="primary-tag">📌 Arquivo principal</span>
+              <!-- se status == failed: <span class="fail-tag">⚠️ Falhou</span> -->
             </div>
-            <pre class="code-content">[conteúdo completo — use &lt; para < e &gt; para > e &amp; para &]</pre>
+            <pre class="code-content"><!-- Conteúdo: APENAS o bloco test()/função deste TC.
+Marque a linha que falhou com o comentário ← FALHOU.
+Escape: &lt; para <  |  &gt; para >  |  &amp; para &
+
+Exemplo (TypeScript):
+test('TC-001 — Login válido', async ({ page }) => {
+  await page.goto(BASE_URL + '/login');
+  await page.fill('#email', USER_EMAIL);
+  await page.fill('#password', USER_PASSWORD);
+  await page.click('#btn-submit');
+  await expect(page).toHaveURL('/dashboard'); // ← FALHOU: received "/error"
+});
+
+Exemplo (Python):
+def test_get_users():
+    resp = requests.get(f"{BASE_URL}/api/users", headers=headers)
+    assert resp.status_code == 200, f"Expected 200, got {resp.status_code}"  # ← FALHOU: got 404
+    data = resp.json()
+    assert "data" in data  --></pre>
           </div>
-          <!-- Fim code-file — repita para cada arquivo -->
+
+          <!-- BLOCO 2: ARQUIVOS DE SUPORTE — inclua apenas se relevante para a falha -->
+          <!-- <div class="code-file">
+            <div class="code-file-hdr">
+              📄 <span>[arquivo-de-suporte.ts | schema.ts | config.ts]</span>
+            </div>
+            <pre class="code-content">[conteúdo do arquivo de suporte — apenas seções relevantes]</pre>
+          </div> -->
 
         </div>
 
