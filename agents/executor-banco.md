@@ -291,7 +291,7 @@ def is_safe_query(query: str) -> bool:
     """Rejeita qualquer query que não seja SELECT ou leitura de schema."""
     q = query.strip().upper()
     # Permite SELECT e comandos de leitura de schema
-    allowed = re.compile(
+    allowed = _re.compile(
         r'^(SELECT|WITH|EXPLAIN|SHOW|DESCRIBE|DESC|PRAGMA|EXEC\s+SP_HELP)',
         _re.IGNORECASE
     )

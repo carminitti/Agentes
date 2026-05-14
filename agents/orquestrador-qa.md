@@ -445,7 +445,7 @@ Substitua cada campo pelo valor real coletado na Etapa 2. Use `null` nos campos 
 **Quando `lean_mode: true`, adicione ao final da mensagem de cada executor:**
 ```
 ## Modo enxuto — instruções de execução
-- Gere um **único arquivo** por executor (sem playwright.config.ts separado, sem POM, sem fixtures).
+- Gere o **mínimo de arquivos** necessário por executor (sem POM, sem fixtures de teste). Exceção: `executor-visual` usa dois arquivos em lean mode (`spec.js` + `lean_playwright.config.js`) — o segundo é indispensável para persistir baselines entre execuções.
 - **Sem screenshots** — não chame `page.screenshot()` em hipótese alguma.
 - **Sem vídeos** — não configure `video` no contexto do Playwright.
 - **Sem execution.log** — não grave nenhum arquivo de log em disco.

@@ -401,6 +401,7 @@ Se o `## Contexto de execução` contiver `"lean_mode": true`, aplique todas as 
 const path = require('path');
 const suiteDir = process.env.SUITE_DIR || '.';
 module.exports = {
+  workers: 1,
   use: { headless: true },
   snapshotDir: path.join(suiteDir, 'visual', 'baselines'),
 };
