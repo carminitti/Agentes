@@ -70,9 +70,11 @@ There are two independent orchestration pipelines plus standalone agents.
 - **executor-acessibilidade** — runs WCAG accessibility tests using axe-core via Playwright
 - **executor-seguranca** — runs non-invasive security checks (auth, headers, CORS, exposed endpoints) using Python
 - **executor-banco** — runs database integrity checks using Python; requires `DB_CONNECTION_STRING` env var; skips without asking if not set
+- **executor-mobile** — runs native app tests (iOS/Android) using Appium with Python; requires a running Appium server and connected device/emulator; collects capabilities (platform, device, app package/bundle) in Etapa 2g before dispatching
 - **reporter-qa** (leaf) — consolidates results from all executors into a structured report with summary, failures, and recommendations
 
 > **`http` executor routing:** the `orquestrador-qa` routes `http`-classified tests to `executor-api` for `integração` type, and to `executor-browser` for `smoke`/`sanity`/`regressão`/`e2e` types.
+> **`appium` routing:** the `orquestrador-qa` dispatches `appium`-classified tests to `executor-mobile`, passing capabilities collected in Etapa 2g (`appium_config`).
 
 ### Standalone Agents
 
@@ -93,6 +95,7 @@ The executor agents install lightweight Python/Node packages on demand, but some
 | `executor-performance` | k6 binary | `winget install k6` (Windows) — **not installable via npm** |
 | `executor-api`, `executor-seguranca` | Python + `requests` | `pip install requests` |
 | `executor-banco` | Python + DB driver (`psycopg2-binary`, `mysql-connector-python`, or `pyodbc`) | installed automatically at runtime via `pip install -q` |
+| `executor-mobile` | Python + `Appium-Python-Client` + Appium server running | `pip install Appium-Python-Client` — Appium server: `npm install -g appium && appium` |
 | `consulta-treinamento` | Python + `openpyxl` | installed automatically at runtime via `pip install openpyxl -q` |
 
 `executor-banco` also requires a `DB_CONNECTION_STRING` environment variable; without it, all bank tests are skipped automatically with no prompting.
@@ -203,3 +206,5 @@ python mcp_server/server.py
 | v1.19.1 | 8 bugs críticos/graves: `credentials_failed` via arquivo (não process.env), `suiteDir` declarado no TS, suite_dir via Bash (não pseudocódigo), banco conflito null resolvido, `connect_timeout` com ThreadPoolExecutor, soak 10min→3min, auth timeout 5s por endpoint, cache npm via junction/symlink, `workers` CI-aware |
 | v1.23.0 | Lean mode redesenhado: arquivo único por executor, sem screenshots/vídeos/logs em disco, execução sequencial, resumo inline no chat (sem reporter-qa, sem relatório em disco), isenção de perguntas 2f desnecessárias |
 | v1.24.0 | Modo técnico do reporter detalhado: classificação de tipo de erro, resposta raw completa, aba Código mostra apenas o bloco do TC com linha falhou marcada, diff esperado×obtido específico por executor, stack trace opcional |
+| v1.25.0 | 6 correções: lean browser usa JS puro (node) em vez de ts-node; executor-api cache Windows com fallback; seção lean_mode morta removida do classifier; profile save corrige report_output_dir em lean mode; aviso cross-browser em lean mode; descrição "Sem relatório HTML em disco" |
+| v1.25.1 | executor-mobile documentado no CLAUDE.md (Pipeline 2, Runtime Dependencies) |

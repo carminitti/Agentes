@@ -902,13 +902,19 @@ Se `credentials_failed: true`, defina o campo na raiz e no `summary`. O orquestr
 Se o `## Contexto de execução` contiver `"lean_mode": true`, aplique todas as seguintes regras — elas **substituem** o comportamento padrão descrito nas seções anteriores:
 
 ### Código gerado
-- Gere um **único arquivo `.spec.ts`** contendo tudo (configuração inline via `use:{}`, testes, asserções) — sem `playwright.config.ts` separado, sem POM, sem fixtures, sem `globalSetup.ts`, sem `.env`, sem `package.json`, sem `tsconfig.json`.
-- O arquivo deve usar `import { chromium } from 'playwright'` e executar os testes sequencialmente via `for` loop — sem `test.describe`, sem `test()` API, sem runner do Playwright.
-- Salve o arquivo em `[suite_dir]/browser/` com o nome `lean_browser_[timestamp].ts` e execute com `npx ts-node`.
+- Gere um **único arquivo `.js`** (CommonJS) contendo tudo (configuração inline, testes, asserções) — sem `playwright.config.ts` separado, sem POM, sem fixtures, sem `globalSetup.ts`, sem `.env`, sem `package.json`, sem `tsconfig.json`.
+- O arquivo deve usar `const { chromium } = require('playwright')` e executar os testes sequencialmente via `for` loop assíncrono — sem `test.describe`, sem `test()` API, sem runner do Playwright.
+- Salve o arquivo em `[suite_dir]/browser/` com o nome `lean_browser_[timestamp].js`.
+- Antes de executar, verifique se `playwright` está disponível: `node -e "require('playwright')"`. Se falhar, execute `npm install playwright` no diretório da suite antes de rodar.
+- Execute com `node lean_browser_[timestamp].js`.
 
 ### Sem artefatos visuais
 - **Sem screenshots** — não chame `page.screenshot()` em nenhum cenário (nem para falhas).
 - **Sem vídeos** — não configure `video` no contexto do browser.
+
+### Cross-browser em lean mode
+Se os testes recebidos forem do tipo `cross-browser` (`playwright-multibrowser`), execute apenas em **Chromium** e adicione ao resumo enviado ao orquestrador:
+> ⚠️ Modo enxuto: testes cross-browser executados apenas em Chromium (Firefox e WebKit ignorados).
 
 ### Sem logs em disco
 - **Não grave `execution.log`** nem nenhum outro arquivo além de `resultado.json`.

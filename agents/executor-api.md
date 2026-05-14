@@ -367,7 +367,16 @@ Para cada conjunto de testes:
      npm install --prefix $cache
      npx playwright install chromium --with-deps
    }
-   cmd /c "mklink /J node_modules $cache\node_modules"
+   # mklink /J pode falhar sem privilégios de admin ou em sistemas de arquivo sem suporte
+   $linked = $false
+   try {
+     cmd /c "mklink /J node_modules $cache\node_modules" 2>$null
+     $linked = ($LASTEXITCODE -eq 0) -and (Test-Path "node_modules")
+   } catch {}
+   if (-not $linked) {
+     Write-Host "[CACHE] Junction falhou — executando npm install normal"
+     npm install
+   }
    ```
    ```bash
    # Linux/macOS

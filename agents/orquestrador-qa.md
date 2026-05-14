@@ -43,7 +43,7 @@ Antes de classificar ou despachar qualquer executor, faça **uma única pergunta
 
 > **Como você quer executar esses testes?**
 >
-> **1. Enxuto** — zero artefatos visuais (sem screenshots, sem vídeos). Código descartável — arquivo único por executor, sem POM, sem fixtures. Execução sequencial. Sem relatório em disco — apenas resumo de texto no chat.
+> **1. Enxuto** — zero artefatos visuais (sem screenshots, sem vídeos). Código descartável — arquivo único por executor, sem POM, sem fixtures. Execução sequencial. Sem relatório HTML em disco — apenas resumo de texto no chat.
 > **2. Suite completa** — relatório HTML dual-mode com modo técnico, código completo embutido, logs de todos os testes. Ideal para execuções de release ou quando precisa auditar tudo.
 >
 > **Caminho para salvar os artefatos:** (deixe em branco para usar o diretório atual)
@@ -627,9 +627,9 @@ profile_entry = {
     },
     "environment_notes": environment_notes,
     "code_output_dir": code_output_dir,
-    "report_output_dir": report_output_dir,
-    "headed": headed,
-    "screenshot_all": screenshot_all
+    "report_output_dir": report_output_dir if not lean_mode else None,  # não coletado em lean mode
+    "headed": headed if not lean_mode else False,
+    "screenshot_all": screenshot_all if not lean_mode else False
 }
 
 profile_file = os.path.join(code_output_dir, ".qa-profiles.json")

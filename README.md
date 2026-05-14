@@ -2,6 +2,9 @@
 
 Squad de agentes de automacao de testes de ambiente integrado ao Claude Code. Recebe casos de teste em Gherkin, passo a passo ou CSV e os executa automaticamente em browsers, APIs, banco de dados, performance, acessibilidade e seguranca — entregando um relatorio HTML consolidado ao final.
 
+> **Versao mais estavel conhecida: v1.24.0**
+> A v1.25.0 introduz suporte experimental a testes mobile (device emulation para mobile web e Appium para apps nativos) e esta em desenvolvimento ativo. Para uso em producao, recomenda-se a v1.24.0.
+
 ## Agentes disponíveis (15)
 
 ### Orquestradores
