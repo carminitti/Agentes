@@ -253,6 +253,14 @@ if __name__ == "__main__":
     print(json.dumps(output, indent=2, ensure_ascii=False))
 ```
 
+**Executar o script:** defina `SUITE_DIR` antes de rodar para que o resultado seja salvo no diretório correto:
+```
+# PowerShell
+$env:SUITE_DIR = "[valor de suite_dir do contexto]"; python [suite_dir]/mobile/tmp_mobile_[timestamp].py
+# Bash
+SUITE_DIR="[valor de suite_dir do contexto]" python [suite_dir]/mobile/tmp_mobile_[timestamp].py
+```
+
 ---
 
 ## Mapeamento de steps → ações Appium
@@ -414,6 +422,9 @@ Se o contexto contiver `"lean_mode": true`:
   "executor": "mobile",
   "platform": "Android",
   "device": "emulator-5554",
+  "generated_files": [
+    { "path": "[suite_dir]/mobile/tmp_mobile_[timestamp].py", "content": "..." }
+  ],
   "results": [
     {
       "id": "TC-001",

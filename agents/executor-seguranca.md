@@ -350,6 +350,7 @@ Para paths que retornam 200:
     "passed": 1,
     "failed": 1,
     "warning": 0,
+    "skipped": 0,
     "by_severity": {
       "high": 0,
       "medium": 1,

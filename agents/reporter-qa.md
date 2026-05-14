@@ -39,57 +39,7 @@ O **Total classificado** deve bater com `summary.environment_tests` do classifie
 
 ## Formato de saída por modo
 
-| Condição | Formato | O que gerar |
-|---|---|---|
-| `lean_mode: false` | HTML dual-mode completo | HTML com modo relatório + modo técnico |
-| `lean_mode: true` + `total_tcs ≤ 10` | Markdown simples | Arquivo `.md` |
-| `lean_mode: true` + `total_tcs > 10` | HTML modo relatório apenas | HTML sem modo técnico |
-
-**No modo enxuto (qualquer variante):**
-- Testes `passed` sem painel de detalhe expansível
-- `generated_files` não exibido (referencie apenas `suite_dir`)
-- `console_logs` e `logs` de testes aprovados não exibidos
-
----
-
-## Formato Markdown (lean_mode: true + ≤ 10 TCs)
-
-Quando Markdown, **sua resposta completa deve ser o Markdown — nada antes do `#`, nada depois do último parágrafo.**
-
-```markdown
-# Relatório QA — [URL curta] — [data]
-
-**Suite:** `[suite_dir]` · **Ambiente:** `[URL]` · **Data:** [data e hora]
-
-## Resumo
-
-| ✅ Passou | ❌ Falhou | ⚠️ Avisos | ⏭️ Skipped | Total |
-|---|---|---|---|---|
-| N | N | N | N | N |
-
-**Resultado:** ✅ Suite aprovada / ❌ Suite reprovada — N falha(s) crítica(s)
-
-## Resultados por Executor
-
-### [ícone] [Nome do executor]
-
-| Status | ID | Título | Duração |
-|---|---|---|---|
-| ✅ | TC-001 | Título | 1240ms |
-| ❌ | TC-002 | Título | 890ms |
-
-## Falhas
-
-### ❌ `[ID]` — [Título] · Severidade: [Alta/Média/Baixa]
-
-**O que o teste fez:** [1-2 frases]
-**O que isso significa:** [impacto humano]
-**Erro:** `[mensagem de erro exata]`
-**Possível causa:** [análise técnica]
-
----
-*Squad QA · [N] passou · [N] falhou · [N] total · [data/hora]*
-```
+O reporter sempre produz **HTML dual-mode completo** (modo relatório + modo técnico).
 
 ---
 

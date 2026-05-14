@@ -209,3 +209,5 @@ python mcp_server/server.py
 | v1.25.0 | 6 correções: lean browser usa JS puro (node) em vez de ts-node; executor-api cache Windows com fallback; seção lean_mode morta removida do classifier; profile save corrige report_output_dir em lean mode; aviso cross-browser em lean mode; descrição "Sem relatório HTML em disco" |
 | v1.25.1 | executor-mobile documentado no CLAUDE.md (Pipeline 2, Runtime Dependencies) |
 | v1.25.2 | 2 bugs críticos: lean visual usa JS+config (não ts-node) com snapshotDir correto; `--rerun-failed` bloqueia em lean mode com aviso explícito |
+| v1.25.3 | 3 bugs críticos: executor-banco `_re.compile` (NameError com `import re as _re`); lean visual `workers:1` ausente no config; orquestrador "único arquivo" contradição com visual (2 arquivos) |
+| v1.25.4 | 5 gaps de qualidade: parameterized routing ambíguo no orquestrador; mobile sem `generated_files` no output; mobile sem instrução `SUITE_DIR` para execução; segurança sem `skipped:0` no summary; reporter lean mode (código morto — orquestrador nunca invoca reporter em lean mode) |

@@ -395,7 +395,7 @@ Execute **todos** os tipos identificados. Nunca pergunte se deve executar um sub
 | `db` | `executor-banco` |
 | `playwright-multibrowser` | `executor-browser` com instrução de rodar em Chromium, Firefox e WebKit |
 | `playwright-mobile` | `executor-browser` com `device_emulation: true` e `device_name` coletado na Etapa 2g |
-| `parameterized` | executor adequado ao tipo base, passando os conjuntos de dados dos steps |
+| `parameterized` | Analise os steps para determinar o executor base: navegação de UI / formulários / verificações visuais → `executor-browser`; requisições HTTP / endpoints / status codes → `executor-api`. Se ambíguo, use `executor-browser`. Passe os conjuntos de dados dos steps como parâmetro adicional no contexto. |
 | `pact` | não execute — registre como não executado: tipo `contrato (Pact)`, motivo `Requer Pact Broker` |
 | `appium` | `executor-mobile` com capabilities coletadas na Etapa 2g |
 
