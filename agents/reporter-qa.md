@@ -663,6 +663,7 @@ Preencha os valores com dados reais de `execution_metrics`:
 - Badge: use `metrics-badge-executor` para fases que começam com "Executor —", e `metrics-badge-phase` para as demais
 - Duração: se `duration_ms < 1000` → `"Xms"`, se `< 60000` → `"X.Xs"`, caso contrário → `"Xm Ys"`
 - Se `execution_metrics` não for passado (campo ausente), omita completamente esta seção sem erro
+- **Nota sobre Etapa 4:** a fase "Etapa 4 — Geração do relatório" é registrada após a geração deste HTML, portanto não constará na tabela de fases. A soma dos tokens da tabela será menor que `total_tokens_estimated` do KPI — isso é esperado. Adicione abaixo dos KPIs, em fonte pequena: `* Tokens da Etapa 4 (geração do relatório) não incluídos na tabela — registrados após esta geração.`
 
 **Seção de auditoria — gere logo após o painel de métricas:**
 

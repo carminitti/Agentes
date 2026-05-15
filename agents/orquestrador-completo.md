@@ -62,7 +62,13 @@ Aguarde a resposta. Com base na resposta, faça perguntas adicionais de profundi
 
 ### R.4 — Análise da suite anterior
 
-Leia o arquivo `resultado.json` da suite identificada em R.1. Exiba ao usuário um resumo do estado anterior:
+Tente ler o arquivo `resultado.json` da suite identificada em R.1.
+
+**Se o arquivo não existir:** verifique se o diretório da suite contém apenas `suite.log` (sem `resultado.json` nem `casos_originais.json`). Nesse caso, a suite foi executada em modo enxuto (`lean_mode`), que não grava arquivos de resultado em disco. Informe ao usuário:
+> "⚠️ Esta suite foi executada em modo enxuto — os arquivos de resultado não foram salvos em disco. Não é possível retestar diretamente. Execute os testes novamente com o modo completo (sem `--lean`) para habilitar retests futuros."
+> Encerre o fluxo de Etapa R.
+
+**Se o arquivo existir:** exiba ao usuário um resumo do estado anterior:
 
 > "**Suite anterior:** `[nome_da_suite]`
 > - Total: [N] testes

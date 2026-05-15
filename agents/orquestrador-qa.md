@@ -454,7 +454,7 @@ Adicione ao schema do contexto:
   retry_count: 1,   // número de retries automáticos para testes com falha (0 = sem retry)
 ```
 
-**Repasse `retry_count` no contexto de todos os executores.** O valor mínimo é `1` — nunca repasse `0` (todo teste que falha deve ser retestado ao menos uma vez). Os executores devem configurar:
+**Repasse `retry_count` no contexto de todos os executores.** Em modo completo, o valor mínimo é `1` (todo teste que falha deve ser retestado ao menos uma vez). Em lean_mode, use sempre `0` (sem retry). Os executores devem configurar:
 - `executor-browser` / `executor-visual` / `executor-acessibilidade`: `retries: N` no `playwright.config` (mínimo 1)
 - `executor-api` / `executor-seguranca` / `executor-banco`: loop de retry manual com `for attempt in range(retry_count + 1)` — guarde os logs de cada tentativa separadamente para exibir diferenças no relatório
 - `executor-performance`: não aplica retry (k6 não tem retry nativo por TC)
@@ -1556,10 +1556,11 @@ Antes de invocar o reporter, grave o log consolidado da suite em disco:
 ```python
 import datetime, json, os
 
+retries_performed = retries_performed if isinstance(retries_performed, list) else []
 suite_log_path = f"{suite_dir}/suite.log"
 with open(suite_log_path, "w", encoding="utf-8") as f:
     f.write(f"=== Suite QA — {suite_dir} ===\n")
-    f.write(f"Início: {suite_start_time}\n")
+    f.write(f"Início: {datetime.datetime.fromtimestamp(_suite_start).isoformat()}\n")
     f.write(f"Fim: {datetime.datetime.now().isoformat()}\n")
     f.write(f"Ambiente: {base_url if base_url else (list(url_map.values())[0] if url_map else '?')}\n\n")
     f.write("--- Executores despachados ---\n")
@@ -1657,7 +1658,7 @@ _track_phase(
     start_ts=_t4_start,
     end_ts=_t4_end,
     input_payload=json.dumps({"executors": list(executor_results.keys()), "tcs": total_tcs}),
-    output_payload=html_gerado[:400] if html_gerado else "",
+    output_payload="[HTML do relatório gerado pelo reporter-qa]",
 )
 ```
 

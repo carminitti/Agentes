@@ -335,6 +335,9 @@ export const options = {
 - Threshold adicional: `http_req_failed` durante o pico deve ser `< 5%` (tolerância maior que performance normal)
 
 ```javascript
+const VUS_PEAK         = parseInt(__ENV.VUS_PEAK          || '50');
+const P95_THRESHOLD_MS = parseInt(__ENV.P95_THRESHOLD_MS  || '500');
+
 export const options = {
   stages: [
     { duration: '10s', target: VUS_PEAK },  // rampa instantânea (spike)
@@ -424,7 +427,9 @@ Inclua `k6_failed_checks` como `[K6-OUT]` e `k6_summary_lines` como `[K6-SUMMARY
 Use `requests` + `threading` para simular usuários virtuais concorrentes:
 
 ```python
-import requests, threading, time, statistics, json
+import requests, threading, time, statistics, json, os
+
+TIMEOUT_S = int(os.environ.get("REQUEST_TIMEOUT_MS", "10000")) / 1000
 
 def run_load_test(url, vus, duration_s, headers=None, method='GET', payload=None):
     results = []
