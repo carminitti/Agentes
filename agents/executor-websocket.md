@@ -42,6 +42,7 @@ Procure no input a seção `## Contexto de execução`. Se presente:
 - `suite_dir` → salve artefatos em `[suite_dir]/websocket/`.
 - `rate_limit` → adicione `asyncio.sleep(60 / max_requests)` entre conexões consecutivas.
 - `request_timeout_ms` → use como timeout de conexão e de recebimento de mensagens (em segundos: `request_timeout_ms / 1000`).
+- `max_parallel_executors` → se presente e > 1 (e `rate_limit` for null), execute os TCs em paralelo usando `ThreadPoolExecutor(max_workers=min(max_parallel_executors, 5))`. Se `rate_limit` não for null, execute sequencialmente. Padrão: sequencial (1 worker).
 
 **Se a seção `## Contexto de execução` estiver presente, prossiga diretamente para a execução.**
 
@@ -190,6 +191,25 @@ if __name__ == "__main__":
     all_results = asyncio.run(main())
     for r in all_results:
         print(json.dumps(r))
+```
+
+**Execução paralela (max_parallel_executors):** quando `max_parallel_executors > 1` e `rate_limit` for null, gere o código usando `ThreadPoolExecutor`:
+```python
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import os
+
+max_workers = min(int(os.environ.get("MAX_PARALLEL_EXECUTORS", "1")), 5)
+
+if max_workers > 1 and not rate_limit:
+    with ThreadPoolExecutor(max_workers=max_workers) as pool:
+        futures = {pool.submit(run_tc, tc): tc for tc in test_cases}
+        for future in as_completed(futures):
+            results.append(future.result())
+else:
+    for tc in test_cases:
+        results.append(run_tc(tc))
+```
+Garanta que `run_tc` use apenas variáveis locais (não compartilhe estado mutável entre threads).
 ```
 
 **Derivação dos parâmetros a partir dos steps:**

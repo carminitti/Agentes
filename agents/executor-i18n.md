@@ -40,6 +40,8 @@ Procure no input a seção `## Contexto de execução`. Se presente:
 Mapeamento dos campos:
 
 - `base_url` → URL base da aplicação. Defina `BASE_URL` no script, não pergunte.
+- `multi_url` → se `true`, diferentes TCs podem ter URLs base distintas; leia `resolved_base_url` de cada TC para determinar a URL de navegação (`page.goto`) de cada cenário de locale
+- `url_map` → dicionário TC → URL disponível para referência; use `tc.resolved_base_url` no código gerado
 - `auth.token` → use como `Authorization: Bearer <token>` nas chamadas à aplicação e como cookie/header de sessão no Playwright.
 - `auth.credentials` → gere o token via HTTP POST antes de executar os TCs (mesmos endpoints padrão: `/auth/login`, `/api/login`, etc.).
 - `i18n_config.locales` → lista de locales a testar. Default: `["pt-BR", "en-US"]`.
@@ -128,6 +130,8 @@ def navigate_with_locale(page, url, locale, method, param):
     # não aqui. O executor define extra_http_headers ao criar o contexto.
     page.goto(url, wait_until="domcontentloaded")
 ```
+
+**Multi-URL:** quando o contexto contiver `multi_url: true`, cada TC pode ter uma URL de destino diferente. Use `tc.resolved_base_url` como base do `page.goto()` de cada TC em vez da variável global `base_url`. Quando `multi_url: false` ou ausente, mantenha o comportamento atual.
 
 ---
 

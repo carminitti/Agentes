@@ -733,6 +733,15 @@ else:
 ```
 Garanta que `run_tc` seja thread-safe: use variáveis locais dentro da função, não compartilhe estado mutável entre threads.
 
+**Thread-safety com multi_url:** quando `multi_url: true` e `max_parallel_executors > 1`, garanta que cada chamada de `run_tc(tc)` passe a URL resolvida como parâmetro local — não use a variável global `BASE_URL` dentro de `run_tc` quando multi_url estiver ativo. Padrão obrigatório:
+```python
+def run_tc(tc):
+    url_base = tc.get("resolved_base_url") or BASE_URL  # local, não compartilhado
+    # use url_base em todas as requisições deste TC
+    ...
+```
+Isso evita que threads concorrentes sobrescrevam a URL base umas das outras.
+
 ### Sem logs em disco
 - **Não grave `execution.log`** nem nenhum outro arquivo além de `resultado.json`.
 

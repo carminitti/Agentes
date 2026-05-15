@@ -1,0 +1,412 @@
+Aplique as correções abaixo nos arquivos do squad de QA.
+Cada fix é diretamente rastreável a uma falha real observada na suite
+suite_brw_api_perf_vis_acc_sec_db_20260515_000000.
+Não altere nenhum outro trecho além dos indicados.
+
+================================================================================
+FIX B1 — executor-browser.md
+Asserções Python sem mensagem geram error:""
+(causa: TC-REG-05 falhou com campo error vazio — diagnóstico impossível)
+================================================================================
+
+LOCALIZAR a seção exata (título + primeira linha):
+
+**Se nenhum seletor funcionar após 15s:** marque o TC como `failed` com
+`error: "Elemento não encontrado — seletor não especificado no TC e inferência
+proibida. Adicione o seletor exato ao caso de teste."` — nunca tente
+adivinhar estruturas de DOM alternativas em loop.
+
+ADICIONAR imediatamente APÓS esse parágrafo (como nova seção, antes de "## Estratégia de espera"):
+
+## Regra de asserções — mensagem obrigatória em Python
+
+Quando o executor gerar código Python com `assert` (sync Playwright, requests ou comparações diretas), **toda asserção deve incluir mensagem descritiva**. Asserções sem mensagem geram `AssertionError` com `str(e) == ""`, tornando o campo `error` do resultado completamente vazio — diagnóstico impossível.
+
+**OBRIGATÓRIO em Python:**
+```python
+# ✅ CORRETO — mensagem descreve o que falhou e onde
+assert element is not None, f"Botão 'Add to cart' não encontrado em {page.url}"
+assert len(items) >= 6, f"Esperado ≥ 6 produtos, encontrado: {len(items)} em {page.url}"
+assert response.status_code == 200, f"Esperado 200, obtido {response.status_code} — {url}"
+assert btn.is_enabled(), f"Botão 'Add to cart' desabilitado (disabled) em {page.url}"
+
+# ❌ PROIBIDO — assert sem mensagem
+assert element is not None
+assert len(items) >= 6
+assert response.status_code == 200
+```
+
+**Regra de ouro:** qualquer `assert` que não tenha `, f"..."` no final é código incompleto. Antes de finalizar o script, varredura obrigatória: substitua todo `assert <expr>` por `assert <expr>, f"[o que era esperado] — obtido: {<expr_ou_variável>} — url: {page.url}"`.
+
+================================================================================
+FIX B2 — executor-browser.md
+Seletores href frágeis em navegação SPA causam 4 falhas OrangeHRM
+(TC-SANITY-02, TC-OHR-02, TC-OHR-03, TC-OHR-06)
+================================================================================
+
+LOCALIZAR dentro da seção "## Regra de geração de seletores — proibição de inferência":
+
+```typescript
+// CORRETO — baseado no texto visível do elemento
+await page.getByRole('button', { name: /login|entrar/i }).click();
+await page.getByRole('link', { name: /laptops/i }).click();
+
+// PROIBIDO — seletor CSS inferido sem ver o DOM
+await page.locator('app-popular-makes a').click();   // ❌ inferência
+await page.locator('.car-link').click();              // ❌ inferência
+await page.locator('h4 a').click();                  // ❌ inferência
+```
+
+ADICIONAR imediatamente APÓS esse bloco de código (antes do item "3. Quando o elemento não tiver texto visível claro"):
+
+**Regra especial — navegação em menus laterais de SPAs (Vue, React, Angular):**
+
+Nunca use `a[href*='...']` para clicar em itens de menu em SPAs. Os paths de rota (ex: `pim/viewEmployeeList`, `viewSystemUsers`) mudam a cada versão do framework e não são estáveis.
+
+Use **exclusivamente** seletores por texto visível ou role:
+
+```typescript
+// ✅ CORRETO para menus SPA — usa texto visível
+await page.getByRole('link', { name: /PIM/i }).click();
+await page.getByRole('link', { name: /Admin/i }).first().click();
+await page.getByText('My Info').click();
+
+// Em Python sync Playwright:
+page.get_by_role("link", name="PIM").click()
+page.get_by_text("Admin").click()
+
+// ❌ PROIBIDO para navegação interna de SPA
+await page.locator("a[href*='pim/viewEmployeeList']").click();   // ❌ path muda por versão
+await page.locator("a[href*='viewSystemUsers']").click();         // ❌ idem
+page.click("a[href*='viewPersonalDetails']")                     # ❌ idem
+```
+
+Exceção: `href*=` é permitido apenas quando o href contém um domínio externo ou um path de API REST que o time controla (ex: `a[href*='https://docs.empresa.com']`).
+
+================================================================================
+FIX B3 — executor-browser.md
+Hash-route SPAs não renderizam com wait_until="networkidle"
+(TC-SANITY-05, TC-REG-04, TC-A11Y-07: [data-test='email'] não encontrado)
+================================================================================
+
+LOCALIZAR o bloco exato:
+
+**3. waitForTimeout** — PROIBIDO como estratégia primária. Usar apenas quando 1 e 2 não forem aplicáveis, com valor máximo de 1500ms e comentário obrigatório:
+```typescript
+// waitForSelector não aplicável: SPA sem indicador de render confiável
+await page.waitForTimeout(1_500);
+```
+
+ADICIONAR imediatamente APÓS esse bloco (como novo item numerado "4."):
+
+**4. Hash-route SPAs (Angular, React hash-router, Vue hash mode)** — rotas do tipo `#/auth/login`, `#/products`, `#!/route` precisam de tratamento especial porque `networkidle` conclui **antes** do framework terminar de renderizar o componente de destino.
+
+Quando o step contiver `goto()` para uma URL com fragmento `#/`:
+```typescript
+// ✅ CORRETO para hash-routes
+await page.goto('https://app.com/#/auth/login', { waitUntil: 'domcontentloaded' });
+await page.waitForTimeout(800);   // aguarda framework renderizar o componente
+// Agora use wait_for_selector com timeout generoso
+await page.waitForSelector('[data-test="email"]', { timeout: 30_000 });
+await page.fill('[data-test="email"]', email);
+
+// Em Python sync Playwright:
+page.goto("https://app.com/#/auth/login", wait_until="domcontentloaded", timeout=30000)
+page.wait_for_timeout(800)   # aguarda Angular/Vue/React renderizar o componente
+page.wait_for_selector("[data-test='email']", timeout=30000)
+page.fill("[data-test='email']", email)
+```
+
+**Regra:** sempre que `goto()` navegar para uma URL contendo `#/`, substitua `wait_until="networkidle"` por `wait_until="domcontentloaded"` **e** adicione `wait_for_timeout(800)` logo depois. O timeout mínimo de `wait_for_selector` em formulários de hash-route é **30s** (não 15s).
+
+Após a navegação inicial para uma SPA (qualquer rota), aplique também o timeout adaptativo:
+```python
+if "practicesoftwaretesting" in page.url or "orangehrmlive" in page.url:
+    page.set_default_timeout(30000)
+    page.set_default_navigation_timeout(45000)
+```
+
+================================================================================
+FIX B4 — executor-browser.md
+Ambiente retornando 4xx antes da lógica do teste gera assert True ou passed falso
+(TC-XBROW-03: assert True quando reqres retorna 401 — falso positivo)
+================================================================================
+
+LOCALIZAR o parágrafo:
+
+**Se nenhum seletor funcionar após 15s:** marque o TC como `failed` com
+`error: "Elemento não encontrado — seletor não especificado no TC e inferência
+proibida. Adicione o seletor exato ao caso de teste."` — nunca tente
+adivinhar estruturas de DOM alternativas em loop.
+
+ADICIONAR logo ANTES desse parágrafo (como nova regra separada):
+
+**Regra: falha de infraestrutura de ambiente ≠ falha de asserção**
+
+Quando o ambiente retorna 4xx (401, 403, 404, 429) **antes mesmo da lógica de teste começar** (ex: API key ausente, IP não liberado, rate limit na primeira requisição), o resultado correto é `skipped` com razão explícita — **nunca `assert True`** para forçar passed, e nunca `failed` por falha de asserção.
+
+Critério: se a resposta 4xx impede que qualquer verificação do TC seja executada, é falha de pré-condição de infraestrutura.
+
+```python
+# ✅ CORRETO — ambiente não coopera, TC não pode ser avaliado
+r = requests.get(url, timeout=10)
+if r.status_code in (401, 403):
+    results.append({
+        "id": tc_id, "title": title,
+        "status": "skipped",
+        "reason": "env_auth_required",
+        "error": f"Ambiente retornou {r.status_code} antes da execução do teste — "
+                 f"credencial de infraestrutura ausente (ex: API key, IP allowlist). "
+                 f"Forneça a credencial correta e re-execute."
+    })
+    return
+
+# ❌ PROIBIDO — nunca force passed com assert True quando o ambiente não coopera
+if r.status_code == 401:
+    assert True, "ambiente ok, credencial nao fornecida"   # ❌ falso positivo
+```
+
+Essa regra se aplica tanto a TypeScript quanto a Python, e tanto em testes de browser quanto em chamadas HTTP feitas dentro de um TC browser (ex: fetch direto via requests).
+
+================================================================================
+FIX V1 — executor-visual.md
+baseline_created não é propagado para o resultado: todos aparecem como "passed"
+(8 TCs visuais marcados como passed na primeira execução sem comparação real)
+================================================================================
+
+LOCALIZAR dentro da seção "4. **Detecte baseline criado vs. falha real:**":
+
+   **Regra:** se o teste falhou E a saída contém indicação de snapshot recém-criado → reclassifique para `status: "baseline_created"` e `baseline: "created"`. **Não marque como `failed`.**
+
+ADICIONAR imediatamente APÓS essa linha (mantendo o restante da seção):
+
+   **Propagação obrigatória em scripts Python com compare_screenshots():**
+
+   Quando o executor gerar um script Python com a função `compare_screenshots()` (padrão lean/fallback), o `run()` wrapper deve lidar com o status `baseline_created` explicitamente. O padrão abaixo é **obrigatório** — sem ele, `baseline_created` aparece como `passed` porque nenhuma exceção é lançada:
+
+   ```python
+   class BaselineCreated(Exception):
+       pass
+
+   def compare_screenshots(tc_id, page, threshold_pct=0.2):
+       baseline_path = os.path.join(BASELINE_DIR, f"{tc_id}.png")
+       current_path  = os.path.join(CURRENT_DIR,  f"{tc_id}_current.png")
+       page.screenshot(path=current_path)
+       if not os.path.exists(baseline_path):
+           shutil.copy(current_path, baseline_path)
+           raise BaselineCreated(f"Baseline criado: {baseline_path}")
+       # ... lógica de comparação existente ...
+
+   def run(tc_id, title, fn):
+       t0 = time.time()
+       try:
+           fn()
+           ms = int((time.time()-t0)*1000)
+           results.append({"id": tc_id, "title": title,
+                            "status": "passed", "baseline": "existing",
+                            "duration_ms": ms})
+       except BaselineCreated as e:
+           ms = int((time.time()-t0)*1000)
+           results.append({"id": tc_id, "title": title,
+                            "status": "baseline_created", "baseline": "created",
+                            "duration_ms": ms,
+                            "note": "⚠️ Primeira execução — baseline gerado. "
+                                    "Valide visualmente o screenshot antes de usar como referência."})
+           print(f"  BASELINE  {tc_id} ({ms}ms) — {e}")
+       except AssertionError as e:
+           ms = int((time.time()-t0)*1000)
+           results.append({"id": tc_id, "title": title,
+                            "status": "failed", "baseline": "existing",
+                            "duration_ms": ms, "error": str(e)})
+       except Exception as e:
+           ms = int((time.time()-t0)*1000)
+           results.append({"id": tc_id, "title": title,
+                            "status": "error", "baseline": "unknown",
+                            "duration_ms": ms, "error": str(e)})
+   ```
+
+   O summary do resultado deve contar `baseline_created` separadamente de `passed`:
+   ```python
+   summary = {
+       "total":            len(results),
+       "passed":           sum(1 for r in results if r["status"] == "passed"),
+       "failed":           sum(1 for r in results if r["status"] == "failed"),
+       "baseline_created": sum(1 for r in results if r["status"] == "baseline_created"),
+       "error":            sum(1 for r in results if r["status"] == "error"),
+   }
+   ```
+
+================================================================================
+FIX D1 — executor-banco.md
+Campo "simulated" ausente no JSON gerado — resultados parecem ser de banco real
+(8 TCs de banco passaram a 0ms em SQLite in-memory sem nenhum flag visível)
+================================================================================
+
+LOCALIZAR dentro da seção que descreve o Modo 2 — Ambiente simulado local:
+
+   - Campo `"simulated": true` em cada resultado
+
+ADICIONAR imediatamente APÓS essa linha (reforçando a obrigatoriedade):
+
+   **Esta instrução é inegociável:** o campo `"simulated": true` (ou `false`) deve estar presente em **todos** os objetos de resultado individual E no summary. Se o campo estiver ausente do resultado gerado, o reporter e o orquestrador não conseguem distinguir um banco real de um simulado.
+
+   Template obrigatório de resultado em modo simulado:
+   ```python
+   results.append({
+       "id": tc_id,
+       "title": title,
+       "status": "passed",      # ou "failed" / "error"
+       "duration_ms": ms,
+       "simulated": True,       # ← OBRIGATÓRIO, nunca omitir
+   })
+   ```
+
+   Template obrigatório de summary em modo simulado:
+   ```python
+   summary = {
+       "total":     len(results),
+       "passed":    sum(1 for r in results if r["status"] == "passed"),
+       "failed":    sum(1 for r in results if r["status"] == "failed"),
+       "skipped":   sum(1 for r in results if r["status"] == "skipped"),
+       "simulated": True,       # ← OBRIGATÓRIO em modo simulado
+       "simulation_note": "⚠️ Testes executados em SQLite in-memory — "
+                          "nenhuma conexão a banco real foi realizada. "
+                          "Revalidar contra o banco real antes do deploy.",
+   }
+   ```
+
+   Em modo real (`banco_mode: "real"`), os mesmos campos devem aparecer com `"simulated": False` e sem `simulation_note`.
+
+================================================================================
+FIX A1 — executor-api.md E executor-performance.md (aplicar em ambos)
+Padrão sistêmico de 401 não dispara credentials_failed — 25 falhas sem retry
+(reqres.in passou a exigir x-api-key; o squad executou 25 testes fadados ao erro)
+================================================================================
+
+--- Aplicar em executor-api.md ---
+
+LOCALIZAR:
+
+**Como detectar `credentials_failed` após a execução:**
+Após `npx playwright test` terminar, verifique se o arquivo `setup_status.json` foi criado pelo globalSetup:
+```typescript
+// No agente, após rodar os testes:
+const setupStatus = fs.existsSync('setup_status.json')
+  ? JSON.parse(fs.readFileSync('setup_status.json', 'utf-8'))
+  : { credentials_failed: false };
+// Use setupStatus.credentials_failed no JSON de saída
+fs.unlinkSync('setup_status.json');  // limpa após leitura
+```
+
+ADICIONAR imediatamente APÓS esse bloco (como nova subseção):
+
+**Detecção de 401 sistêmico por domínio — credencial de infraestrutura ausente:**
+
+Após executar todos os testes, verifique se há um padrão de 401/403 sistêmico por domínio. Se ≥ 80% dos testes de um mesmo domínio falharam com status HTTP 401 ou 403, isso indica credencial de infraestrutura ausente (API key, token de serviço) — não um bug na aplicação. Nesse caso, emita `credentials_failed: true` para que o orquestrador dispare o loop de retry com novas credenciais.
+
+```python
+from collections import defaultdict
+from urllib.parse import urlparse
+
+# Ao final da execução, antes de montar o JSON de saída:
+domain_stats = defaultdict(lambda: {"total": 0, "auth_errors": 0})
+
+for result in results:
+    domain = urlparse(result.get("url", base_url)).netloc
+    domain_stats[domain]["total"] += 1
+    if result.get("status_code") in (401, 403):
+        domain_stats[domain]["auth_errors"] += 1
+
+systemic_auth_failure = any(
+    stats["total"] > 0 and (stats["auth_errors"] / stats["total"]) >= 0.80
+    for stats in domain_stats.values()
+)
+
+if systemic_auth_failure:
+    failing_domains = [
+        f"{domain} ({stats['auth_errors']}/{stats['total']} → 401/403)"
+        for domain, stats in domain_stats.items()
+        if stats["total"] > 0 and (stats["auth_errors"] / stats["total"]) >= 0.80
+    ]
+    summary["credentials_failed"] = True
+    summary["credentials_error"] = (
+        "Padrão sistêmico de 401/403 detectado — credencial de infraestrutura ausente "
+        f"para: {'; '.join(failing_domains)}. "
+        "Exemplos: API key, token de serviço, certificado mTLS."
+    )
+```
+
+Essa checagem **complementa** a detecção via `setup_status.json` — não a substitui. Aplique ambas: setup_status para falha de login no globalSetup; checagem sistêmica para APIs que exigem credencial de infraestrutura independente do fluxo de login.
+
+--- Aplicar em executor-performance.md ---
+
+LOCALIZAR:
+
+**Se `auto_get_token()` falhar e o teste requer auth:** inclua `"credentials_failed": true` no JSON de saída para que o orquestrador faça retry com novas credenciais. Não execute com token inválido.
+
+ADICIONAR imediatamente APÓS essa linha (como parágrafo adicional):
+
+**Detecção de 401 sistêmico nos scripts k6 / Python fallback:**
+
+Após rodar cada script k6 ou Python de performance, verifique o `error_rate_pct` combinado com o status HTTP predominante nas amostras de erro. Se `error_rate_pct >= 80` E as amostras de erro indicarem exclusivamente `status=401` ou `status=403`, isso é credencial de infraestrutura ausente, não falha de performance. Nesse caso:
+
+```python
+# Ao interpretar o resultado do k6/Python:
+if (
+    summary_result.get("error_rate_pct", 0) >= 80 and
+    all(e.get("status") in (401, 403)
+        for e in summary_result.get("error_samples", []))
+):
+    summary["credentials_failed"] = True
+    summary["credentials_error"] = (
+        f"error_rate={summary_result['error_rate_pct']}% com status 401/403 — "
+        "credencial de infraestrutura ausente (API key, token de serviço). "
+        "Forneça a credencial correta; os thresholds de performance não podem ser "
+        "avaliados enquanto o ambiente rejeitar todas as requisições."
+    )
+    # Marque todos os TCs do domínio afetado como skipped (não failed):
+    for tc in tc_results:
+        if tc["status"] == "failed" and "401" in tc.get("error", ""):
+            tc["status"] = "skipped"
+            tc["reason"] = "env_auth_required"
+```
+
+================================================================================
+VERIFICAÇÃO FINAL
+================================================================================
+
+Após aplicar todas as correções, confirme:
+
+B1 — executor-browser.md:
+1. Existe a seção "## Regra de asserções — mensagem obrigatória em Python" com exemplos ✅/❌
+2. A regra diz "varredura obrigatória" antes de finalizar o script
+
+B2 — executor-browser.md:
+3. Existe a "Regra especial — navegação em menus laterais de SPAs" com exemplos ✅/❌
+4. A regra proíbe explicitamente `a[href*='...']` para rotas internas de SPA
+
+B3 — executor-browser.md:
+5. Existe o item "4. Hash-route SPAs" na seção "## Estratégia de espera — ordem obrigatória"
+6. A instrução menciona `wait_for_timeout(800)` e `wait_until="domcontentloaded"` para `#/`
+
+B4 — executor-browser.md:
+7. Existe a "Regra: falha de infraestrutura de ambiente ≠ falha de asserção" com código Python
+8. A regra proíbe `assert True` explicitamente e define status `skipped` com `env_auth_required`
+
+V1 — executor-visual.md:
+9. Existe a "Propagação obrigatória em scripts Python com compare_screenshots()"
+10. O padrão inclui classe `BaselineCreated(Exception)` e `run()` tratando o caso separadamente
+11. O summary tem campo `baseline_created` separado de `passed`
+
+D1 — executor-banco.md:
+12. A instrução de campo `"simulated": true` tem o parágrafo "Esta instrução é inegociável"
+13. O template do summary inclui `"simulated": True` e `"simulation_note"` explicitamente
+
+A1 — executor-api.md:
+14. Existe subseção "Detecção de 401 sistêmico por domínio" após o bloco de setup_status.json
+15. O código usa `defaultdict` e threshold de 80% para emitir `credentials_failed: true`
+
+A1 — executor-performance.md:
+16. Existe parágrafo "Detecção de 401 sistêmico nos scripts k6 / Python fallback" após a linha de auto_get_token
+17. O código verifica `error_rate_pct >= 80` E status 401/403 nas amostras de erro
+18. TCs afetados são marcados como `skipped` com `reason: env_auth_required` (não `failed`)

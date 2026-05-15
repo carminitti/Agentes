@@ -1204,37 +1204,58 @@ Esta lógica deve ser executada apenas quando `lean_mode: false`. Se `lean_mode:
 
 Ao receber o output do `classifier-testes`, verifique se algum TC possui o campo `depends_on` preenchido. Se sim:
 
+**Passo 1 — Dependências intra-executor:** para cada grupo de TCs do mesmo executor, aplique ordenação topológica:
+
 ```python
 def sort_by_dependencies(tcs):
-    """Ordena TCs respeitando dependências (topological sort simples)."""
     id_to_tc = {tc["id"]: tc for tc in tcs}
-    ordered = []
-    visited = set()
-    
+    ordered, visited = [], set()
     def visit(tc_id):
-        if tc_id in visited:
-            return
+        if tc_id in visited: return
         visited.add(tc_id)
         tc = id_to_tc.get(tc_id)
-        if not tc:
-            return
+        if not tc: return
         for dep_id in (tc.get("depends_on") or []):
             visit(dep_id)
         ordered.append(tc)
-    
     for tc in tcs:
         visit(tc["id"])
     return ordered
 ```
 
-Aplique `sort_by_dependencies` na lista de TCs de cada executor antes do dispatch. TCs sem `depends_on` mantêm sua ordem original.
+**Passo 2 — Dependências cross-executor:** antes de despachar os executores em paralelo, construa um grafo de dependências *entre* executores:
 
-Se houver dependência circular (TC-A depende de TC-B que depende de TC-A), avise o usuário:
-> ⚠️ **Dependência circular detectada:** `[IDs envolvidos]`. Os TCs serão executados na ordem original e o resultado pode ser imprevisível.
+```python
+# Mapeia TC → executor
+tc_to_executor = {tc["id"]: executor_name
+                  for executor_name, tcs in executor_groups.items()
+                  for tc in tcs}
+
+# Detecta se algum TC de executor A depende de um TC de executor B
+executor_deps = {}  # executor_A → set de executores que devem terminar antes
+for executor_name, tcs in executor_groups.items():
+    for tc in tcs:
+        for dep_id in (tc.get("depends_on") or []):
+            dep_executor = tc_to_executor.get(dep_id)
+            if dep_executor and dep_executor != executor_name:
+                executor_deps.setdefault(executor_name, set()).add(dep_executor)
+
+# Se há dependências cross-executor, despache em ondas em vez de paralelamente:
+# Onda 1: executores sem dependências pendentes
+# Onda 2: executores cujas dependências já completaram
+# ... e assim por diante
+```
+
+Se houver dependências cross-executor, avise o usuário antes do dispatch:
+> ⚠️ **Dependências cross-executor detectadas:** `[executor_A]` aguarda `[executor_B]` antes de iniciar. O dispatch será sequenciado em ondas em vez de totalmente paralelo.
+
+Se houver dependência circular entre executores, avise e ignore a ordenação (execute em paralelo normal):
+> ⚠️ **Dependência circular entre executores detectada** (`[executor_A]` ↔ `[executor_B]`). Executando em paralelo sem garantia de ordem.
 
 Adicione ao schema do contexto enviado aos executores:
 ```
-"tc_execution_order": ["TC-001", "TC-003", "TC-002"]  // ordem garantindo dependências; null se sem depends_on
+"tc_execution_order": ["TC-001", "TC-003", "TC-002"],
+"depends_on_executors": ["executor-browser"]  // executores que já rodaram antes deste
 ```
 
 Com o contexto de execução completo, invoque os subagentes correspondentes.
@@ -1266,7 +1287,7 @@ Execute **todos** os tipos identificados. Nunca pergunte se deve executar um sub
 | `webhook` | `executor-webhook` |
 | `queue` | `executor-queue` |
 | `i18n` | `executor-i18n` |
-| `chaos` | `executor-chaos` — **NUNCA despache se `environment_type == "production"`**: nesse caso, retorne ao usuário `❌ executor-chaos bloqueado: testes de caos não são permitidos em produção.` e marque todos os TCs chaos como `skipped` com razão `chaos_blocked_production`. |
+| `chaos` | `executor-chaos` — **NUNCA despache se `environment_type == "production"`**: nesse caso, retorne ao usuário `❌ executor-chaos bloqueado: testes de caos não são permitidos em produção.` e marque todos os TCs chaos como `skipped` com razão `chaos_blocked_production`. **Variáveis de ambiente para executor-chaos:** ao montar o `## Contexto de execução` para o executor-chaos, inclua no bloco de variáveis adicionais: `RECOVERY_TIMEOUT_S=[chaos_config.recovery_timeout_s \| 10]`. Isso garante que o `RECOVERY_S` do script gerado reflita o timeout configurado pelo usuário em vez do padrão fixo de 10 s. |
 
 **Para cada executor invocado, formate a mensagem exatamente assim:**
 

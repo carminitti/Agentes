@@ -1,0 +1,125 @@
+Faça as seguintes alterações no arquivo agents/orquestrador-qa.md.
+Não altere nenhum outro trecho além dos indicados.
+
+=== ALTERAÇÃO 1 — Etapa 2a: detectar múltiplas URLs antes de perguntar ===
+
+LOCALIZAR este bloco exato:
+
+### 2a — URL do ambiente
+
+Extraia a URL base do input do usuário ou dos steps dos testes. Se não for possível determinar com certeza, inclua na pergunta:
+
+> "Qual é a URL base do ambiente a ser testado? (ex: `https://staging.app.com`)"
+
+SUBSTITUIR POR:
+
+### 2a — URL do ambiente
+
+Antes de formular a pergunta, analise todos os steps dos testes classificados e extraia todas as URLs base distintas presentes (qualquer ocorrência de `https://` ou `http://` seguida de um domínio nos steps ou no título dos TCs).
+
+**Caso A — URL única ou nenhuma URL detectada nos steps:**
+Extraia a URL base do input do usuário ou dos steps. Se não for possível determinar com certeza, inclua na pergunta:
+> "Qual é a URL base do ambiente a ser testado? (ex: `https://staging.app.com`)"
+Armazene como `base_url` (string). Registre `multi_url: false`.
+
+**Caso B — Múltiplas URLs base distintas detectadas nos steps:**
+Não pergunte `base_url` como campo único. Em vez disso, inclua na pergunta ao usuário:
+> "Os testes cobrem múltiplos domínios. Confirme ou corrija as URLs detectadas por grupo:
+> [para cada grupo de TCs com a mesma URL detectada:]
+> - **[tipo/executor]** ([IDs]): `[URL detectada]`
+> *(Deixe em branco para confirmar, ou informe a URL correta para o grupo)*"
+
+Após receber confirmação, armazene como `url_map` (objeto TC → URL string):
+```python
+url_map = {
+    "TC-API-01": "https://reqres.in/api",
+    "TC-BOOKER-01": "https://restful-booker.herokuapp.com",
+    # ... um par por TC
+}
+```
+Registre `multi_url: true`. Neste caso, `base_url` recebe `null`.
+
+
+=== ALTERAÇÃO 2 — Schema do contexto: adicionar multi_url e url_map ===
+
+LOCALIZAR este trecho exato dentro do bloco de definição do contexto:
+
+  base_url: "https://staging.app.com",
+
+SUBSTITUIR POR:
+
+  base_url: "https://staging.app.com" | null,   // null quando multi_url: true
+  multi_url: false,                              // true quando há múltiplos domínios
+  url_map: null,                                 // { "TC-XXX": "https://..." } quando multi_url: true
+
+
+=== ALTERAÇÃO 3 — Health check (Etapa 2.9): iterar sobre múltiplas URLs ===
+
+LOCALIZAR este bloco Python exato:
+
+```python
+import requests
+try:
+    resp = requests.head(base_url, timeout=5, verify=False, allow_redirects=True)
+    env_reachable = resp.status_code < 500
+except Exception as e:
+    env_reachable = False
+    env_error = str(e)
+```
+
+SUBSTITUIR POR:
+
+```python
+import requests
+
+urls_to_check = list(set(url_map.values())) if multi_url else [base_url]
+env_reachable = True
+env_errors = []
+for _url in urls_to_check:
+    try:
+        resp = requests.head(_url, timeout=5, verify=False, allow_redirects=True)
+        if resp.status_code >= 500:
+            env_reachable = False
+            env_errors.append(f"{_url} → HTTP {resp.status_code}")
+    except Exception as e:
+        env_reachable = False
+        env_errors.append(f"{_url} → {str(e)}")
+env_error = "; ".join(env_errors)
+```
+
+E logo abaixo, LOCALIZAR:
+
+> ⚠️ O ambiente `[base_url]` não respondeu (`[env_error]`). Verifique a URL, VPN ou certificado e confirme para continuar — ou cancele.
+
+SUBSTITUIR POR:
+
+> ⚠️ Um ou mais ambientes não responderam:
+> [para cada item em env_errors]: `[url]` — `[erro]`
+> Verifique as URLs, VPN ou certificados e confirme para continuar — ou cancele.
+
+
+=== ALTERAÇÃO 4 — Etapa 3: injetar resolved_base_url antes do dispatch ===
+
+LOCALIZAR a nota geral no início da Etapa 3 (logo após o título "## Etapa 3 — Execução por executor" e antes do primeiro executor ser descrito). Se não houver nota geral, adicionar após a linha do título.
+
+ADICIONAR (como novo parágrafo após o título da Etapa 3):
+
+> **Resolução de URL por TC (multi_url):** antes de montar a mensagem para cada executor, percorra os TCs do grupo e determine a URL correta de cada um:
+> ```python
+> for tc in tcs_do_executor:
+>     if multi_url and url_map and tc["id"] in url_map:
+>         tc["resolved_base_url"] = url_map[tc["id"]]
+>     else:
+>         tc["resolved_base_url"] = base_url
+> base_url_executor = tcs_do_executor[0]["resolved_base_url"] if tcs_do_executor else base_url
+> ```
+> No bloco `## Contexto de execução` enviado ao subagente, use `base_url_executor` como valor de `base_url`, e inclua também `multi_url` e `url_map` para que o executor possa resolver URLs individualmente por TC quando necessário.
+
+
+=== VERIFICAÇÃO APÓS APLICAR ===
+
+Confirme que:
+1. A Etapa 2a contém "Caso A" e "Caso B"
+2. O schema do contexto tem os campos multi_url e url_map
+3. O health check usa a variável urls_to_check (lista)
+4. A Etapa 3 tem o bloco de resolução de URL por TC antes do primeiro dispatch

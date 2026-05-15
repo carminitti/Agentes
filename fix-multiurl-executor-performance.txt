@@ -1,0 +1,38 @@
+Faça a seguinte alteração no arquivo agents/executor-performance.md.
+Não altere nenhum outro trecho além do indicado.
+
+=== ALTERAÇÃO — Prioridade 0: ler resolved_base_url por TC quando multi_url=true ===
+
+LOCALIZAR este trecho exato dentro da seção "### Prioridade 0 — Contexto do orquestrador":
+
+- `base_url` → use como URL base nos scripts k6/Python, não pergunte
+
+SUBSTITUIR POR:
+
+- `base_url` → use como URL base nos scripts k6/Python, não pergunte
+- `multi_url` → se `true`, diferentes TCs podem ter URLs base distintas; leia `resolved_base_url` de cada TC para determinar a URL correta de cada cenário de carga
+- `url_map` → dicionário TC → URL disponível para referência; use `tc.resolved_base_url` no script gerado
+
+
+=== ALTERAÇÃO — Geração do script k6: URL por TC quando multi_url=true ===
+
+LOCALIZAR a instrução que orienta o agente a gerar o script k6 (seção que descreve a estrutura do script com `const BASE_URL` ou similar no topo).
+
+ADICIONAR logo após essa instrução (como parágrafo separado):
+
+> **Multi-URL:** quando o contexto contiver `multi_url: true`, cada TC pode apontar para um domínio diferente definido em `resolved_base_url`. Nesse caso, ao gerar o script k6, não declare uma constante `BASE_URL` global. Em vez disso, declare um objeto de URLs por TC no topo do script:
+> ```javascript
+> const TC_URLS = {
+>   "TC-PERF-01": "https://reqres.in/api",
+>   "TC-PERF-07": "https://jsonplaceholder.typicode.com",
+>   // ...
+> };
+> ```
+> E use `TC_URLS[tc_id]` ao construir cada URL de requisição dentro da função `default`. Quando `multi_url: false` ou ausente, mantenha o comportamento atual com `BASE_URL` único no topo do script.
+
+
+=== VERIFICAÇÃO APÓS APLICAR ===
+
+Confirme que:
+1. O bullet de `base_url` na Prioridade 0 tem os bullets de `multi_url` e `url_map` logo abaixo
+2. A seção de geração do script k6 menciona `TC_URLS` e o objeto por TC para o caso multi-URL

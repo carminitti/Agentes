@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+{% block title %}— Perfil{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-7">
+    <div class="card p-4">
+      <div class="d-flex align-items-center gap-3 mb-4">
+        <div style="width:60px;height:60px;background:#1a2342;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:1.5rem;font-weight:700;">
+          {{ user['username'][0]|upper }}
+        </div>
+        <div>
+          <h5 class="mb-0">{{ user['username'] }}</h5>
+          <span class="badge bg-{{ 'danger' if user['role']=='admin' else 'primary' }}">{{ user['role'] }}</span>
+        </div>
+        {% if user['id'] == session.user_id %}
+        <a href="/profile/edit" class="btn btn-sm btn-outline-secondary ms-auto">Editar perfil</a>
+        {% endif %}
+      </div>
+
+      <div class="mb-3">
+        <label class="text-muted small">E-mail</label>
+        <p class="mb-0">{{ user['email'] or '—' }}</p>
+      </div>
+      <div class="mb-3">
+        <label class="text-muted small">Saldo</label>
+        <p class="mb-0 fw-bold text-success">R$ {{ "%.2f"|format(user['balance']) }}</p>
+      </div>
+      <div class="mb-3">
+        <label class="text-muted small">CPF / SSN</label>
+        <p class="mb-0 font-monospace">{{ user['ssn'] or '—' }}</p>
+      </div>
+      <div class="mb-0">
+        <label class="text-muted small">Bio</label>
+        <div class="border rounded p-2 bg-light">
+          {% if user['bio'] %}
+            {{ user['bio']|safe }}
+          {% else %}
+            <span class="text-muted small">Sem bio.</span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

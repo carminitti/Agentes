@@ -1,0 +1,37 @@
+Faça as seguintes alterações nos arquivos agents/executor-visual.md E agents/executor-acessibilidade.md.
+A alteração é idêntica nos dois arquivos — aplique em ambos.
+Não altere nenhum outro trecho além do indicado em cada arquivo.
+
+=== ALTERAÇÃO (aplicar em executor-visual.md E em executor-acessibilidade.md) ===
+
+--- Parte 1: Prioridade 0 ---
+
+LOCALIZAR este trecho exato dentro da seção "### Prioridade 0 — Contexto do orquestrador" (em cada arquivo):
+
+- `base_url` → use como URL base, não pergunte
+
+SUBSTITUIR POR:
+
+- `base_url` → use como URL base, não pergunte
+- `multi_url` → se `true`, diferentes TCs podem ter URLs base distintas; leia `resolved_base_url` de cada TC para determinar a URL de navegação (`page.goto`) de cada cenário
+- `url_map` → dicionário TC → URL disponível para referência; use `tc.resolved_base_url` no código gerado
+
+
+--- Parte 2: instrução de navegação ---
+
+LOCALIZAR a instrução que descreve como o executor navega até a URL de cada TC antes de capturar o screenshot (no executor-visual) ou antes de executar o scan axe (no executor-acessibilidade). Essa instrução menciona `base_url` ou `page.goto(base_url...)`.
+
+ADICIONAR logo após essa instrução (como parágrafo separado, em cada arquivo):
+
+> **Multi-URL:** quando o contexto contiver `multi_url: true`, cada TC pode ter uma URL de destino diferente definida em `resolved_base_url`. Ao gerar o código Playwright de cada TC, use `tc.resolved_base_url` (ou `tc["resolved_base_url"]` em Python) como URL base do `page.goto()` daquele TC em vez da variável global `base_url`. Quando `multi_url: false` ou ausente, mantenha o comportamento atual.
+
+
+=== VERIFICAÇÃO APÓS APLICAR ===
+
+Em executor-visual.md, confirme que:
+1. O bullet de `base_url` na Prioridade 0 tem os bullets de `multi_url` e `url_map` logo abaixo
+2. A instrução de captura de screenshot menciona `resolved_base_url`
+
+Em executor-acessibilidade.md, confirme que:
+1. O bullet de `base_url` na Prioridade 0 tem os bullets de `multi_url` e `url_map` logo abaixo
+2. A instrução de scan axe menciona `resolved_base_url`

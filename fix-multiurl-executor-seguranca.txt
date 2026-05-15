@@ -1,0 +1,30 @@
+Faça a seguinte alteração no arquivo agents/executor-seguranca.md.
+Não altere nenhum outro trecho além do indicado.
+
+=== ALTERAÇÃO — Prioridade 0: ler resolved_base_url por TC quando multi_url=true ===
+
+LOCALIZAR este trecho exato dentro da seção "### Prioridade 0 — Contexto do orquestrador":
+
+- `base_url` → use como URL base nas verificações, não pergunte
+
+SUBSTITUIR POR:
+
+- `base_url` → use como URL base nas verificações, não pergunte
+- `multi_url` → se `true`, diferentes TCs podem ter URLs base distintas; leia `resolved_base_url` de cada TC para determinar a URL alvo de cada verificação de segurança
+- `url_map` → dicionário TC → URL disponível para referência; use `tc.resolved_base_url` no código gerado
+
+
+=== ALTERAÇÃO — Execução das verificações: agrupar por URL quando multi_url=true ===
+
+LOCALIZAR a instrução principal que descreve como o executor percorre os TCs e executa as verificações (a seção que menciona iterar sobre os testes e chamar `safe_request`).
+
+ADICIONAR logo após essa instrução (como parágrafo separado):
+
+> **Multi-URL:** quando o contexto contiver `multi_url: true`, cada TC pode apontar para um domínio diferente. Ao gerar o código Python de verificação, use `tc.get("resolved_base_url", base_url)` como URL base de cada TC em vez da variável global `base_url`. Agrupe os TCs por domínio para reaproveitar a sessão `requests.Session()` por grupo. O campo `environment_type` deve ser determinado individualmente para cada URL do grupo.
+
+
+=== VERIFICAÇÃO APÓS APLICAR ===
+
+Confirme que:
+1. O bullet de `base_url` na Prioridade 0 tem os bullets de `multi_url` e `url_map` logo abaixo
+2. A seção de execução das verificações menciona `tc.get("resolved_base_url", base_url)`

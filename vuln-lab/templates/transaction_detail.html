@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+{% block title %}— Transação #{{ tx['id'] }}{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-6">
+    <div class="card p-4">
+      <h5 class="mb-4">Transação #{{ tx['id'] }}</h5>
+      <table class="table table-borderless">
+        <tr><th class="text-muted fw-normal" style="width:40%">Usuário (ID)</th><td>{{ tx['user_id'] }}</td></tr>
+        <tr><th class="text-muted fw-normal">Destinatário</th><td>{{ tx['recipient'] }}</td></tr>
+        <tr><th class="text-muted fw-normal">Valor</th><td class="fw-bold tx-amount-neg">R$ {{ "%.2f"|format(tx['amount']) }}</td></tr>
+        <tr><th class="text-muted fw-normal">Descrição</th><td>{{ tx['description'] }}</td></tr>
+        <tr><th class="text-muted fw-normal">Data</th><td>{{ tx['created_at'] }}</td></tr>
+      </table>
+      <a href="/transactions" class="btn btn-outline-secondary mt-2">← Voltar ao extrato</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

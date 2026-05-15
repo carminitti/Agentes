@@ -1,0 +1,581 @@
+Faça as seguintes alterações no arquivo agents/orquestrador-qa.md.
+Aplique cada alteração na ordem indicada. Não altere nenhum outro trecho além dos indicados.
+
+================================================================================
+█ CRÍTICO 1 — Etapa 2c: variantes de autenticação (API Key, OAuth2, mTLS)
+================================================================================
+
+PROBLEMA: A Etapa 2c só pergunta Bearer token ou usuário/senha. Suites que usam
+API Key em header, OAuth2 client_credentials ou mTLS nunca são identificadas
+corretamente, causando falhas silenciosas em todos os executores.
+
+LOCALIZAR este bloco inteiro:
+
+### 2c — Autenticação (centralizada para todos os executores)
+
+Analise todos os testes classificados. Se **qualquer** teste envolver endpoints protegidos, login, token, Bearer, Authorization ou acesso autenticado:
+
+**Resolva na seguinte ordem de prioridade:**
+
+1. **Token explícito nos steps** → use diretamente. Registre como `auth.token`.
+2. **Credenciais (usuário/senha ou email/senha) nos steps, sem token** → registre como `auth.credentials` e avise que o token será gerado automaticamente pelos executores.
+3. **Nenhuma informação de auth nos steps** → inclua na pergunta ao usuário:
+   > "Um ou mais testes requerem autenticação ([IDs afetados]). Por favor, forneça:
+   > - Um **Bearer token** pronto para uso, **ou**
+   > - **Usuário e senha** (o token será gerado automaticamente)"
+
+SUBSTITUIR POR:
+
+### 2c — Autenticação (centralizada para todos os executores)
+
+Analise todos os testes classificados. Se **qualquer** teste envolver endpoints protegidos, login, token, Bearer, Authorization, API Key ou acesso autenticado:
+
+**Resolva na seguinte ordem de prioridade:**
+
+1. **Token/credencial explícito nos steps** → use diretamente. Registre no campo correspondente abaixo conforme o tipo identificado.
+2. **Credenciais (usuário/senha ou email/senha) nos steps, sem token** → registre como `auth.credentials` e avise que o token será gerado automaticamente pelos executores.
+3. **Nenhuma informação de auth nos steps** → inclua na pergunta ao usuário:
+   > "Um ou mais testes requerem autenticação ([IDs afetados]). Qual é o método de acesso ao ambiente?
+   >
+   > **1. Bearer token** — forneça o token JWT ou OAuth pronto para uso
+   > **2. Usuário + senha** — o token será gerado automaticamente via endpoint de login
+   > **3. API Key** — forneça a chave e informe onde ela deve ser enviada:
+   >    - Header: `X-API-Key: <valor>` (ou nome do header customizado)
+   >    - Query param: `?api_key=<valor>` (ou nome do param customizado)
+   > **4. OAuth2 client_credentials** — forneça:
+   >    - Token URL (ex: `https://auth.empresa.com/oauth/token`)
+   >    - Client ID
+   >    - Client Secret
+   >    - Scope (opcional)
+   > **5. mTLS (certificado de cliente)** — forneça o caminho dos arquivos:
+   >    - Certificado: `/caminho/client.crt`
+   >    - Chave privada: `/caminho/client.key`
+   >    - CA bundle (opcional): `/caminho/ca.pem`
+   > **6. Sem autenticação** — o ambiente é público"
+
+**Armazenamento por tipo:**
+- Bearer token → `auth.type: "bearer"`, `auth.token: "Bearer eyJ..."`
+- Usuário/senha → `auth.type: "credentials"`, `auth.credentials: { email, password }`
+- API Key → `auth.type: "api_key"`, `auth.api_key: { value: "...", in: "header"|"query", name: "X-API-Key"|"api_key" }`
+- OAuth2 client_credentials → `auth.type: "oauth2_cc"`, `auth.oauth2: { token_url, client_id, client_secret, scope }`
+- mTLS → `auth.type: "mtls"`, `auth.mtls: { cert: "/...", key: "/...", ca: "/..."|null }`
+- Sem auth → `auth: null`
+
+**Repasse ao contexto dos executores** o campo `auth` completo com `type` preenchido. Os executores devem usar `auth.type` para selecionar a estratégia correta de autenticação no código gerado.
+
+================================================================================
+█ CRÍTICO 2 — Etapa 2b: pergunta proativa sobre SSL/TLS
+================================================================================
+
+PROBLEMA: A Etapa 2b só pergunta sobre VPN/proxy/certificado se houver indicação
+nos steps. Ambientes com certificado autoassinado falham com SSLError em todos os
+executores sem nenhum aviso prévio.
+
+LOCALIZAR:
+
+### 2b — Acesso ao ambiente
+
+Verifique se há qualquer indicação de restrição de acesso nos steps (VPN, rede interna, certificado autoassinado, proxy, IP allowlist). Se houver menção ou ambiguidade, inclua na pergunta:
+
+> "O ambiente requer VPN, proxy ou acesso via rede interna? Se sim, descreva como acessá-lo."
+
+SUBSTITUIR POR:
+
+### 2b — Acesso ao ambiente
+
+**Sempre inclua na pergunta ao usuário** (independentemente do que estiver nos steps):
+
+> "O ambiente tem alguma restrição de acesso ou configuração especial de TLS?
+> - **VPN / rede interna:** requer VPN ou IP allowlist? (S/N — se S, descreva)
+> - **Certificado autoassinado ou CA privada:** o ambiente usa HTTPS com certificado não reconhecido por CAs públicas? (S/N — se S, informe o caminho do arquivo `.crt`/`.pem` da CA, ou confirme `verify=False` para ignorar a verificação)
+> - **Proxy corporativo:** requisições devem passar por proxy? (S/N — se S, informe `http://proxy:porta`)"
+
+Armazene:
+- `environment_notes`: descrição livre da VPN/rede (se houver)
+- `ssl_verify`: `true` (padrão) | `false` (ignorar verificação) | `"/caminho/ca.pem"` (CA customizada)
+- `proxy`: `"http://proxy:porta"` | `null`
+
+**Repasse `ssl_verify` e `proxy` no contexto de execução** enviado a cada executor. Os executores devem usar `ssl_verify` ao configurar `requests.Session`, `page.context` e scripts k6 — nunca hardcode `verify=False` sem que o usuário tenha autorizado.
+
+Atualize o schema do contexto adicionando os dois campos após `environment_notes`:
+
+```
+  ssl_verify: true | false | "/caminho/ca.pem",   // configuração TLS do ambiente
+  proxy: "http://proxy:porta" | null,              // proxy corporativo, se houver
+```
+
+================================================================================
+█ CRÍTICO 3 — Etapa 2c: autenticação por domínio quando multi_url: true
+================================================================================
+
+PROBLEMA: Quando a suite cobre múltiplos domínios (multi_url: true), o orquestrador
+coleta um único objeto `auth` global. Domínios diferentes frequentemente exigem
+credenciais diferentes, resultando em 401 silencioso em parte dos executores.
+
+LOCALIZAR a linha exata dentro do bloco "### Envio da pergunta":
+
+Se houver qualquer item pendente dos itens 2a–2g, **agrupe tudo em uma única mensagem** e aguarde a resposta do usuário antes de continuar. Não prossiga com dados assumidos ou incompletos.
+
+ADICIONAR imediatamente ANTES dessa linha (como novo parágrafo):
+
+### 2c.1 — Autenticação por domínio (multi_url)
+
+**Aplique somente quando `multi_url: true`.**
+
+Após confirmar o `url_map`, analise se os domínios distintos pertencem ao mesmo sistema de autenticação. Se houver domínios diferentes (ex: `reqres.in` e `restful-booker.herokuapp.com`), inclua na pergunta ao usuário:
+
+> "Os testes cobrem múltiplos domínios. Eles compartilham as mesmas credenciais?
+> - **Sim, mesmas credenciais para todos** → informe uma vez (será usada para todos os domínios)
+> - **Não, credenciais distintas por domínio** → informe para cada domínio:
+>   - `[domínio 1]`: [método de auth + credenciais]
+>   - `[domínio 2]`: [método de auth + credenciais]"
+
+Armazene:
+- **Credenciais compartilhadas** → `auth` (objeto único, como de costume); `auth_map: null`
+- **Credenciais distintas** → `auth: null`; `auth_map: { "https://dominio1.com": { type, token|credentials|api_key|... }, "https://dominio2.com": { ... } }`
+
+Ao despachar cada executor, resolva a auth por TC usando `auth_map` quando presente:
+```python
+for tc in tcs_do_executor:
+    domain = extrair_domínio(tc.get("resolved_base_url") or base_url)
+    tc["resolved_auth"] = auth_map.get(domain) if auth_map else auth
+```
+
+Adicione `auth_map` ao schema do contexto:
+```
+  auth_map: null | { "https://dominio.com": { type: "...", ... } },   // quando multi_url e auth distintas por domínio
+```
+
+================================================================================
+█ CRÍTICO 4 — Nova Etapa 2h: rate limiting
+================================================================================
+
+PROBLEMA: Não há coleta de informações sobre rate limit. Em suites com muitos TCs
+paralelos, o ambiente pode retornar 429 Too Many Requests no meio da execução,
+causando falhas que parecem flakiness mas são throttling.
+
+LOCALIZAR:
+
+### 2g — Mobile (quando houver testes mobile)
+
+ADICIONAR imediatamente ANTES dessa seção (como nova seção, depois da 2f):
+
+### 2h — Rate limiting (quando houver testes de API ou performance)
+
+**Se houver testes com executor `http` (integração), `k6`, `zap` ou `magnitude` com muitos TCs** (mais de 10 TCs para API, ou qualquer teste de performance/carga):
+
+Inclua na pergunta ao usuário:
+
+> "O ambiente possui rate limiting?
+> - **Não** → prosseguir normalmente
+> - **Sim** → informe o limite (ex: `100 req/min`, `10 req/s`) para que os executores adicionem delays entre requisições"
+
+Armazene como `rate_limit`:
+- `null` se não houver
+- `{ max_requests: 100, window: "1m" }` ou `{ max_requests: 10, window: "1s" }` se houver
+
+**Repasse `rate_limit` no contexto de execução.** Os executores devem:
+- `executor-api`: adicionar `time.sleep(60 / max_requests)` entre requests quando `rate_limit` não for null
+- `executor-performance`: ajustar `rate` ou `sleep()` no script k6 para não exceder o limite
+- `executor-seguranca`: adicionar delay entre verificações
+
+Adicione ao schema do contexto:
+```
+  rate_limit: null | { max_requests: 100, window: "1m" },   // throttling do ambiente, se houver
+```
+
+================================================================================
+█ CRÍTICO 5 — Etapa 2d: coleta do modo de execução do executor-banco
+================================================================================
+
+PROBLEMA: O executor-banco opera em dois modos (real = SELECT read-only em banco
+real; simulado = SQLite in-memory inferido). O orquestrador não coleta qual modo
+usar, deixando o executor decidir sozinho — o que pode causar execução real
+indesejada em ambiente de produção, ou execução simulada quando o usuário esperava
+real.
+
+LOCALIZAR:
+
+### 2d — Banco de dados
+
+Se houver testes classificados com executor `db`:
+
+1. **`DB_CONNECTION_STRING` presente no ambiente** → use diretamente.
+2. **Não presente** → inclua na pergunta:
+   > "Os testes de banco ([IDs afetados]) requerem string de conexão. Forneça no formato: `postgresql://user:pass@host:5432/db` (ou equivalente para MySQL/SQLite/SQL Server). Se preferir, configure a variável `DB_CONNECTION_STRING`."
+
+SUBSTITUIR POR:
+
+### 2d — Banco de dados
+
+Se houver testes classificados com executor `db`:
+
+Inclua sempre na pergunta ao usuário:
+
+> "Os testes de banco ([IDs afetados]) podem ser executados em dois modos:
+>
+> **1. Real (recomendado para staging/qa)** — conecta a um banco real via string de conexão e executa SELECTs de verificação. Requer:
+>    - String de conexão: `postgresql://user:pass@host:5432/db` (ou MySQL/SQLite/SQL Server equivalente)
+>    - O banco deve estar acessível e as tabelas já populadas
+>
+> **2. Simulado** — cria um banco SQLite in-memory, infere o schema a partir dos steps e valida a lógica sem conexão real. Útil para ambientes sem acesso ao banco.
+>
+> Qual modo deseja usar? (padrão: **Simulado** se não houver string de conexão)"
+
+**Resolução:**
+- **Modo real escolhido ou `DB_CONNECTION_STRING` já presente** → `banco_mode: "real"`, use a connection string diretamente
+- **Modo simulado escolhido ou string ausente** → `banco_mode: "simulated"`, `db_connection: null`
+
+Adicione `banco_mode` ao schema do contexto:
+```
+  banco_mode: "real" | "simulated",   // modo de execução do executor-banco
+```
+
+**Repasse `banco_mode` no contexto enviado ao `executor-banco`.** O executor deve respeitar o modo indicado sem perguntar novamente.
+
+================================================================================
+▲ ALTO 1 — Etapa 2c: headers customizados
+================================================================================
+
+PROBLEMA: Não há forma de passar headers customizados globais (X-Tenant-ID,
+X-Request-ID fixo, Accept-Language, etc.) que devem acompanhar todas as
+requisições. Executores ignoram esses headers e os testes retornam 400/404
+inesperados em ambientes multi-tenant.
+
+LOCALIZAR a linha que encerra a seção 2c (a última linha antes de "### 2d"):
+
+**Repasse ao contexto dos executores** o campo `auth` completo com `type` preenchido. Os executores devem usar `auth.type` para selecionar a estratégia correta de autenticação no código gerado.
+
+ADICIONAR logo após essa linha (como parágrafo separado, ainda dentro de 2c):
+
+**Headers customizados globais:** se o ambiente exigir headers adicionais em todas as requisições (além da autenticação), inclua na pergunta ao usuário:
+
+> "O ambiente requer headers HTTP customizados em todas as requisições? (ex: `X-Tenant-ID: acme`, `Accept-Language: pt-BR`, `X-App-Version: 2.0`)
+> - Informe no formato `Nome-Header: valor` (um por linha), ou deixe em branco se não houver."
+
+Armazene como `custom_headers: { "X-Tenant-ID": "acme", ... }` | `null`.
+
+Adicione ao schema do contexto:
+```
+  custom_headers: null | { "Header-Name": "valor" },   // headers globais injetados em todas as requisições
+```
+
+**Repasse `custom_headers` no contexto de todos os executores.** Cada executor deve injetar esses headers em toda requisição gerada (antes dos headers de autenticação).
+
+================================================================================
+▲ ALTO 2 — Etapa 2f: configuração de timeout por requisição
+================================================================================
+
+PROBLEMA: Nenhum timeout global é coletado. Em ambientes lentos (staging sobrecarregado,
+redes com alta latência), os executores usam seus próprios defaults (5–30s) e os testes
+falham com timeout sem que o usuário tenha controle sobre esse parâmetro.
+
+LOCALIZAR dentro da seção 2f:
+
+> **Permissão geral de execução:**
+> "Para executar os testes, precisarei realizar as seguintes operações sem pedir confirmação individual a cada passo:
+
+ADICIONAR imediatamente ANTES desse bloco (como novo item na lista da 2f):
+
+> **Timeouts de execução:**
+> - "Qual o timeout máximo por requisição HTTP? (padrão: `30s` — aumente para ambientes lentos, ex: `60s`, `120s`)"
+> - *(somente se houver testes browser/visual/acessibilidade)* "Qual o timeout máximo por ação de browser (cliques, navegação, espera de elemento)? (padrão: `30s`)"
+
+Armazene:
+- `request_timeout_ms`: `30000` (padrão) ou valor informado pelo usuário em ms
+- `browser_timeout_ms`: `30000` (padrão) ou valor informado (somente se houver testes browser)
+
+Adicione ao schema do contexto:
+```
+  request_timeout_ms: 30000,    // timeout HTTP por requisição, em ms
+  browser_timeout_ms: 30000,    // timeout de ações de browser, em ms (null se não houver testes browser)
+```
+
+**Repasse ambos os campos no contexto de todos os executores.** Cada executor deve aplicar esses valores:
+- `executor-api`, `executor-seguranca`: `requests.get(url, timeout=request_timeout_ms/1000)`
+- `executor-browser`, `executor-visual`, `executor-acessibilidade`: `page.setDefaultTimeout(browser_timeout_ms)`
+- `executor-performance`: `http.get(url, { timeout: request_timeout_ms })`
+
+================================================================================
+▲ ALTO 3 — Etapa 2e: detecção de pré-condições de dados de teste
+================================================================================
+
+PROBLEMA: Steps do tipo "Given que existe um usuário cadastrado com email X" ou
+"Dado que o produto ID 42 está no catálogo" são tratados como simples contexto
+de leitura. Quando o dado não existe no ambiente, o teste falha com 404/assertion
+e o motivo real (dado ausente, não bug) é opaco para o usuário.
+
+LOCALIZAR:
+
+### 2e — Dúvidas dos steps
+
+Leia todos os steps dos testes classificados. Se algum step for ambíguo ou der margem a interpretações que mudariam o resultado do teste (ex: "verifique se funciona", "acesse a área administrativa", "use o usuário de teste" sem especificar qual), inclua na pergunta:
+
+> "O step '[trecho do step]' do teste [ID] não está claro. [pergunta específica para desambiguar]."
+
+SUBSTITUIR POR:
+
+### 2e — Dúvidas dos steps e pré-condições de dados
+
+Leia todos os steps dos testes classificados. Realize duas varreduras:
+
+**Varredura 1 — Ambiguidades:** se algum step for ambíguo ou der margem a interpretações que mudariam o resultado (ex: "verifique se funciona", "acesse a área administrativa", "use o usuário de teste" sem especificar qual), inclua na pergunta:
+> "O step '[trecho do step]' do teste [ID] não está claro. [pergunta específica para desambiguar]."
+
+**Varredura 2 — Pré-condições de dados:** detecte steps que **pressupõem existência prévia de dados** no ambiente. Padrões típicos: "Given que existe um [entidade] com [atributo]", "Dado que o [recurso] ID [N] está cadastrado", "Assumindo que o usuário [email] já foi criado", "Dado que há pelo menos [N] registros na tabela". Se encontrar tais padrões, inclua na pergunta:
+
+> "O(s) teste(s) [IDs] assumem que os seguintes dados já existem no ambiente:
+> [lista de pré-condições detectadas, uma por linha]
+>
+> Por favor confirme:
+> - **Os dados já existem no ambiente** → prosseguir normalmente
+> - **Os dados precisam ser criados** → informe como criá-los (endpoint, script SQL, fixture), ou autorize o executor a tentar criá-los via API antes de cada teste
+> - **Não sei** → o executor marcará o TC como `skipped` com razão `precondition_unknown` se o dado não for encontrado"
+
+Armazene a resposta como `preconditions_strategy: "assume_exists" | "create_via_api" | "skip_if_missing"` (padrão: `"assume_exists"`).
+
+Adicione ao schema do contexto:
+```
+  preconditions_strategy: "assume_exists" | "create_via_api" | "skip_if_missing",
+```
+
+================================================================================
+● MÉDIO 1 — Etapa 2.9 (Pré-validação): verificação de binários instalados
+================================================================================
+
+PROBLEMA: Os executores tentam usar k6, Playwright, Python etc. sem verificar se
+estão instalados. Quando um binário está ausente, o subagente gera o código,
+tenta executar e retorna erro de "command not found" depois de minutos de
+processamento — sem diagnóstico claro.
+
+LOCALIZAR dentro da Etapa 2.9, logo após o bloco "#### 0) Health check do ambiente" (após a linha "Aguarde confirmação. Se o usuário confirmar, prossiga mesmo assim..."):
+
+#### A) Validação rápida de TCs (fail-fast)
+
+ADICIONAR imediatamente ANTES de "#### A)" (como nova seção #### entre o health check e o fail-fast):
+
+#### 0.5) Verificação de binários (fail-fast por executor)
+
+Para cada executor que será despachado, verifique silenciosamente se o binário necessário está disponível:
+
+```python
+import shutil, subprocess
+
+binarios = {
+    "executor-browser":       [("node", "--version"), ("npx", "--version")],
+    "executor-api":           [("python", "--version")],
+    "executor-performance":   [("k6", "version")],
+    "executor-visual":        [("node", "--version"), ("npx", "--version")],
+    "executor-acessibilidade":[("node", "--version"), ("npx", "--version")],
+    "executor-seguranca":     [("python", "--version")],
+    "executor-banco":         [("python", "--version")],
+    "executor-mobile":        [("python", "--version")],
+}
+
+binarios_ausentes = {}
+for executor, cmds in binarios.items():
+    if executor not in executores_a_despachar:
+        continue
+    ausentes = []
+    for cmd in cmds:
+        try:
+            subprocess.run(cmd, capture_output=True, timeout=5)
+        except (FileNotFoundError, subprocess.TimeoutExpired):
+            ausentes.append(cmd[0])
+    if ausentes:
+        binarios_ausentes[executor] = ausentes
+```
+
+- **Se `binarios_ausentes` estiver vazio** → prossiga normalmente.
+- **Se houver binários ausentes** → exiba ao usuário **antes** de despachar qualquer executor:
+  > ⚠️ **Binários ausentes detectados — os seguintes executores não poderão rodar:**
+  > [para cada executor com binário ausente]:
+  > - `[executor]` → requer `[binário]` — instale com: `[sugestão de instalação]`
+  >
+  > Sugestões de instalação:
+  > - `node` / `npx`: `https://nodejs.org` ou `winget install OpenJS.NodeJS`
+  > - `k6`: `winget install k6` (Windows) | `brew install k6` (macOS)
+  > - `python`: `https://python.org` ou `winget install Python.Python.3`
+  >
+  > **Deseja prosseguir sem os executores acima (eles serão marcados como `skipped`), ou cancelar para instalar os binários?**
+
+  Se o usuário optar por prosseguir → marque os TCs dos executores afetados como `skipped` com razão `binary_missing` e não os despache.
+  Se cancelar → encerre sem despachar nenhum executor.
+
+================================================================================
+● MÉDIO 2 — Etapa 3: roteamento explícito para pact e parameterized
+================================================================================
+
+PROBLEMA: O `pact` é registrado como "não executado" mas sem orientação ao usuário
+sobre como proceder. O `parameterized` usa executor-browser como fallback ambíguo,
+o que pode estar errado para suites de API parametrizadas.
+
+LOCALIZAR dentro da tabela de roteamento da Etapa 3 (a linha que menciona pact):
+
+| `pact` | não execute — registre como não executado: tipo `contrato (Pact)`, motivo `Requer Pact Broker` |
+
+SUBSTITUIR POR:
+
+| `pact` | não execute — registre como não executado com status `skipped` e motivo `Requer Pact Broker`. Exiba ao usuário: > "⚠️ [N] teste(s) de contrato Pact ([IDs]) não foram executados — o squad não suporta Pact Broker. Para executá-los, use o CLI `pact-js` ou `pact-python` diretamente. Os resultados foram omitidos do relatório." |
+
+LOCALIZAR a linha seguinte:
+
+| `parameterized` | Analise os steps para determinar o executor base: navegação de UI / formulários / verificações visuais → `executor-browser`; requisições HTTP / endpoints / status codes → `executor-api`. Se ambíguo, use `executor-browser`. Passe os conjuntos de dados dos steps como parâmetro adicional no contexto. |
+
+SUBSTITUIR POR:
+
+| `parameterized` | Analise os steps para determinar o executor base: **navegação de UI, formulários, seletores CSS/XPath, cliques, verificações visuais** → `executor-browser`; **requisições HTTP, endpoints, status codes, JSON response** → `executor-api`; **verificações de banco com múltiplos datasets** → `executor-banco`. Se ambíguo após essa análise, exiba ao usuário: > "O teste [ID] é parametrizado mas seu tipo base é ambíguo. Deve rodar como: (1) teste de browser — UI/formulário, (2) teste de API — HTTP/endpoints, ou (3) teste de banco?" Aguarde resposta antes de despachar. Passe os conjuntos de dados dos steps como `data_sets: [...]` no contexto do executor. |
+
+================================================================================
+● MÉDIO 3 — Etapa 0: controle de paralelismo
+================================================================================
+
+PROBLEMA: O único controle de paralelismo é lean (sequencial) vs. full (paralelo).
+Não há como limitar o número de workers em modo full para ambientes que travam
+com muitas conexões simultâneas, ou para usuários que querem execução semi-paralela.
+
+LOCALIZAR dentro da Etapa 0, após a linha que define lean_mode e output_path:
+
+**Se o usuário não responder ou a mensagem vier com prefixo `--lean`:** defina `lean_mode: true` automaticamente.
+**Se vier com prefixo `--full`:** defina `lean_mode: false` automaticamente, sem perguntar.
+
+ADICIONAR logo após essa linha (como novo parágrafo):
+
+**Controle de workers (somente no modo Suite completa):** se `lean_mode: false`, após receber a escolha do usuário, inclua na mesma mensagem da Etapa 0:
+
+> "Quantos executores deseja rodar em paralelo? (padrão: **todos em paralelo** — reduza se o ambiente travar com muitas conexões simultâneas, ex: `2`, `3`)"
+
+Armazene como `max_parallel_executors: null` (sem limite, padrão) | `N` (número inteiro informado pelo usuário).
+
+Se `max_parallel_executors` for informado e `lean_mode: false`, despache os executores em **grupos de no máximo N**, aguardando o grupo anterior terminar antes de despachar o próximo.
+
+Se `lean_mode: true`, `max_parallel_executors` é ignorado (já é sequencial por definição).
+
+Adicione ao schema do contexto:
+```
+  max_parallel_executors: null | 2,   // null = sem limite; N = máximo N executores simultâneos
+```
+
+================================================================================
+◌ BAIXO 1 — Etapa 2.9: detecção de URL de produção
+================================================================================
+
+PROBLEMA: Não há nenhum aviso quando a base_url parece ser de produção. Usuários
+que enviam TCs com URL de produção por engano executam testes destrutivos sem
+alerta.
+
+LOCALIZAR dentro da seção "#### 0) Health check do ambiente", após a linha:
+
+- **Se `env_reachable: true`** → prossiga normalmente.
+
+ADICIONAR logo após essa linha (antes da linha "- **Se `env_reachable: false`**"):
+
+- **Se `env_reachable: true` e a URL parece ser de produção** → exiba aviso antes de prosseguir:
+
+  Detecte ambiente de produção se a URL **não** contiver nenhum dos seguintes padrões: `staging`, `stage`, `stg`, `dev`, `development`, `test`, `tst`, `qa`, `uat`, `sandbox`, `local`, `localhost`, `127.0.0.1`, `192.168.`, `10.`, `preview`, `demo`, `homolog`, `hml`.
+
+  ```python
+  ambientes_nao_prod = ["staging","stage","stg","dev","development","test","tst",
+                         "qa","uat","sandbox","local","localhost","127.0.0.1",
+                         "192.168.","10.","preview","demo","homolog","hml"]
+  parece_producao = not any(p in base_url.lower() for p in ambientes_nao_prod)
+  ```
+
+  Se `parece_producao: true`:
+  > ⚠️ **Atenção: a URL `[base_url]` parece ser de produção.**
+  > Executar testes automatizados em produção pode gerar dados indesejados, acionar alertas ou impactar usuários reais.
+  >
+  > Confirme: **Esta é realmente a URL de produção?** (S = prosseguir mesmo assim / N = cancelar e informar a URL correta)
+
+  Se o usuário confirmar → prossiga e registre `environment_type: "production"` no contexto.
+  Se cancelar → encerre sem despachar executores.
+
+================================================================================
+◌ BAIXO 2 — Etapa 2f: configuração de retry para testes flaky
+================================================================================
+
+PROBLEMA: Testes flaky (rede instável, animações de UI, timing) falham uma vez e
+são reportados como failures definitivos. Não há como configurar retry sem alterar
+os agentes executores diretamente.
+
+LOCALIZAR dentro da seção 2f, logo após o bloco de "Permissão geral de execução":
+
+Se o usuário não informar um diretório, use `"."` (diretório atual). Armazene a resposta como `code_output_dir`.
+
+ADICIONAR imediatamente ANTES dessa linha:
+
+> **Retry de testes com falha:**
+> - *(somente se `lean_mode: false`)* "Deseja fazer retry automático de testes que falharem? (padrão: **0 retries** — se sim, informe quantas tentativas: `1`, `2` ou `3`)"
+
+Armazene como `retry_count: 0` (padrão) | N (número informado).
+
+Se `lean_mode: true`, `retry_count` é sempre `0` (sem retry em modo enxuto).
+
+Adicione ao schema do contexto:
+```
+  retry_count: 0,   // número de retries automáticos para testes com falha (0 = sem retry)
+```
+
+**Repasse `retry_count` no contexto de todos os executores.** Os executores devem configurar:
+- `executor-browser` / `executor-visual` / `executor-acessibilidade`: `retries: N` no `playwright.config`
+- `executor-api` / `executor-seguranca` / `executor-banco`: loop de retry manual com `for attempt in range(retry_count + 1)`
+- `executor-performance`: não aplica retry (k6 não tem retry nativo por TC)
+
+================================================================================
+◌ BAIXO 3 — Etapa 2f: opção de limpeza de dados de teste
+================================================================================
+
+PROBLEMA: Testes que criam dados (POST /users, POST /bookings etc.) poluem o
+ambiente com registros de teste após cada execução. Não há opção para limpar esses
+dados ao final — o que se acumula em ambientes de staging compartilhados.
+
+LOCALIZAR dentro da seção 2f, imediatamente após a linha que trata de retry_count (adicionada na correção anterior):
+
+Se o usuário não informar um diretório, use `"."` (diretório atual). Armazene a resposta como `code_output_dir`.
+
+ADICIONAR imediatamente ANTES dessa linha:
+
+> **Limpeza de dados de teste (teardown):**
+> - *(somente se `lean_mode: false` e houver testes de API ou browser que criam dados)* "Deseja que os executores tentem remover os dados criados durante os testes ao final de cada suite? (padrão: **N** — somente marque S se o ambiente tiver endpoints de exclusão disponíveis)"
+
+Armazene como `teardown_enabled: false` (padrão) | `true`.
+
+Se `lean_mode: true`, `teardown_enabled` é sempre `false`.
+
+Adicione ao schema do contexto:
+```
+  teardown_enabled: false,   // true = executores devem remover dados criados durante os testes
+```
+
+**Repasse `teardown_enabled` no contexto de `executor-api` e `executor-browser`.** Quando `true`, o executor deve:
+1. Ao longo dos testes, registrar os IDs de todos os recursos criados (usuários, bookings, etc.)
+2. Ao final de todos os TCs, executar requisições DELETE para cada recurso registrado
+3. Reportar no JSON de resultado o campo `teardown: { deleted: N, failed: M }` no summary
+
+================================================================================
+VERIFICAÇÃO FINAL
+================================================================================
+
+Após aplicar todas as alterações, confirme:
+
+CRÍTICOS:
+1. Etapa 2c — lista 6 tipos de auth (bearer, credentials, api_key, oauth2_cc, mtls, sem auth) com armazenamento distinto por tipo
+2. Etapa 2b — sempre faz as três perguntas (VPN, SSL/TLS, proxy), não condicional aos steps; schema tem ssl_verify e proxy
+3. Etapa 2c.1 — presente antes de "### Envio da pergunta"; coleta auth_map quando multi_url: true e domínios distintos
+4. Etapa 2h — presente antes de "### 2g — Mobile"; coleta rate_limit e repassa a executor-api, executor-performance, executor-seguranca
+5. Etapa 2d — apresenta opção real vs simulado; armazena banco_mode; repassa ao executor-banco
+
+ALTOS:
+6. Etapa 2c — tem parágrafo de custom_headers com armazenamento e instrução de repasse a todos os executores
+7. Etapa 2f — tem perguntas de request_timeout_ms e browser_timeout_ms antes da permissão geral; schema tem ambos os campos
+8. Etapa 2e — tem "Varredura 1" (ambiguidades) e "Varredura 2" (pré-condições); armazena preconditions_strategy
+
+MÉDIOS:
+9.  Etapa 2.9 — tem seção "#### 0.5) Verificação de binários" entre o health check e o "#### A)"; lista binários por executor e orienta instalação
+10. Tabela da Etapa 3 — pact exibe mensagem ao usuário com orientação; parameterized tem lógica de 3 vias e pergunta ao usuário se ambíguo
+11. Etapa 0 — tem pergunta de max_parallel_executors após a escolha lean/full; schema tem o campo; lógica de agrupamento em grupos de N
+
+BAIXOS:
+12. Etapa 2.9 health check — tem bloco parece_producao com lista de patterns e exibe aviso antes de prosseguir
+13. Etapa 2f — tem pergunta de retry_count (apenas lean_mode: false); schema tem o campo; instrução por executor
+14. Etapa 2f — tem pergunta de teardown_enabled (apenas lean_mode: false); schema tem o campo; instrução para executor-api e executor-browser

@@ -1,0 +1,34 @@
+{% extends 'base.html' %}
+{% block title %}— Cadastro{% endblock %}
+{% block content %}
+<div class="card" style="width:440px; padding:2rem;">
+  <div class="text-center mb-4">
+    <h2 style="color:#1a2342; font-weight:700;">Nex<span style="color:#4da6ff">Bank</span></h2>
+    <p class="text-muted small">Crie sua conta</p>
+  </div>
+  {% if error %}
+  <div class="alert alert-danger py-2">{{ error }}</div>
+  {% endif %}
+  <form method="POST">
+    <div class="mb-3">
+      <label class="form-label fw-semibold">Usuário</label>
+      <input name="username" class="form-control" placeholder="escolha um usuário">
+    </div>
+    <div class="mb-3">
+      <label class="form-label fw-semibold">E-mail</label>
+      <input name="email" type="email" class="form-control" placeholder="seu@email.com">
+    </div>
+    <div class="mb-3">
+      <label class="form-label fw-semibold">Senha</label>
+      <input name="password" type="password" class="form-control" placeholder="••••••••">
+    </div>
+    <div class="mb-4">
+      <label class="form-label fw-semibold">Pergunta de segurança: <span class="text-muted fw-normal">Qual sua cor favorita?</span></label>
+      <input name="sec_ans" class="form-control" placeholder="resposta">
+    </div>
+    <button class="btn btn-primary w-100 py-2">Criar conta</button>
+  </form>
+  <hr class="my-3">
+  <p class="text-center small text-muted mb-0">Já tem conta? <a href="/login">Entrar</a></p>
+</div>
+{% endblock %}

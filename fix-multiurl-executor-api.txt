@@ -1,0 +1,30 @@
+Faça a seguinte alteração no arquivo agents/executor-api.md.
+Não altere nenhum outro trecho além do indicado.
+
+=== ALTERAÇÃO — Prioridade 0: ler resolved_base_url por TC quando multi_url=true ===
+
+LOCALIZAR este trecho exato dentro da seção "### Prioridade 0 — Contexto do orquestrador":
+
+- `base_url` → defina `BASE_URL` no `.env`, não pergunte
+
+SUBSTITUIR POR:
+
+- `base_url` → defina `BASE_URL` no `.env`, não pergunte
+- `multi_url` → se `true`, diferentes TCs podem ter URLs base distintas; nesse caso leia o campo `resolved_base_url` de cada TC (injetado pelo orquestrador) para determinar a URL correta de cada requisição — não use `BASE_URL` do `.env` como prefixo global quando `multi_url: true`
+- `url_map` → dicionário de TC → URL disponível para referência; use `tc.resolved_base_url` no código gerado em vez de referenciar o mapa diretamente
+
+
+=== ALTERAÇÃO — Geração de código: usar resolved_base_url por TC ===
+
+LOCALIZAR a instrução que orienta o agente a gerar o código de teste (a seção que descreve como montar as requisições HTTP com baseURL). Ela deve conter referência a `process.env.BASE_URL` ou `BASE_URL`.
+
+ADICIONAR logo após essa instrução (como parágrafo separado):
+
+> **Multi-URL:** quando o contexto contiver `multi_url: true`, cada TC pode ter uma URL base diferente definida em `resolved_base_url`. Nesse caso, ao gerar o código de cada teste, use `tc.resolved_base_url` como URL base daquele TC em vez de `process.env.BASE_URL`. Se dois ou mais TCs tiverem o mesmo `resolved_base_url`, agrupe-os em um mesmo `request.newContext({ baseURL: resolved_base_url })`. Se cada TC tiver um domínio único, crie um contexto separado por TC. Quando `multi_url: false` ou ausente, mantenha o comportamento atual com `BASE_URL` único do `.env`.
+
+
+=== VERIFICAÇÃO APÓS APLICAR ===
+
+Confirme que:
+1. O bullet de `base_url` na Prioridade 0 agora tem os bullets de `multi_url` e `url_map` logo abaixo
+2. A seção de geração de código menciona `resolved_base_url` e o agrupamento por contexto

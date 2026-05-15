@@ -1500,60 +1500,70 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
 
 ## Comparação histórica (delta vs. última execução)
 
-**Executar apenas quando `lean_mode: false`.** Se `lean_mode: true`, pule completamente esta seção.
+**Apenas quando `lean_mode: false`.**
 
-Ao gerar o relatório, tente carregar o arquivo `.qa_history.json`:
+Ao gerar o relatório, antes de finalizar o HTML, execute a lógica de delta histórico usando os dados reais do input recebido (o JSON consolidado dos executores).
+
 ```python
 import json, os
+from datetime import datetime
 
-history_path = os.path.join(suite_dir or ".", ".qa_history.json") if suite_dir else ".qa_history.json"
+# Extrai do JSON de entrada do reporter:
+# - 'all_results': lista de todos os TCs com {id, status, executor, ...}
+# - 'suite_summary': objeto com {total, passed, failed, skipped, ...}
+# Use os nomes reais presentes no JSON recebido — adapte se necessário.
+all_results   = input_data.get("results") or input_data.get("all_results") or []
+suite_summary = input_data.get("summary") or {}
+
+suite_dir = input_data.get("suite_dir") or ""
+history_path = os.path.join(suite_dir, ".qa_history.json") if suite_dir else ".qa_history.json"
+
 previous_run = None
 if os.path.exists(history_path):
     try:
         with open(history_path) as f:
             history = json.load(f)
         if isinstance(history, list) and len(history) > 0:
-            previous_run = history[-1]  # última execução
+            previous_run = history[-1]
     except Exception:
         previous_run = None
-```
 
-Se `previous_run` existir, calcule o delta:
-```python
 delta = None
 if previous_run:
     prev_passed = previous_run.get("summary", {}).get("passed", 0)
     prev_total  = previous_run.get("summary", {}).get("total", 1)
-    curr_passed = summary.get("passed", 0)
-    curr_total  = summary.get("total", 1)
-    prev_rate = round(prev_passed / prev_total * 100, 1) if prev_total else 0
-    curr_rate = round(curr_passed / curr_total * 100, 1) if curr_total else 0
+    curr_passed = suite_summary.get("passed", 0)
+    curr_total  = suite_summary.get("total", 1)
+    prev_rate = round(prev_passed / max(prev_total, 1) * 100, 1)
+    curr_rate = round(curr_passed / max(curr_total, 1) * 100, 1)
     delta = {
         "prev_rate": prev_rate,
         "curr_rate": curr_rate,
         "diff": round(curr_rate - prev_rate, 1),
         "prev_date": previous_run.get("date", "—"),
         "regressed": [
-            tc["id"] for tc in current_results
-            if tc.get("status") == "failed"
-            and any(h.get("id") == tc["id"] and h.get("status") == "passed"
+            r["id"] for r in all_results
+            if r.get("status") == "failed"
+            and any(h.get("id") == r["id"] and h.get("status") == "passed"
                     for h in previous_run.get("results", []))
         ]
     }
-```
 
-Use os valores de `delta` para preencher o **banner de delta** no HTML (logo abaixo do hero/donut chart — ver bloco comentado na seção `<!-- ── DELTA BANNER ──`):
-- Se `delta.diff > 0`: banner verde "↑ +X.X% vs. execução anterior ([data])"
-- Se `delta.diff < 0`: banner vermelho "↓ X.X% vs. execução anterior ([data]) — TCs regredidos: [IDs]"
-- Se `delta.diff == 0`: banner neutro "= Sem variação vs. execução anterior ([data])"
-- Se `previous_run` for None: não exibir banner (execução inicial)
+# Banner HTML (inserir logo após o hero/donut no HTML gerado):
+# - delta.diff > 0  → banner verde:   "↑ +X.X% vs. execução anterior ([data])"
+# - delta.diff < 0  → banner vermelho: "↓ X.X% vs. execução anterior ([data]) — Regredidos: [IDs]"
+# - delta.diff == 0 → banner neutro:  "= Sem variação vs. execução anterior ([data])"
+# - delta é None    → não exibir banner (primeira execução)
 
-Ao final do relatório, salve a execução atual no histórico:
-```python
+# Salva execução atual no histórico
 current_entry = {
     "date": datetime.now().isoformat(),
-    "summary": summary,
-    "results": [{"id": r["id"], "status": r["status"]} for r in current_results]
+    "summary": {
+        "total":  suite_summary.get("total", 0),
+        "passed": suite_summary.get("passed", 0),
+        "failed": suite_summary.get("failed", 0),
+    },
+    "results": [{"id": r.get("id"), "status": r.get("status")} for r in all_results]
 }
 history_list = []
 if os.path.exists(history_path):
@@ -1562,11 +1572,15 @@ if os.path.exists(history_path):
             history_list = json.load(f)
     except Exception:
         history_list = []
+if not isinstance(history_list, list):
+    history_list = []
 history_list.append(current_entry)
-# Manter apenas as últimas 10 execuções
-history_list = history_list[-10:]
-with open(history_path, "w") as f:
-    json.dump(history_list, f, indent=2, ensure_ascii=False)
+history_list = history_list[-10:]  # mantém as 10 últimas execuções
+try:
+    with open(history_path, "w") as f:
+        json.dump(history_list, f, indent=2, ensure_ascii=False)
+except Exception:
+    pass  # nunca falhar por causa do histórico
 ```
 
 ---

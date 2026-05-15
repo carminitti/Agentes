@@ -492,6 +492,20 @@ if SUITE_DIR:
         json.dumps(output, indent=2, ensure_ascii=False), encoding="utf-8"
     )
 
+# ── Cleanup de consumer groups (Kafka) ───────────────────────────────────────
+# Executar APÓS salvar resultado.json — nunca antes.
+# Apenas para Kafka — ignorar para RabbitMQ/SQS/Service Bus
+# Apenas se teardown_enabled não for explicitamente false no contexto
+_teardown_enabled = True  # substituir por: context.get("teardown_enabled", True)
+if QUEUE_TYPE == "kafka" and _teardown_enabled and GROUP_ID.startswith("qa-test-"):
+    try:
+        from kafka.admin import KafkaAdminClient
+        admin = KafkaAdminClient(bootstrap_servers=BROKERS)
+        admin.delete_consumer_groups([GROUP_ID])
+        admin.close()
+    except Exception:
+        pass  # cleanup é best-effort; nunca falhar o teste por isso
+
 print(json.dumps(output, ensure_ascii=False))
 ```
 
@@ -556,6 +570,18 @@ A partir dos steps de cada TC recebido, gere funções específicas para os padr
 - **Campos de data/hora:** ao validar timestamps no payload, aceite formatos ISO 8601 (`2026-05-15T10:30:00Z`) ou epoch em ms/s. Use `datetime.fromisoformat` para parsing quando necessário.
 - **Mensagens com envelope:** brokers como SQS e Service Bus frequentemente envolvem o payload em um campo `Body` ou adicionam metadados. Ao usar `match_fn`, considere que o payload real pode estar em `msg["body"]` ou `json.loads(msg["Body"])`.
 - **Resultado final:** o orquestrador só considera esta execução se `resultado.json` existir e for legível em `[suite_dir]/queue/resultado.json`.
+- **Cleanup de consumer groups (Kafka):** ao final da execução, se o broker for Kafka e o `group_id` for do padrão `qa-test-{timestamp}`, tente deletar o consumer group criado:
+  ```python
+  # Apenas para Kafka — ignorar para RabbitMQ/SQS/Service Bus
+  try:
+      from kafka.admin import KafkaAdminClient
+      admin = KafkaAdminClient(bootstrap_servers=bootstrap_servers)
+      admin.delete_consumer_groups([group_id])
+      admin.close()
+  except Exception:
+      pass  # cleanup é best-effort; nunca falhar o teste por isso
+  ```
+  Execute o cleanup **após** salvar o JSON de resultados, nunca antes. Se o `teardown_enabled` do contexto for `false` (ou ausente), pule o cleanup.
 
 ---
 

@@ -57,6 +57,7 @@ Se essa seção estiver presente:
 - `auth.token` → use diretamente nos testes de autorização (403), não pergunte nada
 - `auth.credentials` → gere o token automaticamente via `auto_get_token()`, não pergunte nada
 - `suite_dir` → se presente, use `[suite_dir]/seguranca/` como diretório de artefatos; crie com `os.makedirs`
+- `max_parallel_executors` → se presente e > 1 (e `rate_limit` for null), execute os TCs em paralelo usando `ThreadPoolExecutor(max_workers=min(max_parallel_executors, 5))`. Se `rate_limit` não for null, execute sequencialmente. Padrão: sequencial (1 worker).
 - `environment_notes` → aplique as regras abaixo conforme palavras-chave:
   - Contém `certificado`, `SSL`, `autoassinado` ou `self-signed` → defina `_ssl_bypass = True` antes de criar `safe_request()` para que ela inicie direto com `verify=False` sem esperar o `SSLError`; registre `ssl_warning` com a mensagem padrão
   - Contém `VPN` ou `proxy` → adicione `[ENV] Ambiente pode exigir VPN/proxy` nos logs; se testes falharem com erro de conexão, inclua `"Possível causa: acesso via VPN/proxy necessário"` no campo `error`
@@ -316,6 +317,24 @@ def run_checks_parallel(check_fns):
                 results.append({"error": str(e), "status": "error"})
     return results
 ```
+
+**Execução paralela (max_parallel_executors):** quando `max_parallel_executors > 1` e `rate_limit` for null, gere o código usando `ThreadPoolExecutor`:
+```python
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import os
+
+max_workers = min(int(os.environ.get("MAX_PARALLEL_EXECUTORS", "1")), 5)
+
+if max_workers > 1 and not rate_limit:
+    with ThreadPoolExecutor(max_workers=max_workers) as pool:
+        futures = {pool.submit(run_tc, tc): tc for tc in test_cases}
+        for future in as_completed(futures):
+            results.append(future.result())
+else:
+    for tc in test_cases:
+        results.append(run_tc(tc))
+```
+Garanta que `run_tc` use apenas variáveis locais (não compartilhe estado mutável entre threads).
 
 > **Multi-URL:** quando o contexto contiver `multi_url: true`, cada TC pode apontar para um domínio diferente. Ao gerar o código Python de verificação, use `tc.get("resolved_base_url", base_url)` como URL base de cada TC em vez da variável global `base_url`. Agrupe os TCs por domínio para reaproveitar a sessão `requests.Session()` por grupo. O campo `environment_type` deve ser determinado individualmente para cada URL do grupo.
 

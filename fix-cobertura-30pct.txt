@@ -1,0 +1,1099 @@
+Aplique as alterações abaixo nos arquivos do squad de QA para cobrir os 30% de cenários
+ainda não suportados: novos protocolos (WebSocket, gRPC, GraphQL), contrato real (Pact),
+segurança DAST (ZAP real), OAuth2 authorization_code via SSO, BrowserStack, geração de
+dados com Faker e histórico entre execuções.
+
+Execute na ordem indicada. Para seções "CRIAR ARQUIVO", crie o arquivo com o conteúdo
+exato especificado. Para seções "LOCALIZAR / SUBSTITUIR", edite o arquivo existente.
+
+================================================================================
+PARTE 1 — NOVOS EXECUTORES (criar 4 novos arquivos)
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+1.1 — CRIAR agents/executor-websocket.md
+────────────────────────────────────────────────────────────────────────────────
+
+Crie o arquivo agents/executor-websocket.md com o seguinte conteúdo exato:
+
+---
+name: executor-websocket
+description: Executa testes de WebSocket (ws:// e wss://): conexão, handshake, envio e recebimento de mensagens, verificação de frames, autenticação via token no header/query e encerramento de conexão.
+---
+
+Você executa testes de WebSocket em um ambiente real usando a biblioteca Python `websockets`.
+
+**Regra:** nunca faça perguntas ao usuário durante ou após a execução. A única exceção é antes de iniciar: se alguma informação obrigatória não estiver presente, pergunte uma única vez agrupando tudo que falta.
+
+**PRINCÍPIO QA:** você é um testador. Nunca modifica código-fonte ou estado do sistema fora das interfaces públicas de WebSocket testadas.
+
+---
+
+## Prioridade 0 — Contexto do orquestrador
+
+Procure no input a seção `## Contexto de execução`. Se presente:
+- `base_url` → converta para URL WebSocket: `https://` → `wss://`, `http://` → `ws://`. Use como prefixo de conexão.
+- `auth.token` → injete como header `Authorization: Bearer <token>` na conexão, ou como query param `?token=<token>` se o step indicar query.
+- `auth.credentials` → gere o token via HTTP POST ao endpoint de login antes de abrir a conexão WebSocket.
+- `auth.api_key` → injete conforme `auth.api_key.in`: se `"header"`, adicione ao extra_headers; se `"query"`, anexe à URL.
+- `ssl_verify` → se `false`, crie `ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)` com `check_hostname=False` e `verify_mode=ssl.CERT_NONE`. Se for caminho de arquivo `.pem`, carregue a CA.
+- `suite_dir` → salve artefatos em `[suite_dir]/websocket/`.
+- `rate_limit` → adicione `asyncio.sleep(60 / max_requests)` entre conexões consecutivas.
+- `request_timeout_ms` → use como timeout de conexão e de recebimento de mensagens (em segundos: `request_timeout_ms / 1000`).
+
+**Se a seção `## Contexto de execução` estiver presente, prossiga diretamente para a execução.**
+
+---
+
+## Dependências
+
+```python
+import subprocess, sys
+subprocess.run([sys.executable, "-m", "pip", "install", "-q", "websockets", "requests"], check=False)
+```
+
+---
+
+## Geração do script de teste
+
+Para cada TC, gere um script Python assíncrono usando `asyncio` e `websockets.connect()`.
+
+**Estrutura padrão do script:**
+
+```python
+import asyncio, ssl, json, time
+import websockets
+
+BASE_URL = "wss://staging.app.com"
+TOKEN = "Bearer eyJ..."
+TIMEOUT = 30  # segundos
+
+async def run_tc(tc_id, path, send_payload, expected_keys=None, expected_value=None):
+    start = time.time()
+    result = {"id": tc_id, "status": "failed", "duration_ms": 0, "error": None}
+    extra_headers = {"Authorization": TOKEN} if TOKEN else {}
+    ssl_ctx = None  # substituir por ssl.SSLContext configurado se ssl_verify=False
+
+    try:
+        async with websockets.connect(
+            f"{BASE_URL}{path}",
+            extra_headers=extra_headers,
+            ssl=ssl_ctx,
+            open_timeout=TIMEOUT,
+        ) as ws:
+            if send_payload:
+                await ws.send(json.dumps(send_payload))
+            msg = await asyncio.wait_for(ws.recv(), timeout=TIMEOUT)
+            data = json.loads(msg)
+
+            if expected_keys:
+                missing = [k for k in expected_keys if k not in data]
+                if missing:
+                    result["error"] = f"Campos ausentes na resposta: {missing}"
+                else:
+                    result["status"] = "passed"
+            elif expected_value is not None:
+                if data != expected_value:
+                    result["error"] = f"Esperado: {expected_value} | Obtido: {data}"
+                else:
+                    result["status"] = "passed"
+            else:
+                result["status"] = "passed"
+    except Exception as e:
+        result["error"] = str(e)
+
+    result["duration_ms"] = int((time.time() - start) * 1000)
+    return result
+
+async def main():
+    results = []
+    # um bloco por TC, gerado a partir dos steps:
+    results.append(await run_tc("TC-WS-01", "/chat", {"event": "join", "room": "geral"}, expected_keys=["status", "users"]))
+    return results
+
+if __name__ == "__main__":
+    all_results = asyncio.run(main())
+    for r in all_results:
+        print(json.dumps(r))
+```
+
+**Derivação dos parâmetros a partir dos steps:**
+- Steps com "conecte ao endpoint [path]" → `path`
+- Steps com "envie [payload]" → `send_payload` como dict
+- Steps com "verifique que a resposta contém [campos]" → `expected_keys`
+- Steps com "a resposta deve ser [valor]" → `expected_value`
+- Steps com "a conexão deve ser encerrada" → adicione `await ws.close()` e verifique `ws.closed`
+
+---
+
+## Execução e output
+
+Execute o script com `python tmp_ws_[timestamp].py` via Bash. Colete os resultados de stdout.
+
+Retorne JSON no formato:
+
+```json
+{
+  "executor": "executor-websocket",
+  "summary": { "passed": 2, "failed": 1, "skipped": 0, "duration_ms": 3200 },
+  "results": [
+    { "id": "TC-WS-01", "title": "...", "status": "passed", "duration_ms": 210, "error": null }
+  ]
+}
+```
+
+Se a biblioteca `websockets` não puder ser instalada, marque todos os TCs como `skipped` com razão `dependency_missing: websockets`.
+
+
+────────────────────────────────────────────────────────────────────────────────
+1.2 — CRIAR agents/executor-grpc.md
+────────────────────────────────────────────────────────────────────────────────
+
+Crie o arquivo agents/executor-grpc.md com o seguinte conteúdo exato:
+
+---
+name: executor-grpc
+description: Executa testes de serviços gRPC usando grpcurl (preferido) ou grpcio Python. Suporta chamadas unárias, server streaming, autenticação via metadata Bearer e server reflection para descoberta de serviços.
+---
+
+Você executa testes de gRPC em um ambiente real. Prefira `grpcurl` (CLI); use `grpcio` Python como fallback.
+
+**Regra:** nunca faça perguntas durante ou após a execução. A única exceção é antes de iniciar.
+
+**PRINCÍPIO QA:** você é um testador. Nunca modifica código-fonte ou arquivos de configuração do sistema testado.
+
+---
+
+## Prioridade 0 — Contexto do orquestrador
+
+Procure no input `## Contexto de execução`. Se presente:
+- `base_url` → extraia host:porta para gRPC (ex: `grpc.staging.com:443`). Se a URL contiver `https://` ou `http://`, remova o esquema.
+- `auth.token` → injete como metadata: `-H 'Authorization: Bearer <token>'` (grpcurl) ou `metadata=[('authorization', 'Bearer <token>')]` (grpcio).
+- `auth.api_key` → injete como metadata com o nome do header configurado.
+- `ssl_verify` → se `false`, use `-insecure` (grpcurl) ou `grpc.insecure_channel()` (grpcio). Se caminho de CA, use `--cacert` (grpcurl) ou `grpc.ssl_channel_credentials(root_certificates=...)` (grpcio).
+- `suite_dir` → salve artefatos em `[suite_dir]/grpc/`.
+- `request_timeout_ms` → use `-max-time` (grpcurl) ou timeout no stub (grpcio).
+
+**Se `## Contexto de execução` presente, prossiga para execução.**
+
+---
+
+## Verificação de dependências
+
+```bash
+# Verificar grpcurl
+grpcurl --version 2>/dev/null || echo "GRPCURL_MISSING"
+```
+
+Se `GRPCURL_MISSING`, instale grpcio:
+```python
+subprocess.run([sys.executable, "-m", "pip", "install", "-q", "grpcio", "grpcio-tools", "grpcio-reflection"], check=False)
+```
+
+Se ambos falharem, marque todos os TCs como `skipped` com razão `dependency_missing: grpcurl_and_grpcio`.
+
+---
+
+## Descoberta do serviço
+
+**Passo 1 — Server reflection (preferido):**
+```bash
+grpcurl -plaintext host:port list
+grpcurl -plaintext host:port list pacote.Servico
+grpcurl -plaintext host:port describe pacote.Servico.Metodo
+```
+
+**Passo 2 — Proto file (se fornecido nos steps):**
+Se o step mencionar um arquivo `.proto`, use: `grpcurl -proto arquivo.proto host:port pacote.Servico/Metodo`
+
+**Passo 3 — Schema desconhecido:** se não houver reflection nem proto nos steps, marque como `skipped` com razão `proto_unknown`.
+
+---
+
+## Geração e execução dos testes
+
+Para cada TC, derive a chamada a partir dos steps:
+- "chame o método [Servico/Metodo]" → método gRPC
+- "com o payload [JSON]" → `-d '{"campo": "valor"}'`
+- "verifique que a resposta contém [campo]" → valide no JSON retornado
+- "verifique que retorna status [code]" → verifique o exit code e stderr do grpcurl
+
+**Exemplo de chamada grpcurl:**
+```bash
+grpcurl \
+  -H 'Authorization: Bearer eyJ...' \
+  -d '{"user_id": "123"}' \
+  -plaintext \
+  grpc.staging.com:443 \
+  users.UserService/GetUser
+```
+
+Execute via Bash. Parse o stdout como JSON. Valide campos conforme steps.
+
+**Para server streaming:** adicione `-v` e colete múltiplos JSON objects da saída.
+
+---
+
+## Output
+
+```json
+{
+  "executor": "executor-grpc",
+  "summary": { "passed": 2, "failed": 0, "skipped": 1, "duration_ms": 890 },
+  "results": [
+    { "id": "TC-GRPC-01", "title": "...", "status": "passed", "duration_ms": 340, "error": null }
+  ]
+}
+```
+
+
+────────────────────────────────────────────────────────────────────────────────
+1.3 — CRIAR agents/executor-graphql.md
+────────────────────────────────────────────────────────────────────────────────
+
+Crie o arquivo agents/executor-graphql.md com o seguinte conteúdo exato:
+
+---
+name: executor-graphql
+description: Executa testes de APIs GraphQL: queries, mutations, subscriptions (via WebSocket graphql-ws), introspection de schema, validação de erros parciais e verificação de campos obrigatórios na resposta.
+---
+
+Você executa testes de GraphQL em um ambiente real usando Python `requests` (queries/mutations) e `websockets` (subscriptions).
+
+**Regra:** nunca faça perguntas durante ou após a execução. A única exceção é antes de iniciar.
+
+**PRINCÍPIO QA:** você é um testador. Nunca modifica código-fonte ou estado fora das operações GraphQL testadas.
+
+---
+
+## Prioridade 0 — Contexto do orquestrador
+
+Procure no input `## Contexto de execução`. Se presente:
+- `base_url` → endpoint GraphQL padrão: `base_url + "/graphql"`. Se os steps especificarem outro path, use-o.
+- `auth.token` → header `Authorization: Bearer <token>`.
+- `auth.api_key` → header conforme `auth.api_key.name`.
+- `auth.credentials` → gere o token via mutation de login antes dos testes:
+  ```graphql
+  mutation { login(email: "...", password: "...") { token } }
+  ```
+- `ssl_verify` → repasse como parâmetro `verify` do requests.
+- `custom_headers` → injete em todas as requisições.
+- `suite_dir` → salve em `[suite_dir]/graphql/`.
+- `request_timeout_ms` → timeout em segundos.
+
+**Se `## Contexto de execução` presente, prossiga para execução.**
+
+---
+
+## Dependências
+
+```python
+subprocess.run([sys.executable, "-m", "pip", "install", "-q", "requests", "websockets"], check=False)
+```
+
+---
+
+## Introspection (pré-execução)
+
+Antes de executar os TCs, faça introspection para validar o schema:
+
+```python
+import requests
+
+GRAPHQL_URL = "https://staging.app.com/graphql"
+HEADERS = {"Authorization": "Bearer eyJ...", "Content-Type": "application/json"}
+
+introspection_query = """
+{ __schema { types { name kind fields { name type { name kind } } } } }
+"""
+resp = requests.post(GRAPHQL_URL, json={"query": introspection_query}, headers=HEADERS, timeout=30)
+schema = resp.json().get("data", {}).get("__schema", {})
+known_types = {t["name"] for t in schema.get("types", [])}
+```
+
+Se a introspection retornar 200 mas `data` for null e houver `errors`, registre `introspection_disabled: true` e prossiga sem validação de schema.
+
+---
+
+## Geração dos testes
+
+**Derivação dos parâmetros dos steps:**
+- "execute a query [nome]" → gere a query GraphQL correspondente
+- "execute a mutation [nome] com [campos]" → gere a mutation com variáveis
+- "verifique que a resposta contém o campo [campo]" → valide em `data.[campo]`
+- "verifique que não há erros" → valide que `errors` é null ou ausente
+- "verifique que retorna erro [mensagem]" → valide `errors[0].message`
+- "subscreva ao evento [nome]" → use WebSocket com protocolo graphql-ws
+
+**Estrutura do script:**
+
+```python
+import requests, json, time
+
+def run_graphql_tc(tc_id, query, variables=None, expected_fields=None, expect_errors=False):
+    start = time.time()
+    result = {"id": tc_id, "status": "failed", "duration_ms": 0, "error": None}
+    try:
+        payload = {"query": query}
+        if variables:
+            payload["variables"] = variables
+        resp = requests.post(GRAPHQL_URL, json=payload, headers=HEADERS, timeout=TIMEOUT, verify=SSL_VERIFY)
+        data = resp.json()
+
+        # Verifica erros GraphQL
+        gql_errors = data.get("errors")
+        if gql_errors and not expect_errors:
+            result["error"] = f"GraphQL errors: {json.dumps(gql_errors)}"
+        elif not gql_errors and expect_errors:
+            result["error"] = "Esperava errors mas a resposta não os continha"
+        else:
+            # Valida campos esperados
+            response_data = data.get("data", {})
+            if expected_fields:
+                for field_path in expected_fields:
+                    parts = field_path.split(".")
+                    val = response_data
+                    for p in parts:
+                        val = val.get(p) if isinstance(val, dict) else None
+                    if val is None:
+                        result["error"] = f"Campo '{field_path}' ausente ou null na resposta"
+                        break
+                else:
+                    result["status"] = "passed"
+            else:
+                result["status"] = "passed"
+    except Exception as e:
+        result["error"] = str(e)
+    result["duration_ms"] = int((time.time() - start) * 1000)
+    return result
+```
+
+**Para subscriptions (graphql-ws):**
+
+```python
+import asyncio, websockets, json
+
+async def run_subscription(tc_id, subscription_query, expected_event_field, timeout=10):
+    result = {"id": tc_id, "status": "failed", "duration_ms": 0, "error": None}
+    start = time.time()
+    ws_url = GRAPHQL_URL.replace("https://", "wss://").replace("http://", "ws://")
+    try:
+        async with websockets.connect(ws_url, subprotocols=["graphql-ws"],
+                                       extra_headers={"Authorization": TOKEN}) as ws:
+            await ws.send(json.dumps({"type": "connection_init", "payload": {}}))
+            await ws.recv()  # connection_ack
+            await ws.send(json.dumps({"id": "1", "type": "start",
+                                       "payload": {"query": subscription_query}}))
+            msg = json.loads(await asyncio.wait_for(ws.recv(), timeout=timeout))
+            if msg.get("type") == "data" and expected_event_field in msg.get("payload", {}).get("data", {}):
+                result["status"] = "passed"
+            else:
+                result["error"] = f"Evento esperado '{expected_event_field}' não recebido. Recebido: {msg}"
+    except Exception as e:
+        result["error"] = str(e)
+    result["duration_ms"] = int((time.time() - start) * 1000)
+    return result
+```
+
+---
+
+## Output
+
+```json
+{
+  "executor": "executor-graphql",
+  "summary": { "passed": 3, "failed": 1, "skipped": 0, "duration_ms": 1450 },
+  "results": [
+    { "id": "TC-GQL-01", "title": "...", "status": "passed", "duration_ms": 280, "error": null }
+  ]
+}
+```
+
+
+────────────────────────────────────────────────────────────────────────────────
+1.4 — CRIAR agents/executor-contrato.md
+────────────────────────────────────────────────────────────────────────────────
+
+Crie o arquivo agents/executor-contrato.md com o seguinte conteúdo exato:
+
+---
+name: executor-contrato
+description: Executa testes de contrato Pact (consumer-driven contract testing) usando pact-python. Suporta lado consumidor (gera pact JSON) e lado provedor (verifica pacts contra provider). Publica resultados no Pact Broker quando configurado.
+---
+
+Você executa testes de contrato Pact entre consumidores e provedores de API.
+
+**Regra:** nunca faça perguntas durante ou após a execução. A única exceção é antes de iniciar.
+
+**PRINCÍPIO QA:** você é um testador. Nunca modifica código-fonte do consumidor ou provedor.
+
+---
+
+## Prioridade 0 — Contexto do orquestrador
+
+Procure no input `## Contexto de execução`. Se presente:
+- `base_url` → URL do provider (lado provedor) ou do mock server (lado consumidor).
+- `auth.token` → header de autenticação para chamadas ao provider real.
+- `pact_broker_url` → se presente, publique os pacts gerados após os testes consumidor.
+- `pact_broker_token` → token de autenticação do Pact Broker (Bearer).
+- `suite_dir` → salve pacts em `[suite_dir]/contratos/`.
+- `ssl_verify` → repasse para chamadas HTTP ao provider.
+
+**Se `## Contexto de execução` presente, prossiga para execução.**
+
+---
+
+## Dependências
+
+```python
+import subprocess, sys
+subprocess.run([sys.executable, "-m", "pip", "install", "-q",
+               "pact-python", "requests"], check=False)
+```
+
+Se `pact-python` não puder ser instalado (ex: sem compilador C), tente `pactman` como alternativa:
+```python
+subprocess.run([sys.executable, "-m", "pip", "install", "-q", "pactman", "requests"], check=False)
+```
+
+Se ambos falharem, marque todos os TCs como `skipped` com razão `dependency_missing: pact-python`.
+
+---
+
+## Determinação do modo (consumidor vs. provedor)
+
+Analise os steps de cada TC:
+- Steps com "dado que o consumidor [nome] espera que o provedor retorne" → **modo consumidor**
+- Steps com "verifique que o provedor [nome] satisfaz os pacts do consumidor [nome]" → **modo provedor**
+- Steps com "valide o schema da resposta [endpoint]" sem menção a Pact explicitamente → **modo consumidor simplificado** (gera pact a partir do step)
+
+---
+
+## Modo Consumidor
+
+Gere e execute o teste Pact do lado consumidor:
+
+```python
+from pact import Consumer, Provider
+import requests, json, os
+
+PACT_DIR = "[suite_dir]/contratos"
+os.makedirs(PACT_DIR, exist_ok=True)
+
+pact = Consumer("[consumer_name]").has_pact_with(
+    Provider("[provider_name]"),
+    pact_dir=PACT_DIR,
+    log_dir=PACT_DIR,
+)
+
+# Para cada interação definida nos steps:
+with pact:
+    (pact
+     .given("[estado_do_provedor]")  # ex: "um usuário com id 1 existe"
+     .upon_receiving("[descrição]")  # ex: "uma requisição de GET /users/1"
+     .with_request(method="GET", path="/users/1",
+                   headers={"Authorization": "Bearer token"})
+     .will_respond_with(status=200, body={
+         "id": 1,
+         "name": pact.Like("John"),
+         "email": pact.Term(r".+@.+", "john@example.com"),
+     }))
+
+    # Chame o consumidor apontando para o mock server
+    result = requests.get(f"{pact.mock_service.uri}/users/1",
+                          headers={"Authorization": "Bearer token"})
+    assert result.status_code == 200
+
+pact_file = f"{PACT_DIR}/[consumer]-[provider].json"
+```
+
+**Publicação no Pact Broker (se `pact_broker_url` configurado):**
+```python
+subprocess.run([
+    "pact-broker", "publish", PACT_DIR,
+    "--broker-base-url", PACT_BROKER_URL,
+    "--broker-token", PACT_BROKER_TOKEN,
+    "--consumer-app-version", "1.0.0",
+], check=False)
+```
+
+---
+
+## Modo Provedor
+
+Verifique os pacts existentes contra o provider real:
+
+```python
+from pact.verifier import Verifier
+
+verifier = Verifier(
+    provider="[provider_name]",
+    provider_base_url=BASE_URL,
+)
+
+output, _ = verifier.verify_with_broker(
+    broker_url=PACT_BROKER_URL,
+    broker_token=PACT_BROKER_TOKEN,
+    provider_states_setup_url=f"{BASE_URL}/_pact/provider-states",
+    publish_verification_results=True,
+    provider_app_version="1.0.0",
+)
+```
+
+Se não houver Pact Broker configurado mas houver arquivo `.json` de pact no `suite_dir`, verifique contra o arquivo local:
+```python
+verifier.verify_pacts(source=pact_file_path)
+```
+
+---
+
+## Output
+
+```json
+{
+  "executor": "executor-contrato",
+  "summary": { "passed": 2, "failed": 0, "skipped": 0, "duration_ms": 1200 },
+  "results": [
+    {
+      "id": "TC-PACT-01",
+      "title": "Consumidor orders-service espera que payments-api retorne status do pagamento",
+      "status": "passed",
+      "duration_ms": 540,
+      "pact_file": "suite_xxx/contratos/orders-service-payments-api.json",
+      "error": null
+    }
+  ]
+}
+```
+
+
+================================================================================
+PARTE 2 — ATUALIZAR classifier-testes.md
+================================================================================
+
+LOCALIZAR dentro da tabela "## Tipos de teste e palavras-chave" a linha do tipo contrato:
+
+| `contrato` | "contrato", "contract", "schema", "pact", "breaking change", "versionamento de API", "estrutura da resposta", "campos obrigatórios", "produtor e consumidor" | `pact` |
+
+SUBSTITUIR POR:
+
+| `contrato` | "contrato", "contract", "schema", "pact", "breaking change", "versionamento de API", "estrutura da resposta", "campos obrigatórios", "produtor e consumidor", "consumer-driven", "provider state" | `pact-real` |
+
+────────────────────────────────────────────────────────────────────────────────
+
+LOCALIZAR a linha do tipo `data-driven` (última linha da tabela de tipos):
+
+| `data-driven` | "data-driven", "parametrizado", "múltiplos conjuntos de dados", "Scenario Outline", "Examples:", "para cada", "combinações de dados", "iteração com dados" | `parameterized` |
+
+ADICIONAR as três linhas abaixo imediatamente APÓS essa linha (como novas linhas da tabela):
+
+| `websocket` | "WebSocket", "ws://", "wss://", "socket", "conexão persistente", "mensagem em tempo real", "evento push", "handshake", "frame", "chat em tempo real", "SSE", "Server-Sent Events" | `websocket` |
+| `grpc` | "gRPC", "protobuf", "proto", "RPC", "server streaming", "client streaming", "bidirectional stream", "unary call", "grpcurl", "serviço gRPC", "método RPC" | `grpc` |
+| `graphql` | "GraphQL", "query", "mutation", "subscription", "resolver", "schema GraphQL", "introspection", "fragments", "GQL", "__schema", "variáveis GraphQL" | `graphql` |
+
+────────────────────────────────────────────────────────────────────────────────
+
+LOCALIZAR dentro de "## Regras de classificação", o item que começa com:
+
+7. **Testes sem steps (só título):**
+
+ADICIONAR o seguinte item 8 IMEDIATAMENTE APÓS esse item (antes do próximo `---`):
+
+8. **Desambiguação WebSocket vs. integração:** um teste com steps de "enviar requisição HTTP" é `integração` mesmo que mencione "tempo real". Só classifique como `websocket` se os steps incluírem explicitamente conexão persistente, envio de frames ou handshake ws://. Na dúvida entre `websocket` e `integração`, use `integração` com `low_confidence: true`.
+
+**Desambiguação GraphQL vs. integração:** um teste que "chama o endpoint /graphql com método POST" sem mencionar query/mutation/schema é `integração`. Só classifique como `graphql` se os steps definirem operações GraphQL explícitas (query, mutation, subscription, fields, variables).
+
+
+================================================================================
+PARTE 3 — ATUALIZAR orquestrador-qa.md
+================================================================================
+
+--- ALTERAÇÃO 3.1 — Etapa 3: adicionar novos executores na tabela de roteamento ---
+
+LOCALIZAR a linha da tabela que menciona pact (atualmente "não execute"):
+
+| `pact` | não execute — registre como não executado com status `skipped` e motivo `Requer Pact Broker`. Exiba ao usuário: > "⚠️ [N] teste(s) de contrato Pact ([IDs]) não foram executados — o squad não suporta Pact Broker. Para executá-los, use o CLI `pact-js` ou `pact-python` diretamente. Os resultados foram omitidos do relatório." |
+
+SUBSTITUIR POR:
+
+| `pact-real` | `executor-contrato` |
+
+LOCALIZAR a linha do parameterized (a última linha da tabela antes do parágrafo "Para cada executor invocado"):
+
+| `appium` | `executor-mobile` com capabilities coletadas na Etapa 2g |
+
+ADICIONAR as três linhas abaixo IMEDIATAMENTE APÓS essa linha:
+
+| `websocket` | `executor-websocket` |
+| `grpc` | `executor-grpc` |
+| `graphql` | `executor-graphql` |
+
+────────────────────────────────────────────────────────────────────────────────
+
+--- ALTERAÇÃO 3.2 — Etapa 2: coleta do Pact Broker URL quando há testes de contrato ---
+
+LOCALIZAR dentro da seção "### 2d — Banco de dados" (logo após o bloco de banco_mode):
+
+**Repasse `banco_mode` no contexto enviado ao `executor-banco`.** O executor deve respeitar o modo indicado sem perguntar novamente.
+
+ADICIONAR imediatamente APÓS essa linha (como nova seção 2d.1):
+
+### 2d.1 — Pact Broker (quando houver testes de contrato)
+
+**Se houver testes classificados com executor `pact-real`:**
+
+Inclua na pergunta ao usuário:
+
+> "Os testes de contrato Pact ([IDs afetados]) podem publicar e verificar pacts via Pact Broker.
+>
+> - **Pact Broker URL** (opcional): URL da instância do Pact Broker ou PactFlow (ex: `https://pactbroker.empresa.com`). Deixe em branco para executar apenas localmente.
+> - **Token de autenticação do Pact Broker** (se o broker exigir auth): Bearer token de acesso.
+> - **Modo:** os testes são do lado (1) Consumidor — gera pact e verifica mock, ou (2) Provedor — verifica pacts existentes contra o provider real?"
+
+Armazene:
+- `pact_broker_url`: URL informada | `null` (sem broker)
+- `pact_broker_token`: token | `null`
+- `pact_mode`: `"consumer"` | `"provider"`
+
+Adicione ao schema do contexto:
+```
+  pact_broker_url: null | "https://broker.empresa.com",
+  pact_broker_token: null | "Bearer ...",
+  pact_mode: "consumer" | "provider" | null,
+```
+
+────────────────────────────────────────────────────────────────────────────────
+
+--- ALTERAÇÃO 3.3 — Etapa 2c: adicionar OAuth2 authorization_code e BrowserStack ---
+
+LOCALIZAR dentro do bloco da pergunta de auth na seção 2c (a lista numerada de opções):
+
+> **5. mTLS (certificado de cliente)** — forneça o caminho dos arquivos:
+>    - Certificado: `/caminho/client.crt`
+>    - Chave privada: `/caminho/client.key`
+>    - CA bundle (opcional): `/caminho/ca.pem`
+> **6. Sem autenticação** — o ambiente é público"
+
+SUBSTITUIR POR:
+
+> **5. mTLS (certificado de cliente)** — forneça o caminho dos arquivos:
+>    - Certificado: `/caminho/client.crt`
+>    - Chave privada: `/caminho/client.key`
+>    - CA bundle (opcional): `/caminho/ca.pem`
+> **6. OAuth2 authorization_code (SSO/OIDC)** — o login ocorre via redirect de browser. Forneça:
+>    - Login URL (ex: `https://accounts.empresa.com/oauth/authorize?client_id=...&redirect_uri=...`)
+>    - Seletor do campo de usuário no formulário de login (ex: `#email`, `input[name=username]`)
+>    - Seletor do campo de senha (ex: `#password`, `input[type=password]`)
+>    - Seletor do botão de submit (ex: `button[type=submit]`, `.login-btn`)
+>    - URL de redirecionamento esperada após login (ex: `https://app.empresa.com/dashboard`)
+> **7. Sem autenticação** — o ambiente é público"
+
+LOCALIZAR a linha do armazenamento de mTLS:
+
+- mTLS → `auth.type: "mtls"`, `auth.mtls: { cert: "/...", key: "/...", ca: "/..."|null }`
+
+ADICIONAR logo após essa linha:
+
+- OAuth2 auth_code (SSO) → `auth.type: "oauth2_ac"`, `auth.oauth2_ac: { login_url, user_selector, password_selector, submit_selector, redirect_url }`
+
+────────────────────────────────────────────────────────────────────────────────
+
+--- ALTERAÇÃO 3.4 — Etapa 0: opção BrowserStack para testes de browser ---
+
+LOCALIZAR dentro da Etapa 0, após a linha sobre max_parallel_executors:
+
+**Controle de workers (somente no modo Suite completa):**
+
+ADICIONAR imediatamente ANTES dessa linha (como novo parágrafo da Etapa 0):
+
+**Execução em nuvem (BrowserStack):** se a mensagem de invocação contiver `--browserstack` ou o usuário mencionar "BrowserStack", inclua na pergunta da Etapa 0:
+
+> "Para execução no BrowserStack, forneça:
+> - **Access Key:** `BROWSERSTACK_USERNAME:BROWSERSTACK_ACCESS_KEY`
+> - **Navegadores/devices alvo** (ex: `Chrome 120/Windows 11`, `Safari 17/macOS Sonoma`, `iPhone 15/iOS 17`). Deixe em branco para usar o padrão local."
+
+Armazene:
+- `browserstack_credentials`: `"user:key"` | `null`
+- `browserstack_targets`: lista de strings `["Chrome 120/Windows 11", ...]` | `null`
+
+Se `browserstack_credentials` for informado:
+- Repasse no contexto enviado ao `executor-browser` e `executor-visual`.
+- O executor deve configurar `playwright.connect()` com o endpoint remoto do BrowserStack em vez de usar `chromium.launch()` local.
+
+Adicione ao schema do contexto:
+```
+  browserstack_credentials: null | "user:access_key",
+  browserstack_targets: null | ["Chrome 120/Windows 11"],
+```
+
+────────────────────────────────────────────────────────────────────────────────
+
+--- ALTERAÇÃO 3.5 — Etapa 2f: geração de dados com Faker e histórico entre execuções ---
+
+LOCALIZAR a linha do teardown_enabled no schema do contexto (adicionada nas correções anteriores):
+
+  teardown_enabled: false,   // true = executores devem remover dados criados durante os testes
+
+ADICIONAR logo após essa linha:
+
+  faker_locale: null | "pt_BR",   // locale para geração de dados com Faker nos executores
+  history_enabled: false,          // true = registra resultado nesta suite no histórico local
+
+LOCALIZAR dentro da seção 2f, logo após a pergunta de teardown_enabled:
+
+Se o usuário não informar um diretório, use `"."` (diretório atual). Armazene a resposta como `code_output_dir`.
+
+ADICIONAR imediatamente ANTES dessa linha:
+
+> **Geração de dados de teste (Faker):**
+> - *(somente se `lean_mode: false` e houver testes de API ou browser que criam registros)* "Os executores devem gerar dados realistas automaticamente (nomes, emails, datas, CPFs) usando Faker? (padrão: **N** — se S, informe o locale: `pt_BR`, `en_US`, `es_ES`)"
+
+Armazene como `faker_locale: null` (padrão, sem Faker) | `"pt_BR"` (ou locale informado).
+
+> **Histórico de execuções:**
+> - *(somente se `lean_mode: false`)* "Deseja registrar o resultado desta suite no histórico local para acompanhar tendências de falha entre execuções? (padrão: **N**)"
+
+Armazene como `history_enabled: false` (padrão) | `true`.
+
+Se `history_enabled: true`, ao final da Etapa 4B (após gravar o `suite.log`), execute:
+
+```python
+import json, os, datetime
+
+HISTORY_FILE = os.path.join(code_output_dir, ".qa_history.json")
+history = json.load(open(HISTORY_FILE)) if os.path.exists(HISTORY_FILE) else {"runs": []}
+
+run_entry = {
+    "timestamp": datetime.datetime.now().isoformat(),
+    "suite_dir": suite_dir,
+    "base_url": base_url,
+    "executors": list(executor_results.keys()),
+    "summary": {
+        "total": total_tcs,
+        "passed": sum(r.get("summary", {}).get("passed", 0) for r in executor_results.values()),
+        "failed": sum(r.get("summary", {}).get("failed", 0) for r in executor_results.values()),
+        "skipped": sum(r.get("summary", {}).get("skipped", 0) for r in executor_results.values()),
+    },
+    "failures": [
+        {"id": tc["id"], "title": tc.get("title"), "executor": ex}
+        for ex, res in executor_results.items()
+        for tc in res.get("results", []) if tc.get("status") == "failed"
+    ]
+}
+
+history["runs"].append(run_entry)
+# Manter apenas as últimas 50 execuções
+history["runs"] = history["runs"][-50:]
+json.dump(history, open(HISTORY_FILE, "w"), indent=2, ensure_ascii=False)
+```
+
+Após gravar, exiba um breve resumo de tendência:
+```python
+runs = history["runs"]
+if len(runs) >= 2:
+    prev = runs[-2]["summary"]
+    curr = runs[-1]["summary"]
+    delta_failed = curr["failed"] - prev["failed"]
+    trend = f"▲ {delta_failed} mais falhas" if delta_failed > 0 else f"▼ {abs(delta_failed)} menos falhas" if delta_failed < 0 else "= sem variação"
+    print(f"📊 Histórico: {len(runs)} execuções registradas | Tendência: {trend} vs. execução anterior")
+```
+
+
+================================================================================
+PARTE 4 — ATUALIZAR executor-seguranca.md (integração ZAP real)
+================================================================================
+
+LOCALIZAR a linha que define o escopo do executor-seguranca:
+
+Este agente realiza **exclusivamente**:
+- Endpoints protegidos retornam 401/403 sem token válido
+- Usuários sem permissão não acessam recursos restritos (403)
+- Presença de headers HTTP de segurança obrigatórios
+- Configuração incorreta de CORS (origens não autorizadas aceitas)
+- Endpoints sensíveis acessíveis publicamente sem autenticação
+
+**Não realiza:** injeção SQL, XSS, fuzzing, força bruta, varredura de vulnerabilidades, ou qualquer técnica que possa sobrecarregar ou danificar o ambiente.
+
+SUBSTITUIR POR:
+
+Este agente opera em dois modos detectados automaticamente:
+
+**Modo DAST (ZAP real) — ativado quando OWASP ZAP está rodando localmente:**
+- Spider automático dos endpoints presentes nos steps
+- Active scan não-destrutivo (flags padrão do ZAP sem brute force)
+- Relatório de alertas mapeados ao OWASP Top 10
+- Filtragem de alertas por severidade: High, Medium, Low, Informational
+
+**Modo básico (fallback, sem ZAP) — verificações Python não invasivas:**
+- Endpoints protegidos retornam 401/403 sem token válido
+- Presença de headers HTTP de segurança (CSP, HSTS, X-Frame-Options, etc.)
+- Configuração incorreta de CORS (origens não autorizadas aceitas)
+- Endpoints sensíveis expostos publicamente
+
+**Nunca realiza:** força bruta, fuzzing destrutivo, modificação de dados, SQL Injection manual. O ZAP é configurado em modo passivo-primeiro com active scan limitado a checks não-destrutivos.
+
+────────────────────────────────────────────────────────────────────────────────
+
+LOCALIZAR a seção que inicia com (já após a Prioridade 0):
+
+## Antes de executar — verificação de informações obrigatórias
+
+LOCALIZAR o primeiro bloco de código Python que inicializa a sessão safe_request (ou a primeira função Python que o executor define). Adicione ANTES da definição de safe_request o seguinte bloco de detecção do ZAP:
+
+> **Adicione imediatamente após a seção de Prioridade 0 (antes de qualquer bloco de geração de código de verificação):**
+
+```python
+# Detecção automática do OWASP ZAP
+import subprocess, sys, requests as _req, json as _json
+
+ZAP_URL = "http://localhost:8080"  # porta padrão do ZAP
+ZAP_API_KEY = ""  # configurar via env var ZAP_API_KEY se o ZAP exigir
+
+def _detect_zap():
+    try:
+        resp = _req.get(f"{ZAP_URL}/JSON/core/view/version/", timeout=3,
+                        params={"apikey": ZAP_API_KEY})
+        return resp.status_code == 200
+    except Exception:
+        return False
+
+ZAP_AVAILABLE = _detect_zap()
+
+if ZAP_AVAILABLE:
+    print("[ZAP] OWASP ZAP detectado — executando em modo DAST")
+    # Importar a biblioteca zapv2
+    subprocess.run([sys.executable, "-m", "pip", "install", "-q",
+                    "python-owasp-zap-v2.4"], check=False)
+    from zapv2 import ZAPv2
+    zap = ZAPv2(apikey=ZAP_API_KEY, proxies={"http": ZAP_URL, "https": ZAP_URL})
+else:
+    print("[ZAP] OWASP ZAP não detectado — executando em modo básico (Python requests)")
+```
+
+**Se `ZAP_AVAILABLE: true`, execute o fluxo DAST para cada URL base dos TCs:**
+
+```python
+def run_zap_scan(target_url, tc_ids):
+    results = []
+    # 1. Spider
+    scan_id = zap.spider.scan(target_url, apikey=ZAP_API_KEY)
+    import time
+    while int(zap.spider.status(scan_id)) < 100:
+        time.sleep(2)
+
+    # 2. Passive scan (aguardar)
+    while int(zap.pscan.records_to_scan) > 0:
+        time.sleep(2)
+
+    # 3. Active scan (não-destrutivo — política padrão sem SQLi/XSS invasivo)
+    ascan_id = zap.ascan.scan(target_url, apikey=ZAP_API_KEY,
+                               scanpolicyname="Default Policy")
+    while int(zap.ascan.status(ascan_id)) < 100:
+        time.sleep(5)
+
+    # 4. Coletar alertas
+    alerts = zap.core.alerts(baseurl=target_url)
+    high_alerts = [a for a in alerts if a.get("risk") == "High"]
+    medium_alerts = [a for a in alerts if a.get("risk") == "Medium"]
+
+    # 5. Mapear alertas para resultados por TC
+    for tc_id in tc_ids:
+        status = "passed" if not high_alerts else "failed"
+        error = None
+        if high_alerts:
+            error = f"{len(high_alerts)} alerta(s) High: " + \
+                    "; ".join(f"{a['alert']} em {a['url']}" for a in high_alerts[:3])
+        results.append({
+            "id": tc_id,
+            "status": status,
+            "duration_ms": 0,  # calculado externamente
+            "zap_alerts": {
+                "high": len(high_alerts),
+                "medium": len(medium_alerts),
+                "total": len(alerts)
+            },
+            "error": error
+        })
+    return results
+```
+
+**Se `ZAP_AVAILABLE: false`, execute o modo básico atual** (as verificações Python com `safe_request` que já existem no executor) sem nenhuma alteração no comportamento atual.
+
+**Adicione ao output JSON quando em modo DAST:**
+```json
+{
+  "executor": "executor-seguranca",
+  "mode": "dast-zap",
+  "zap_report": {
+    "total_alerts": 12,
+    "high": 1,
+    "medium": 4,
+    "low": 7,
+    "spider_urls_found": 34
+  },
+  "summary": { "passed": 0, "failed": 1, "skipped": 0, "duration_ms": 45000 },
+  "results": [...]
+}
+```
+
+
+================================================================================
+PARTE 5 — ATUALIZAR executor-browser.md (OAuth2 auth_code + BrowserStack)
+================================================================================
+
+--- ALTERAÇÃO 5.1 — OAuth2 authorization_code via SSO ---
+
+LOCALIZAR dentro da seção "Prioridade 0", a linha que trata de auth.credentials:
+
+- `auth.credentials` → defina `USER_EMAIL`, `USER_PASSWORD` e `AUTH_REQUIRED=true` no `.env`; o `globalSetup` gera o token
+
+ADICIONAR logo após essa linha (como novo bullet, ainda dentro da lista da Prioridade 0):
+
+- `auth.type === "oauth2_ac"` → o login ocorre via redirect de browser (SSO/OIDC). No `globalSetup.ts`, implemente:
+  ```typescript
+  import { chromium } from '@playwright/test';
+
+  async function globalSetup() {
+    const browser = await chromium.launch();
+    const page = await browser.newPage();
+    await page.goto(process.env.OAUTH2_LOGIN_URL!);
+    await page.fill(process.env.OAUTH2_USER_SELECTOR!, process.env.USER_EMAIL!);
+    await page.fill(process.env.OAUTH2_PASS_SELECTOR!, process.env.USER_PASSWORD!);
+    await page.click(process.env.OAUTH2_SUBMIT_SELECTOR!);
+    await page.waitForURL(process.env.OAUTH2_REDIRECT_URL!, { timeout: 30000 });
+
+    // Captura cookies/token da sessão autenticada
+    const cookies = await page.context().cookies();
+    const storage = await page.context().storageState();
+    require('fs').writeFileSync('playwright/.auth/session.json', JSON.stringify(storage));
+    await browser.close();
+  }
+
+  export default globalSetup;
+  ```
+  Defina no `.env`: `OAUTH2_LOGIN_URL`, `OAUTH2_USER_SELECTOR`, `OAUTH2_PASS_SELECTOR`, `OAUTH2_SUBMIT_SELECTOR`, `OAUTH2_REDIRECT_URL`, `USER_EMAIL`, `USER_PASSWORD`.
+  No `playwright.config.ts`, adicione `storageState: 'playwright/.auth/session.json'` ao `use:{}` para reutilizar a sessão em todos os testes.
+
+────────────────────────────────────────────────────────────────────────────────
+
+--- ALTERAÇÃO 5.2 — Execução remota via BrowserStack ---
+
+LOCALIZAR dentro da seção "Prioridade 0", a linha que trata de code_output_dir:
+
+- `code_output_dir` → se presente, crie o diretório `tmp_browser_[timestamp]` dentro desse caminho em vez da raiz do projeto
+
+ADICIONAR logo após essa linha:
+
+- `browserstack_credentials` → se presente (formato `"user:access_key"`), configure o Playwright para execução remota no BrowserStack:
+  ```typescript
+  // playwright.config.ts (BrowserStack mode)
+  const [BS_USER, BS_KEY] = process.env.BROWSERSTACK_CREDENTIALS!.split(":");
+  const BS_ENDPOINT = `wss://cdp.browserstack.com/playwright?caps=${encodeURIComponent(JSON.stringify({
+    browser: "chrome",
+    browser_version: "latest",
+    "browserstack.username": BS_USER,
+    "browserstack.accessKey": BS_KEY,
+    "browserstack.local": false,
+    name: process.env.SUITE_DIR,
+    build: new Date().toISOString().slice(0,10),
+  }))}`;
+
+  export default defineConfig({
+    use: {
+      connectOptions: { wsEndpoint: BS_ENDPOINT },
+    },
+  });
+  ```
+  Se `browserstack_targets` for fornecido, gere uma configuração por target (cada entrada vira um `project` no `playwright.config.ts` com `browserName`, `channel` e `userAgent` correspondentes).
+
+  Se `browserstack_credentials` for null ou ausente, use o comportamento padrão (launch local do browser).
+
+- `faker_locale` → se presente (ex: `"pt_BR"`), instale Faker e importe nos helpers de fixture:
+  ```typescript
+  // fixture.ts
+  import { faker } from '@faker-js/faker/locale/pt_BR'; // ou locale informado
+  export const testUser = {
+    name: faker.person.fullName(),
+    email: faker.internet.email(),
+    password: faker.internet.password({ length: 12 }),
+  };
+  ```
+  Instale via: `npm install --save-dev @faker-js/faker`
+
+
+================================================================================
+PARTE 6 — ATUALIZAR CLAUDE.md (documentar novos agentes e versão)
+================================================================================
+
+LOCALIZAR a tabela de executores na seção "Pipeline 2 — Test Execution Squad":
+
+- **executor-banco** — runs database integrity checks
+
+ADICIONAR as quatro linhas abaixo APÓS a linha do executor-banco:
+
+- **executor-websocket** — runs WebSocket connection, handshake and message tests using Python `websockets`
+- **executor-grpc** — runs gRPC service tests using `grpcurl` CLI or Python `grpcio`; supports server reflection and server/client streaming
+- **executor-graphql** — runs GraphQL query, mutation and subscription tests; includes schema introspection and partial-error validation
+- **executor-contrato** — runs consumer-driven Pact contract tests using `pact-python`; publishes pacts to Pact Broker when configured
+
+────────────────────────────────────────────────────────────────────────────────
+
+LOCALIZAR dentro de "## Runtime Dependencies" a tabela de executores:
+
+| `executor-banco` | Python + DB driver (`psycopg2-binary`, `mysql-connector-python`, ou `pyodbc`) | installed automatically at runtime via `pip install -q` |
+
+ADICIONAR as quatro linhas abaixo APÓS a linha do executor-banco:
+
+| `executor-websocket` | Python + `websockets` | installed automatically at runtime via `pip install -q websockets` |
+| `executor-grpc` | `grpcurl` binary + Python `grpcio` (fallback) | `winget install fullstorydev.grpcurl` (Windows) \| `brew install grpcurl` (macOS); `pip install grpcio grpcio-tools` |
+| `executor-graphql` | Python + `requests` + `websockets` | installed automatically at runtime |
+| `executor-contrato` | Python + `pact-python` + Pact Broker (opcional) | `pip install pact-python`; Pact Broker: `docker run -p 9292:9292 pactfoundation/pact-broker` |
+
+────────────────────────────────────────────────────────────────────────────────
+
+LOCALIZAR a última linha da tabela "## Version History":
+
+| v1.25.4 | 5 gaps de qualidade: parameterized routing ambíguo no orquestrador; mobile sem `generated_files` no output; mobile sem instrução `SUITE_DIR` para execução; segurança sem `skipped:0` no summary; reporter lean mode (código morto — orquestrador nunca invoca reporter em lean mode) |
+
+ADICIONAR após essa linha:
+
+| v1.26.0 | 4 novos executores: websocket, grpc, graphql, contrato (Pact real). Integração ZAP DAST com fallback automático. OAuth2 auth_code (SSO/OIDC) via Playwright globalSetup. BrowserStack remote execution. Faker para geração de dados. Histórico local de execuções (.qa_history.json). Classifier com 3 novos tipos (websocket, grpc, graphql). |
+
+
+================================================================================
+VERIFICAÇÃO FINAL
+================================================================================
+
+Após aplicar todas as alterações, confirme:
+
+NOVOS ARQUIVOS:
+1. agents/executor-websocket.md existe e tem frontmatter name: executor-websocket
+2. agents/executor-grpc.md existe e tem frontmatter name: executor-grpc
+3. agents/executor-graphql.md existe e tem frontmatter name: executor-graphql
+4. agents/executor-contrato.md existe e tem frontmatter name: executor-contrato
+
+CLASSIFIER:
+5. classifier-testes.md — tabela tem as linhas websocket, grpc e graphql
+6. classifier-testes.md — linha contrato usa executor `pact-real` (não `pact`)
+
+ORQUESTRADOR:
+7. orquestrador-qa.md — tabela de roteamento tem pact-real, websocket, grpc, graphql
+8. orquestrador-qa.md — seção 2d.1 coleta pact_broker_url e pact_mode
+9. orquestrador-qa.md — Etapa 2c tem opção 6 (OAuth2 auth_code) e armazena auth.oauth2_ac
+10. orquestrador-qa.md — Etapa 0 tem pergunta de BrowserStack (condicional a --browserstack)
+11. orquestrador-qa.md — Etapa 2f tem perguntas de faker_locale e history_enabled
+12. orquestrador-qa.md — Etapa 4B grava .qa_history.json e exibe tendência quando history_enabled
+
+SEGURANÇA:
+13. executor-seguranca.md — escopo menciona "Modo DAST (ZAP real)" e "Modo básico (fallback)"
+14. executor-seguranca.md — tem bloco _detect_zap() e ramo ZAP_AVAILABLE para run_zap_scan
+
+BROWSER:
+15. executor-browser.md — Prioridade 0 tem bullet `auth.type === "oauth2_ac"` com globalSetup SSO
+16. executor-browser.md — Prioridade 0 tem bullet `browserstack_credentials` com connectOptions
+17. executor-browser.md — Prioridade 0 tem bullet `faker_locale` com @faker-js/faker
+
+CLAUDE.md:
+18. CLAUDE.md — 4 novos executores documentados em Pipeline 2
+19. CLAUDE.md — tabela Runtime Dependencies tem as 4 novas entradas
+20. CLAUDE.md — Version History tem v1.26.0

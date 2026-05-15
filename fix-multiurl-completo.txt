@@ -1,0 +1,262 @@
+Faça as seguintes alterações nos arquivos do squad de QA para suportar suites com múltiplos domínios (multi-URL).
+Aplique cada alteração no arquivo indicado. Não altere nenhum outro trecho além dos indicados.
+
+================================================================================
+ARQUIVO 1: agents/orquestrador-qa.md
+================================================================================
+
+--- ALTERAÇÃO 1.1 — Etapa 2a: detectar múltiplas URLs antes de perguntar ---
+
+LOCALIZAR:
+
+### 2a — URL do ambiente
+
+Extraia a URL base do input do usuário ou dos steps dos testes. Se não for possível determinar com certeza, inclua na pergunta:
+
+> "Qual é a URL base do ambiente a ser testado? (ex: `https://staging.app.com`)"
+
+SUBSTITUIR POR:
+
+### 2a — URL do ambiente
+
+Antes de formular a pergunta, analise todos os steps dos testes classificados e extraia todas as URLs base distintas presentes (qualquer ocorrência de `https://` ou `http://` seguida de domínio nos steps ou títulos dos TCs).
+
+**Caso A — URL única ou nenhuma URL detectada nos steps:**
+Extraia a URL base do input do usuário ou dos steps. Se não for possível determinar com certeza, inclua na pergunta:
+> "Qual é a URL base do ambiente a ser testado? (ex: `https://staging.app.com`)"
+Armazene como `base_url` (string). Registre `multi_url: false`.
+
+**Caso B — Múltiplas URLs base distintas detectadas nos steps:**
+Não pergunte `base_url` como campo único. Em vez disso, inclua na pergunta ao usuário:
+> "Os testes cobrem múltiplos domínios. Confirme ou corrija as URLs detectadas por grupo:
+> [para cada grupo de TCs com a mesma URL detectada:]
+> - **[tipo/executor]** ([IDs]): `[URL detectada]`
+> *(Deixe em branco para confirmar, ou informe a URL correta para o grupo)*"
+
+Após receber confirmação, armazene como `url_map` (objeto TC → URL string):
+```python
+url_map = {
+    "TC-API-01": "https://reqres.in/api",
+    "TC-BOOKER-01": "https://restful-booker.herokuapp.com",
+    # ... um par por TC
+}
+```
+Registre `multi_url: true`. Neste caso, `base_url` recebe `null`.
+
+--- ALTERAÇÃO 1.2 — Schema do contexto: adicionar multi_url e url_map ---
+
+LOCALIZAR:
+
+  base_url: "https://staging.app.com",
+
+SUBSTITUIR POR:
+
+  base_url: "https://staging.app.com" | null,   // null quando multi_url: true
+  multi_url: false,                              // true quando há múltiplos domínios
+  url_map: null,                                 // { "TC-XXX": "https://..." } quando multi_url: true
+
+--- ALTERAÇÃO 1.3 — Health check (Etapa 2.9): iterar sobre múltiplas URLs ---
+
+LOCALIZAR:
+
+```python
+import requests
+try:
+    resp = requests.head(base_url, timeout=5, verify=False, allow_redirects=True)
+    env_reachable = resp.status_code < 500
+except Exception as e:
+    env_reachable = False
+    env_error = str(e)
+```
+
+SUBSTITUIR POR:
+
+```python
+import requests
+
+urls_to_check = list(set(url_map.values())) if multi_url else [base_url]
+env_reachable = True
+env_errors = []
+for _url in urls_to_check:
+    try:
+        resp = requests.head(_url, timeout=5, verify=False, allow_redirects=True)
+        if resp.status_code >= 500:
+            env_reachable = False
+            env_errors.append(f"{_url} → HTTP {resp.status_code}")
+    except Exception as e:
+        env_reachable = False
+        env_errors.append(f"{_url} → {str(e)}")
+env_error = "; ".join(env_errors)
+```
+
+E logo abaixo, LOCALIZAR:
+
+> ⚠️ O ambiente `[base_url]` não respondeu (`[env_error]`). Verifique a URL, VPN ou certificado e confirme para continuar — ou cancele.
+
+SUBSTITUIR POR:
+
+> ⚠️ Um ou mais ambientes não responderam:
+> [para cada item em env_errors]: `[url]` — `[erro]`
+> Verifique as URLs, VPN ou certificados e confirme para continuar — ou cancele.
+
+--- ALTERAÇÃO 1.4 — Etapa 3: injetar resolved_base_url antes do dispatch ---
+
+LOCALIZAR a linha do título:
+
+## Etapa 3 — Execução por executor
+
+ADICIONAR imediatamente após essa linha (como novo parágrafo, antes do próximo conteúdo):
+
+> **Resolução de URL por TC (multi_url):** antes de montar a mensagem para cada executor, percorra os TCs do grupo e determine a URL correta de cada um:
+> ```python
+> for tc in tcs_do_executor:
+>     if multi_url and url_map and tc["id"] in url_map:
+>         tc["resolved_base_url"] = url_map[tc["id"]]
+>     else:
+>         tc["resolved_base_url"] = base_url
+> base_url_executor = tcs_do_executor[0]["resolved_base_url"] if tcs_do_executor else base_url
+> ```
+> No bloco `## Contexto de execução` enviado ao subagente, use `base_url_executor` como valor de `base_url`, e inclua também `multi_url` e `url_map` para que o executor possa resolver URLs individualmente por TC quando necessário.
+
+================================================================================
+ARQUIVO 2: agents/executor-api.md
+================================================================================
+
+--- ALTERAÇÃO 2.1 — Prioridade 0: ler resolved_base_url por TC ---
+
+LOCALIZAR:
+
+- `base_url` → defina `BASE_URL` no `.env`, não pergunte
+
+SUBSTITUIR POR:
+
+- `base_url` → defina `BASE_URL` no `.env`, não pergunte
+- `multi_url` → se `true`, diferentes TCs podem ter URLs base distintas; nesse caso leia o campo `resolved_base_url` de cada TC (injetado pelo orquestrador) para determinar a URL correta de cada requisição — não use `BASE_URL` do `.env` como prefixo global quando `multi_url: true`
+- `url_map` → dicionário TC → URL disponível para referência; use `tc.resolved_base_url` no código gerado em vez de referenciar o mapa diretamente
+
+--- ALTERAÇÃO 2.2 — Geração de código: contexto de requisição por URL ---
+
+LOCALIZAR a instrução que descreve como montar o contexto de requisição com baseURL (trecho que menciona `process.env.BASE_URL` ou `baseURL: process.env.BASE_URL`).
+
+ADICIONAR logo após essa instrução (como parágrafo separado):
+
+> **Multi-URL:** quando o contexto contiver `multi_url: true`, cada TC pode ter uma URL base diferente definida em `resolved_base_url`. Nesse caso, ao gerar o código de cada teste, use `tc.resolved_base_url` como URL base daquele TC em vez de `process.env.BASE_URL`. Se dois ou mais TCs tiverem o mesmo `resolved_base_url`, agrupe-os em um mesmo `request.newContext({ baseURL: resolved_base_url })`. Se cada TC tiver um domínio único, crie um contexto separado por TC. Quando `multi_url: false` ou ausente, mantenha o comportamento atual com `BASE_URL` único do `.env`.
+
+================================================================================
+ARQUIVO 3: agents/executor-performance.md
+================================================================================
+
+--- ALTERAÇÃO 3.1 — Prioridade 0: ler resolved_base_url por TC ---
+
+LOCALIZAR:
+
+- `base_url` → use como URL base nos scripts k6/Python, não pergunte
+
+SUBSTITUIR POR:
+
+- `base_url` → use como URL base nos scripts k6/Python, não pergunte
+- `multi_url` → se `true`, diferentes TCs podem ter URLs base distintas; leia `resolved_base_url` de cada TC para determinar a URL correta de cada cenário de carga
+- `url_map` → dicionário TC → URL disponível para referência; use `tc.resolved_base_url` no script gerado
+
+--- ALTERAÇÃO 3.2 — Geração do script k6: objeto de URLs por TC ---
+
+LOCALIZAR a instrução que descreve a estrutura do script k6 gerado (trecho que menciona `const BASE_URL` ou a URL base no topo do script).
+
+ADICIONAR logo após essa instrução (como parágrafo separado):
+
+> **Multi-URL:** quando o contexto contiver `multi_url: true`, cada TC pode apontar para um domínio diferente. Ao gerar o script k6, não declare uma constante `BASE_URL` global. Em vez disso, declare um objeto de URLs por TC no topo do script:
+> ```javascript
+> const TC_URLS = {
+>   "TC-PERF-01": "https://reqres.in/api",
+>   "TC-PERF-07": "https://jsonplaceholder.typicode.com",
+> };
+> ```
+> E use `TC_URLS[tc_id]` ao construir cada URL de requisição dentro da função `default`. Quando `multi_url: false` ou ausente, mantenha o comportamento atual com `BASE_URL` único no topo do script.
+
+================================================================================
+ARQUIVO 4: agents/executor-seguranca.md
+================================================================================
+
+--- ALTERAÇÃO 4.1 — Prioridade 0: ler resolved_base_url por TC ---
+
+LOCALIZAR:
+
+- `base_url` → use como URL base nas verificações, não pergunte
+
+SUBSTITUIR POR:
+
+- `base_url` → use como URL base nas verificações, não pergunte
+- `multi_url` → se `true`, diferentes TCs podem ter URLs base distintas; leia `resolved_base_url` de cada TC para determinar a URL alvo de cada verificação de segurança
+- `url_map` → dicionário TC → URL disponível para referência; use `tc.resolved_base_url` no código gerado
+
+--- ALTERAÇÃO 4.2 — Execução das verificações: agrupar por URL ---
+
+LOCALIZAR a instrução principal que descreve como o executor percorre os TCs e executa as verificações (trecho que menciona iterar sobre os testes e chamar `safe_request`).
+
+ADICIONAR logo após essa instrução (como parágrafo separado):
+
+> **Multi-URL:** quando o contexto contiver `multi_url: true`, cada TC pode apontar para um domínio diferente. Ao gerar o código Python de verificação, use `tc.get("resolved_base_url", base_url)` como URL base de cada TC em vez da variável global `base_url`. Agrupe os TCs por domínio para reaproveitar a sessão `requests.Session()` por grupo. O campo `environment_type` deve ser determinado individualmente para cada URL do grupo.
+
+================================================================================
+ARQUIVO 5: agents/executor-visual.md
+================================================================================
+
+--- ALTERAÇÃO 5.1 — Prioridade 0: ler resolved_base_url por TC ---
+
+LOCALIZAR:
+
+- `base_url` → use como URL base, não pergunte
+
+SUBSTITUIR POR:
+
+- `base_url` → use como URL base, não pergunte
+- `multi_url` → se `true`, diferentes TCs podem ter URLs base distintas; leia `resolved_base_url` de cada TC para determinar a URL de navegação (`page.goto`) de cada cenário
+- `url_map` → dicionário TC → URL disponível para referência; use `tc.resolved_base_url` no código gerado
+
+--- ALTERAÇÃO 5.2 — Instrução de navegação: usar resolved_base_url por TC ---
+
+LOCALIZAR a instrução que descreve como o executor navega até a URL antes de capturar o screenshot (trecho que menciona `page.goto` com `base_url`).
+
+ADICIONAR logo após essa instrução (como parágrafo separado):
+
+> **Multi-URL:** quando o contexto contiver `multi_url: true`, cada TC pode ter uma URL de destino diferente. Ao gerar o código Playwright de cada TC, use `tc.resolved_base_url` como URL base do `page.goto()` daquele TC em vez da variável global `base_url`. Quando `multi_url: false` ou ausente, mantenha o comportamento atual.
+
+================================================================================
+ARQUIVO 6: agents/executor-acessibilidade.md
+================================================================================
+
+--- ALTERAÇÃO 6.1 — Prioridade 0: ler resolved_base_url por TC ---
+
+LOCALIZAR:
+
+- `base_url` → use como URL base, não pergunte
+
+SUBSTITUIR POR:
+
+- `base_url` → use como URL base, não pergunte
+- `multi_url` → se `true`, diferentes TCs podem ter URLs base distintas; leia `resolved_base_url` de cada TC para determinar a URL de navegação (`page.goto`) de cada cenário
+- `url_map` → dicionário TC → URL disponível para referência; use `tc.resolved_base_url` no código gerado
+
+--- ALTERAÇÃO 6.2 — Instrução de scan axe: usar resolved_base_url por TC ---
+
+LOCALIZAR a instrução que descreve como o executor navega até a URL antes de executar o scan axe-core (trecho que menciona `page.goto` com `base_url`).
+
+ADICIONAR logo após essa instrução (como parágrafo separado):
+
+> **Multi-URL:** quando o contexto contiver `multi_url: true`, cada TC pode ter uma URL de destino diferente. Ao gerar o código Playwright de cada TC, use `tc.resolved_base_url` como URL base do `page.goto()` daquele TC em vez da variável global `base_url`. Quando `multi_url: false` ou ausente, mantenha o comportamento atual.
+
+================================================================================
+VERIFICAÇÃO FINAL
+================================================================================
+
+Após aplicar todas as alterações, confirme:
+
+1. orquestrador-qa.md — Etapa 2a contém "Caso A" e "Caso B"
+2. orquestrador-qa.md — schema do contexto tem os campos multi_url e url_map
+3. orquestrador-qa.md — health check usa a variável urls_to_check (lista)
+4. orquestrador-qa.md — Etapa 3 tem o bloco de resolução de URL por TC antes do primeiro dispatch
+5. executor-api.md — Prioridade 0 menciona multi_url, url_map e resolved_base_url
+6. executor-performance.md — Prioridade 0 menciona multi_url e url_map; seção k6 menciona TC_URLS
+7. executor-seguranca.md — Prioridade 0 menciona multi_url e url_map; execução usa resolved_base_url
+8. executor-visual.md — Prioridade 0 menciona multi_url e url_map; page.goto usa resolved_base_url
+9. executor-acessibilidade.md — Prioridade 0 menciona multi_url e url_map; page.goto usa resolved_base_url
