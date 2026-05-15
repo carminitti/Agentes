@@ -55,6 +55,41 @@ Aguarde a resposta antes de continuar. Armazene:
 **Se o usuário não responder ou a mensagem vier com prefixo `--lean`:** defina `lean_mode: true` automaticamente.
 **Se vier com prefixo `--full`:** defina `lean_mode: false` automaticamente, sem perguntar.
 
+**Execução em nuvem (BrowserStack):** se a mensagem de invocação contiver `--browserstack` ou o usuário mencionar "BrowserStack", inclua na pergunta da Etapa 0:
+
+> "Para execução no BrowserStack, forneça:
+> - **Access Key:** `BROWSERSTACK_USERNAME:BROWSERSTACK_ACCESS_KEY`
+> - **Navegadores/devices alvo** (ex: `Chrome 120/Windows 11`, `Safari 17/macOS Sonoma`, `iPhone 15/iOS 17`). Deixe em branco para usar o padrão local."
+
+Armazene:
+- `browserstack_credentials`: `"user:key"` | `null`
+- `browserstack_targets`: lista de strings `["Chrome 120/Windows 11", ...]` | `null`
+
+Se `browserstack_credentials` for informado:
+- Repasse no contexto enviado ao `executor-browser` e `executor-visual`.
+- O executor deve configurar `playwright.connect()` com o endpoint remoto do BrowserStack em vez de usar `chromium.launch()` local.
+
+Adicione ao schema do contexto:
+```
+  browserstack_credentials: null | "user:access_key",
+  browserstack_targets: null | ["Chrome 120/Windows 11"],
+```
+
+**Controle de workers (somente no modo Suite completa):** se `lean_mode: false`, após receber a escolha do usuário, inclua na mesma mensagem da Etapa 0:
+
+> "Quantos executores deseja rodar em paralelo? (padrão: **todos em paralelo** — reduza se o ambiente travar com muitas conexões simultâneas, ex: `2`, `3`)"
+
+Armazene como `max_parallel_executors: null` (sem limite, padrão) | `N` (número inteiro informado pelo usuário).
+
+Se `max_parallel_executors` for informado e `lean_mode: false`, despache os executores em **grupos de no máximo N**, aguardando o grupo anterior terminar antes de despachar o próximo.
+
+Se `lean_mode: true`, `max_parallel_executors` é ignorado (já é sequencial por definição).
+
+Adicione ao schema do contexto:
+```
+  max_parallel_executors: null | 2,   // null = sem limite; N = máximo N executores simultâneos
+```
+
 ---
 
 ## Etapa 1 — Classificação
@@ -64,6 +99,8 @@ Invoque o subagente `classifier-testes` passando integralmente os casos de teste
 **Se o JSON retornado contiver testes com `low_confidence: true`**, exiba ao usuário o seguinte aviso antes de prosseguir para a Etapa 2:
 
 > ⚠️ [N] teste(s) foram classificados com baixa confiança (0.50–0.69) e podem estar no executor errado: [IDs]. Deseja revisar a classificação ou prosseguir assim mesmo?
+
+Ao exibir cada teste com `low_confidence: true` para o usuário (seja nesta tela de confirmação ou em qualquer outra parte do fluxo), inclua sempre a nota: `⚠️ [TC-XXX] classificado como [tipo] com baixa confiança — confirme se a classificação está correta antes de prosseguir.`
 
 Aguarde confirmação do usuário. Se o usuário optar por revisar, apresente os testes e suas classificações atuais e aguarde instruções de correção. Se confirmar prosseguir, continue para a Etapa 2 com a classificação atual.
 
@@ -130,42 +167,185 @@ Antes de despachar qualquer executor, analise o JSON classificado e colete **em 
 
 ### 2a — URL do ambiente
 
-Extraia a URL base do input do usuário ou dos steps dos testes. Se não for possível determinar com certeza, inclua na pergunta:
+Antes de formular a pergunta, analise todos os steps dos testes classificados e extraia todas as URLs base distintas presentes (qualquer ocorrência de `https://` ou `http://` seguida de domínio nos steps ou títulos dos TCs).
 
+**Caso A — URL única ou nenhuma URL detectada nos steps:**
+Extraia a URL base do input do usuário ou dos steps. Se não for possível determinar com certeza, inclua na pergunta:
 > "Qual é a URL base do ambiente a ser testado? (ex: `https://staging.app.com`)"
+Armazene como `base_url` (string). Registre `multi_url: false`.
+
+**Caso B — Múltiplas URLs base distintas detectadas nos steps:**
+Não pergunte `base_url` como campo único. Em vez disso, inclua na pergunta ao usuário:
+> "Os testes cobrem múltiplos domínios. Confirme ou corrija as URLs detectadas por grupo:
+> [para cada grupo de TCs com a mesma URL detectada:]
+> - **[tipo/executor]** ([IDs]): `[URL detectada]`
+> *(Deixe em branco para confirmar, ou informe a URL correta para o grupo)*"
+
+Após receber confirmação, armazene como `url_map` (objeto TC → URL string):
+```python
+url_map = {
+    "TC-API-01": "https://reqres.in/api",
+    "TC-BOOKER-01": "https://restful-booker.herokuapp.com",
+    # ... um par por TC
+}
+```
+Registre `multi_url: true`. Neste caso, `base_url` recebe `null`.
 
 ### 2b — Acesso ao ambiente
 
-Verifique se há qualquer indicação de restrição de acesso nos steps (VPN, rede interna, certificado autoassinado, proxy, IP allowlist). Se houver menção ou ambiguidade, inclua na pergunta:
+**Sempre inclua na pergunta ao usuário** (independentemente do que estiver nos steps):
 
-> "O ambiente requer VPN, proxy ou acesso via rede interna? Se sim, descreva como acessá-lo."
+> "O ambiente tem alguma restrição de acesso ou configuração especial de TLS?
+> - **VPN / rede interna:** requer VPN ou IP allowlist? (S/N — se S, descreva)
+> - **Certificado autoassinado ou CA privada:** o ambiente usa HTTPS com certificado não reconhecido por CAs públicas? (S/N — se S, informe o caminho do arquivo `.crt`/`.pem` da CA, ou confirme `verify=False` para ignorar a verificação)
+> - **Proxy corporativo:** requisições devem passar por proxy? (S/N — se S, informe `http://proxy:porta`)"
+
+Armazene:
+- `environment_notes`: descrição livre da VPN/rede (se houver)
+- `ssl_verify`: `true` (padrão) | `false` (ignorar verificação) | `"/caminho/ca.pem"` (CA customizada)
+- `proxy`: `"http://proxy:porta"` | `null`
+
+**Repasse `ssl_verify` e `proxy` no contexto de execução** enviado a cada executor. Os executores devem usar `ssl_verify` ao configurar `requests.Session`, `page.context` e scripts k6 — nunca hardcode `verify=False` sem que o usuário tenha autorizado.
+
+Atualize o schema do contexto adicionando os dois campos após `environment_notes`:
+
+```
+  ssl_verify: true | false | "/caminho/ca.pem",   // configuração TLS do ambiente
+  proxy: "http://proxy:porta" | null,              // proxy corporativo, se houver
+```
 
 ### 2c — Autenticação (centralizada para todos os executores)
 
-Analise todos os testes classificados. Se **qualquer** teste envolver endpoints protegidos, login, token, Bearer, Authorization ou acesso autenticado:
+Analise todos os testes classificados. Se **qualquer** teste envolver endpoints protegidos, login, token, Bearer, Authorization, API Key ou acesso autenticado:
 
 **Resolva na seguinte ordem de prioridade:**
 
-1. **Token explícito nos steps** → use diretamente. Registre como `auth.token`.
+1. **Token/credencial explícito nos steps** → use diretamente. Registre no campo correspondente abaixo conforme o tipo identificado.
 2. **Credenciais (usuário/senha ou email/senha) nos steps, sem token** → registre como `auth.credentials` e avise que o token será gerado automaticamente pelos executores.
 3. **Nenhuma informação de auth nos steps** → inclua na pergunta ao usuário:
-   > "Um ou mais testes requerem autenticação ([IDs afetados]). Por favor, forneça:
-   > - Um **Bearer token** pronto para uso, **ou**
-   > - **Usuário e senha** (o token será gerado automaticamente)"
+   > "Um ou mais testes requerem autenticação ([IDs afetados]). Qual é o método de acesso ao ambiente?
+   >
+   > **1. Bearer token** — forneça o token JWT ou OAuth pronto para uso
+   > **2. Usuário + senha** — o token será gerado automaticamente via endpoint de login
+   > **3. API Key** — forneça a chave e informe onde ela deve ser enviada:
+   >    - Header: `X-API-Key: <valor>` (ou nome do header customizado)
+   >    - Query param: `?api_key=<valor>` (ou nome do param customizado)
+   > **4. OAuth2 client_credentials** — forneça:
+   >    - Token URL (ex: `https://auth.empresa.com/oauth/token`)
+   >    - Client ID
+   >    - Client Secret
+   >    - Scope (opcional)
+   > **5. mTLS (certificado de cliente)** — forneça o caminho dos arquivos:
+   >    - Certificado: `/caminho/client.crt`
+   >    - Chave privada: `/caminho/client.key`
+   >    - CA bundle (opcional): `/caminho/ca.pem`
+   > **6. OAuth2 authorization_code (SSO/OIDC)** — o login ocorre via redirect de browser. Forneça:
+   >    - Login URL (ex: `https://accounts.empresa.com/oauth/authorize?client_id=...&redirect_uri=...`)
+   >    - Seletor do campo de usuário no formulário de login (ex: `#email`, `input[name=username]`)
+   >    - Seletor do campo de senha (ex: `#password`, `input[type=password]`)
+   >    - Seletor do botão de submit (ex: `button[type=submit]`, `.login-btn`)
+   >    - URL de redirecionamento esperada após login (ex: `https://app.empresa.com/dashboard`)
+   > **7. Sem autenticação** — o ambiente é público"
+
+**Armazenamento por tipo:**
+- Bearer token → `auth.type: "bearer"`, `auth.token: "Bearer eyJ..."`
+- Usuário/senha → `auth.type: "credentials"`, `auth.credentials: { email, password }`
+- API Key → `auth.type: "api_key"`, `auth.api_key: { value: "...", in: "header"|"query", name: "X-API-Key"|"api_key" }`
+- OAuth2 client_credentials → `auth.type: "oauth2_cc"`, `auth.oauth2: { token_url, client_id, client_secret, scope }`
+- mTLS → `auth.type: "mtls"`, `auth.mtls: { cert: "/...", key: "/...", ca: "/..."|null }`
+- OAuth2 auth_code (SSO) → `auth.type: "oauth2_ac"`, `auth.oauth2_ac: { login_url, user_selector, password_selector, submit_selector, redirect_url }`
+- Sem auth → `auth: null`
+
+**Repasse ao contexto dos executores** o campo `auth` completo com `type` preenchido. Os executores devem usar `auth.type` para selecionar a estratégia correta de autenticação no código gerado.
+
+**Headers customizados globais:** se o ambiente exigir headers adicionais em todas as requisições (além da autenticação), inclua na pergunta ao usuário:
+
+> "O ambiente requer headers HTTP customizados em todas as requisições? (ex: `X-Tenant-ID: acme`, `Accept-Language: pt-BR`, `X-App-Version: 2.0`)
+> - Informe no formato `Nome-Header: valor` (um por linha), ou deixe em branco se não houver."
+
+Armazene como `custom_headers: { "X-Tenant-ID": "acme", ... }` | `null`.
+
+Adicione ao schema do contexto:
+```
+  custom_headers: null | { "Header-Name": "valor" },   // headers globais injetados em todas as requisições
+```
+
+**Repasse `custom_headers` no contexto de todos os executores.** Cada executor deve injetar esses headers em toda requisição gerada (antes dos headers de autenticação).
 
 ### 2d — Banco de dados
 
 Se houver testes classificados com executor `db`:
 
-1. **`DB_CONNECTION_STRING` presente no ambiente** → use diretamente.
-2. **Não presente** → inclua na pergunta:
-   > "Os testes de banco ([IDs afetados]) requerem string de conexão. Forneça no formato: `postgresql://user:pass@host:5432/db` (ou equivalente para MySQL/SQLite/SQL Server). Se preferir, configure a variável `DB_CONNECTION_STRING`."
+Inclua sempre na pergunta ao usuário:
 
-### 2e — Dúvidas dos steps
+> "Os testes de banco ([IDs afetados]) podem ser executados em dois modos:
+>
+> **1. Real (recomendado para staging/qa)** — conecta a um banco real via string de conexão e executa SELECTs de verificação. Requer:
+>    - String de conexão: `postgresql://user:pass@host:5432/db` (ou MySQL/SQLite/SQL Server equivalente)
+>    - O banco deve estar acessível e as tabelas já populadas
+>
+> **2. Simulado** — cria um banco SQLite in-memory, infere o schema a partir dos steps e valida a lógica sem conexão real. Útil para ambientes sem acesso ao banco.
+>
+> Qual modo deseja usar? (padrão: **Simulado** se não houver string de conexão)"
 
-Leia todos os steps dos testes classificados. Se algum step for ambíguo ou der margem a interpretações que mudariam o resultado do teste (ex: "verifique se funciona", "acesse a área administrativa", "use o usuário de teste" sem especificar qual), inclua na pergunta:
+**Resolução:**
+- **Modo real escolhido ou `DB_CONNECTION_STRING` já presente** → `banco_mode: "real"`, use a connection string diretamente
+- **Modo simulado escolhido ou string ausente** → `banco_mode: "simulated"`, `db_connection: null`
 
+Adicione `banco_mode` ao schema do contexto:
+```
+  banco_mode: "real" | "simulated",   // modo de execução do executor-banco
+```
+
+**Repasse `banco_mode` no contexto enviado ao `executor-banco`.** O executor deve respeitar o modo indicado sem perguntar novamente.
+
+### 2d.1 — Pact Broker (quando houver testes de contrato)
+
+**Se houver testes classificados com executor `pact-real`:**
+
+Inclua na pergunta ao usuário:
+
+> "Os testes de contrato Pact ([IDs afetados]) podem publicar e verificar pacts via Pact Broker.
+>
+> - **Pact Broker URL** (opcional): URL da instância do Pact Broker ou PactFlow (ex: `https://pactbroker.empresa.com`). Deixe em branco para executar apenas localmente.
+> - **Token de autenticação do Pact Broker** (se o broker exigir auth): Bearer token de acesso.
+> - **Modo:** os testes são do lado (1) Consumidor — gera pact e verifica mock, ou (2) Provedor — verifica pacts existentes contra o provider real?"
+
+Armazene:
+- `pact_broker_url`: URL informada | `null` (sem broker)
+- `pact_broker_token`: token | `null`
+- `pact_mode`: `"consumer"` | `"provider"`
+
+Adicione ao schema do contexto:
+```
+  pact_broker_url: null | "https://broker.empresa.com",
+  pact_broker_token: null | "Bearer ...",
+  pact_mode: "consumer" | "provider" | null,
+```
+
+### 2e — Dúvidas dos steps e pré-condições de dados
+
+Leia todos os steps dos testes classificados. Realize duas varreduras:
+
+**Varredura 1 — Ambiguidades:** se algum step for ambíguo ou der margem a interpretações que mudariam o resultado (ex: "verifique se funciona", "acesse a área administrativa", "use o usuário de teste" sem especificar qual), inclua na pergunta:
 > "O step '[trecho do step]' do teste [ID] não está claro. [pergunta específica para desambiguar]."
+
+**Varredura 2 — Pré-condições de dados:** detecte steps que **pressupõem existência prévia de dados** no ambiente. Padrões típicos: "Given que existe um [entidade] com [atributo]", "Dado que o [recurso] ID [N] está cadastrado", "Assumindo que o usuário [email] já foi criado", "Dado que há pelo menos [N] registros na tabela". Se encontrar tais padrões, inclua na pergunta:
+
+> "O(s) teste(s) [IDs] assumem que os seguintes dados já existem no ambiente:
+> [lista de pré-condições detectadas, uma por linha]
+>
+> Por favor confirme:
+> - **Os dados já existem no ambiente** → prosseguir normalmente
+> - **Os dados precisam ser criados** → informe como criá-los (endpoint, script SQL, fixture), ou autorize o executor a tentar criá-los via API antes de cada teste
+> - **Não sei** → o executor marcará o TC como `skipped` com razão `precondition_unknown` se o dado não for encontrado"
+
+Armazene a resposta como `preconditions_strategy: "assume_exists" | "create_via_api" | "skip_if_missing"` (padrão: `"assume_exists"`).
+
+Adicione ao schema do contexto:
+```
+  preconditions_strategy: "assume_exists" | "create_via_api" | "skip_if_missing",
+```
 
 ### 2f — Diretórios de saída, modo de execução e permissão geral
 
@@ -187,6 +367,25 @@ Inclua **sempre** na pergunta ao usuário, independentemente dos outros itens:
 > **Evidências visuais (screenshots e vídeos):** *(somente se `lean_mode: false`)*
 > - "Deseja capturar screenshots e vídeos de **todos** os testes, incluindo os que passarem? (S — gera evidência completa para tudo / N — somente falhas têm screenshots e vídeos obrigatórios — padrão: N)"
 >
+> **Timeouts de execução:**
+> - "Qual o timeout máximo por requisição HTTP? (padrão: `30s` — aumente para ambientes lentos, ex: `60s`, `120s`)"
+> - *(somente se houver testes browser/visual/acessibilidade)* "Qual o timeout máximo por ação de browser (cliques, navegação, espera de elemento)? (padrão: `30s`)"
+
+Armazene:
+- `request_timeout_ms`: `30000` (padrão) ou valor informado pelo usuário em ms
+- `browser_timeout_ms`: `30000` (padrão) ou valor informado (somente se houver testes browser)
+
+Adicione ao schema do contexto:
+```
+  request_timeout_ms: 30000,    // timeout HTTP por requisição, em ms
+  browser_timeout_ms: 30000,    // timeout de ações de browser, em ms (null se não houver testes browser)
+```
+
+**Repasse ambos os campos no contexto de todos os executores.** Cada executor deve aplicar esses valores:
+- `executor-api`, `executor-seguranca`: `requests.get(url, timeout=request_timeout_ms/1000)`
+- `executor-browser`, `executor-visual`, `executor-acessibilidade`: `page.setDefaultTimeout(browser_timeout_ms)`
+- `executor-performance`: `http.get(url, { timeout: request_timeout_ms })`
+
 > **Permissão geral de execução:**
 > "Para executar os testes, precisarei realizar as seguintes operações sem pedir confirmação individual a cada passo:
 > - Criar diretórios e arquivos no disco (código `.py`, `.js`, `.ts`, logs, relatório)
@@ -195,11 +394,127 @@ Inclua **sempre** na pergunta ao usuário, independentemente dos outros itens:
 >
 > Você autoriza todas essas operações agora, sem interrupção durante o fluxo? (S/N — padrão: S)"
 
+> **Retry de testes com falha:**
+> - *(somente se `lean_mode: false`)* "Deseja fazer retry automático de testes que falharem? (padrão: **0 retries** — se sim, informe quantas tentativas: `1`, `2` ou `3`)"
+
+Armazene como `retry_count: 0` (padrão) | N (número informado).
+
+Se `lean_mode: true`, `retry_count` é sempre `0` (sem retry em modo enxuto).
+
+Adicione ao schema do contexto:
+```
+  retry_count: 0,   // número de retries automáticos para testes com falha (0 = sem retry)
+```
+
+**Repasse `retry_count` no contexto de todos os executores.** Os executores devem configurar:
+- `executor-browser` / `executor-visual` / `executor-acessibilidade`: `retries: N` no `playwright.config`
+- `executor-api` / `executor-seguranca` / `executor-banco`: loop de retry manual com `for attempt in range(retry_count + 1)`
+- `executor-performance`: não aplica retry (k6 não tem retry nativo por TC)
+
+> **Limpeza de dados de teste (teardown):**
+> - *(somente se `lean_mode: false` e houver testes de API ou browser que criam dados)* "Deseja que os executores tentem remover os dados criados durante os testes ao final de cada suite? (padrão: **N** — somente marque S se o ambiente tiver endpoints de exclusão disponíveis)"
+
+Armazene como `teardown_enabled: false` (padrão) | `true`.
+
+Se `lean_mode: true`, `teardown_enabled` é sempre `false`.
+
+Adicione ao schema do contexto:
+```
+  teardown_enabled: false,   // true = executores devem remover dados criados durante os testes
+  faker_locale: null | "pt_BR",   // locale para geração de dados com Faker nos executores
+  history_enabled: false,          // true = registra resultado nesta suite no histórico local
+```
+
+**Repasse `teardown_enabled` no contexto de `executor-api` e `executor-browser`.** Quando `true`, o executor deve:
+1. Ao longo dos testes, registrar os IDs de todos os recursos criados (usuários, bookings, etc.)
+2. Ao final de todos os TCs, executar requisições DELETE para cada recurso registrado
+3. Reportar no JSON de resultado o campo `teardown: { deleted: N, failed: M }` no summary
+
+> **Geração de dados de teste (Faker):**
+> - *(somente se `lean_mode: false` e houver testes de API ou browser que criam registros)* "Os executores devem gerar dados realistas automaticamente (nomes, emails, datas, CPFs) usando Faker? (padrão: **N** — se S, informe o locale: `pt_BR`, `en_US`, `es_ES`)"
+
+Armazene como `faker_locale: null` (padrão, sem Faker) | `"pt_BR"` (ou locale informado).
+
+> **Histórico de execuções:**
+> - *(somente se `lean_mode: false`)* "Deseja registrar o resultado desta suite no histórico local para acompanhar tendências de falha entre execuções? (padrão: **N**)"
+
+Armazene como `history_enabled: false` (padrão) | `true`.
+
+Se `history_enabled: true`, ao final da Etapa 4B (após gravar o `suite.log`), execute:
+
+```python
+import json, os, datetime
+
+HISTORY_FILE = os.path.join(code_output_dir, ".qa_history.json")
+history = json.load(open(HISTORY_FILE)) if os.path.exists(HISTORY_FILE) else {"runs": []}
+
+run_entry = {
+    "timestamp": datetime.datetime.now().isoformat(),
+    "suite_dir": suite_dir,
+    "base_url": base_url,
+    "executors": list(executor_results.keys()),
+    "summary": {
+        "total": total_tcs,
+        "passed": sum(r.get("summary", {}).get("passed", 0) for r in executor_results.values()),
+        "failed": sum(r.get("summary", {}).get("failed", 0) for r in executor_results.values()),
+        "skipped": sum(r.get("summary", {}).get("skipped", 0) for r in executor_results.values()),
+    },
+    "failures": [
+        {"id": tc["id"], "title": tc.get("title"), "executor": ex}
+        for ex, res in executor_results.items()
+        for tc in res.get("results", []) if tc.get("status") == "failed"
+    ]
+}
+
+history["runs"].append(run_entry)
+# Manter apenas as últimas 50 execuções
+history["runs"] = history["runs"][-50:]
+json.dump(history, open(HISTORY_FILE, "w"), indent=2, ensure_ascii=False)
+```
+
+Após gravar, exiba um breve resumo de tendência:
+```python
+runs = history["runs"]
+if len(runs) >= 2:
+    prev = runs[-2]["summary"]
+    curr = runs[-1]["summary"]
+    delta_failed = curr["failed"] - prev["failed"]
+    trend = f"▲ {delta_failed} mais falhas" if delta_failed > 0 else f"▼ {abs(delta_failed)} menos falhas" if delta_failed < 0 else "= sem variação"
+    print(f"📊 Histórico: {len(runs)} execuções registradas | Tendência: {trend} vs. execução anterior")
+```
+
 Se o usuário não informar um diretório, use `"."` (diretório atual). Armazene a resposta como `code_output_dir`.
 
 Se o usuário responder **S** para evidências visuais (apenas no modo full), armazene `screenshot_all: true`; caso contrário, `screenshot_all: false`.
 
 Se o usuário responder **S** (ou não responder) para a permissão geral, armazene `blanket_permission: true` e **não solicite confirmação para nenhuma operação de ferramenta durante toda a execução** — criação de arquivos, execução de scripts, leitura de diretórios e qualquer outra ação de ferramenta devem ser realizadas diretamente. Se o usuário responder **N**, armazene `blanket_permission: false` e solicite confirmação antes de cada operação destrutiva ou de escrita em disco.
+
+### 2h — Rate limiting (quando houver testes de API ou performance)
+
+**Se houver testes com executor `http` (integração), `k6`, `zap`, `magnitude`, `websocket`, `grpc` ou `graphql` com muitos TCs** (mais de 10 TCs para API/WebSocket/gRPC/GraphQL, ou qualquer teste de performance/carga):
+
+Inclua na pergunta ao usuário:
+
+> "O ambiente possui rate limiting?
+> - **Não** → prosseguir normalmente
+> - **Sim** → informe o limite (ex: `100 req/min`, `10 req/s`) para que os executores adicionem delays entre requisições"
+
+Armazene como `rate_limit`:
+- `null` se não houver
+- `{ max_requests: 100, window: "1m" }` ou `{ max_requests: 10, window: "1s" }` se houver
+
+**Repasse `rate_limit` no contexto de execução.** Os executores devem:
+- `executor-api`: adicionar `time.sleep(60 / max_requests)` entre requests quando `rate_limit` não for null
+- `executor-performance`: ajustar `rate` ou `sleep()` no script k6 para não exceder o limite
+- `executor-seguranca`: adicionar delay entre verificações
+- `executor-websocket`: adicionar `asyncio.sleep(60 / max_requests)` entre conexões consecutivas
+- `executor-grpc`: adicionar delay entre chamadas gRPC consecutivas
+- `executor-graphql`: adicionar delay entre requisições HTTP e entre conexões de subscription
+
+Adicione ao schema do contexto:
+```
+  rate_limit: null | { max_requests: 100, window: "1m" },   // throttling do ambiente, se houver
+```
 
 ### 2g — Mobile (quando houver testes mobile)
 
@@ -223,6 +538,44 @@ Armazene em `appium_config: { url, platform, device_name, app_package, app_activ
 
 > ⚠️ Se `lean_mode: true`, inclua a pergunta 2g **apenas** se houver testes mobile — não modifique as demais regras do lean mode.
 
+### 2c.1 — Autenticação por domínio (multi_url)
+
+**Aplique somente quando `multi_url: true`.**
+
+> **Nota sobre mapeamentos:** O `url_map` é sempre `TC_ID → URL` (ex: `"TC-001": "https://api1.com"`). O `auth_map` é `domínio → credenciais` (ex: `"https://api1.com": {...}`). Não confundir os dois.
+
+Após confirmar o `url_map`, analise se os domínios distintos pertencem ao mesmo sistema de autenticação. Se houver domínios diferentes (ex: `reqres.in` e `restful-booker.herokuapp.com`), inclua na pergunta ao usuário:
+
+> "Os testes cobrem múltiplos domínios. Eles compartilham as mesmas credenciais?
+> - **Sim, mesmas credenciais para todos** → informe uma vez (será usada para todos os domínios)
+> - **Não, credenciais distintas por domínio** → informe para cada domínio:
+>   - `[domínio 1]`: [método de auth + credenciais]
+>   - `[domínio 2]`: [método de auth + credenciais]"
+
+Armazene:
+- **Credenciais compartilhadas** → `auth` (objeto único, como de costume); `auth_map: null`
+- **Credenciais distintas** → `auth: null`; `auth_map: { "https://dominio1.com": { type, token|credentials|api_key|... }, "https://dominio2.com": { ... } }`
+
+Ao despachar cada executor, resolva a auth por TC usando `auth_map` quando presente:
+```python
+from urllib.parse import urlparse as _urlparse
+
+def _extrair_dominio(url):
+    if not url:
+        return None
+    p = _urlparse(url)
+    return f"{p.scheme}://{p.netloc}" if p.netloc else url
+
+for tc in tcs_do_executor:
+    _domain = _extrair_dominio(tc.get("resolved_base_url") or base_url)
+    tc["resolved_auth"] = auth_map.get(_domain) if (auth_map and _domain) else auth
+```
+
+Adicione `auth_map` ao schema do contexto:
+```
+  auth_map: null | { "https://dominio.com": { type: "...", ... } },   // quando multi_url e auth distintas por domínio
+```
+
 ---
 
 ### Envio da pergunta
@@ -233,13 +586,33 @@ Após receber as respostas, monte o **contexto de execução**:
 
 ```
 contexto = {
-  base_url: "https://staging.app.com",
+  base_url: "https://staging.app.com" | null,   // null quando multi_url: true
+  multi_url: false,                              // true quando há múltiplos domínios
+  url_map: null,                                 // { "TC-XXX": "https://..." } quando multi_url: true
   auth: {
+    type: "bearer" | "credentials" | "api_key" | "oauth2_cc" | "mtls" | "oauth2_ac" | null,
     token: "Bearer eyJ..." | null,
-    credentials: { email: "...", password: "..." } | null
-  },
+    credentials: { email: "...", password: "..." } | null,
+    api_key: { value: "...", in: "header"|"query", name: "X-API-Key" } | null,
+    oauth2: { token_url: "...", client_id: "...", client_secret: "...", scope: "..." } | null,
+    mtls: { cert: "/...", key: "/...", ca: "/..."|null } | null,
+    oauth2_ac: { login_url: "...", user_selector: "...", password_selector: "...", submit_selector: "...", redirect_url: "..." } | null
+  } | null,
+  auth_map: null | { "https://dominio.com": { type: "...", ... } },   // quando multi_url e auth distintas por domínio
   db_connection: "postgresql://..." | null,
+  banco_mode: "real" | "simulated",
+  pact_broker_url: null | "https://broker.empresa.com",
+  pact_broker_token: null | "Bearer ...",
+  pact_mode: "consumer" | "provider" | null,
   environment_notes: "Requer VPN XYZ" | null,
+  environment_type: "production" | null,
+  ssl_verify: true,                              // true | false | "/caminho/ca.pem"
+  proxy: null,                                   // "http://proxy:porta" | null
+  custom_headers: null,                          // null | { "Header-Name": "valor" }
+  request_timeout_ms: 30000,
+  browser_timeout_ms: 30000,                     // null se não houver testes browser
+  rate_limit: null,                              // null | { max_requests: 100, window: "1m" }
+  preconditions_strategy: "assume_exists",       // "assume_exists" | "create_via_api" | "skip_if_missing"
   suite_dir: "suite_[nome]_[YYYYMMDD_HHMMSS]",
   code_output_dir: "/caminho/escolhido" | ".",
   report_output_dir: "/caminho/escolhido" | ".",
@@ -247,7 +620,14 @@ contexto = {
   screenshot_all: true | false,
   lean_mode: true | false,
   blanket_permission: true | false,
-  mobile_device: "iPhone 13" | null,           // para playwright-mobile
+  retry_count: 0,
+  teardown_enabled: false,
+  faker_locale: null,                            // null | "pt_BR"
+  history_enabled: false,
+  max_parallel_executors: null,                  // null = sem limite; N = máximo N simultâneos
+  browserstack_credentials: null,               // null | "user:access_key"
+  browserstack_targets: null,                   // null | ["Chrome 120/Windows 11"]
+  mobile_device: "iPhone 13" | null,
   appium_config: {                              // para appium (app nativo)
     url: "http://localhost:4723",
     platform: "Android" | "iOS",
@@ -300,6 +680,17 @@ Antes de despachar qualquer executor, derive o nome e **use a ferramenta Bash ou
 
 ## Etapa 3 — Execução por executor
 
+> **Resolução de URL por TC (multi_url):** antes de montar a mensagem para cada executor, percorra os TCs do grupo e determine a URL correta de cada um:
+> ```python
+> for tc in tcs_do_executor:
+>     if multi_url and url_map and tc["id"] in url_map:
+>         tc["resolved_base_url"] = url_map[tc["id"]]
+>     else:
+>         tc["resolved_base_url"] = base_url
+> base_url_executor = tcs_do_executor[0]["resolved_base_url"] if tcs_do_executor else base_url
+> ```
+> No bloco `## Contexto de execução` enviado ao subagente, use `base_url_executor` como valor de `base_url`, e inclua também `multi_url` e `url_map` para que o executor possa resolver URLs individualmente por TC quando necessário.
+
 ### Etapa 2.9 — Pré-validação e classificação de pipeline
 
 Execute estas verificações antes de despachar qualquer executor. Não pergunte ao usuário — execute silenciosamente e registre os resultados.
@@ -310,19 +701,120 @@ Antes de validar os TCs individualmente, verifique se o `base_url` é acessível
 
 ```python
 import requests
-try:
-    resp = requests.head(base_url, timeout=5, verify=False, allow_redirects=True)
-    env_reachable = resp.status_code < 500
-except Exception as e:
-    env_reachable = False
-    env_error = str(e)
+
+urls_to_check = list(set(url_map.values())) if multi_url else [base_url]
+env_reachable = True
+env_errors = []
+for _url in urls_to_check:
+    try:
+        resp = requests.head(_url, timeout=5, verify=False, allow_redirects=True)
+        if resp.status_code >= 500:
+            env_reachable = False
+            env_errors.append(f"{_url} → HTTP {resp.status_code}")
+    except Exception as e:
+        env_reachable = False
+        env_errors.append(f"{_url} → {str(e)}")
+env_error = "; ".join(env_errors)
 ```
 
 - **Se `env_reachable: true`** → prossiga normalmente.
+
+- **Se `env_reachable: true` e a URL parece ser de produção** → exiba aviso antes de prosseguir:
+
+  Detecte ambiente de produção se a URL **não** contiver nenhum dos seguintes padrões: `staging`, `stage`, `stg`, `dev`, `development`, `test`, `tst`, `qa`, `uat`, `sandbox`, `local`, `localhost`, `127.0.0.1`, `192.168.`, `10.`, `preview`, `demo`, `homolog`, `hml`.
+
+  ```python
+  ambientes_nao_prod = ["staging","stage","stg","dev","development","test","tst",
+                         "qa","uat","sandbox","local","localhost","127.0.0.1",
+                         "192.168.","10.","preview","demo","homolog","hml"]
+  # Quando multi_url: true, base_url é null — verificar todas as URLs do url_map
+  if base_url:
+      urls_a_verificar = [base_url]
+  elif multi_url and url_map:
+      urls_a_verificar = list(set(url_map.values()))
+  else:
+      urls_a_verificar = []
+  parece_producao = bool(urls_a_verificar) and all(
+      not any(p in u.lower() for p in ambientes_nao_prod)
+      for u in urls_a_verificar
+  )
+  ```
+
+  Se `parece_producao: true`:
+  > ⚠️ **Atenção: a URL `[base_url or ', '.join(urls_a_verificar)]` parece ser de produção.**
+  > Executar testes automatizados em produção pode gerar dados indesejados, acionar alertas ou impactar usuários reais.
+  >
+  > Confirme: **Esta é realmente a URL de produção?** (S = prosseguir mesmo assim / N = cancelar e informar a URL correta)
+
+  Se o usuário confirmar → prossiga e registre `environment_type: "production"` no contexto.
+  Se cancelar → encerre sem despachar executores.
+
 - **Se `env_reachable: false`** → exiba ao usuário antes de prosseguir:
-  > ⚠️ O ambiente `[base_url]` não respondeu (`[env_error]`). Verifique a URL, VPN ou certificado e confirme para continuar — ou cancele.
+  > ⚠️ Um ou mais ambientes não responderam:
+  > [para cada item em env_errors]: `[url]` — `[erro]`
+  > Verifique as URLs, VPN ou certificados e confirme para continuar — ou cancele.
 
   Aguarde confirmação. Se o usuário confirmar, prossiga mesmo assim (o erro pode ser intermitente); se cancelar, encerre sem despachar executores.
+
+#### 0.5) Verificação de binários (fail-fast por executor)
+
+Para cada executor que será despachado, verifique silenciosamente se o binário necessário está disponível:
+
+```python
+import shutil, subprocess
+
+binarios = {
+    "executor-browser":       [("node", "--version"), ("npx", "--version")],
+    "executor-api":           [("python", "--version")],
+    "executor-performance":   [("k6", "version")],
+    "executor-visual":        [("node", "--version"), ("npx", "--version")],
+    "executor-acessibilidade":[("node", "--version"), ("npx", "--version")],
+    "executor-seguranca":     [("python", "--version")],
+    "executor-banco":         [("python", "--version")],
+    "executor-mobile":        [("python", "--version")],
+    "executor-websocket":     [("python", "--version")],
+    "executor-grpc":          [("python", "--version")],   # grpcurl verificado separadamente
+    "executor-graphql":       [("python", "--version")],
+    "executor-contrato":      [("python", "--version")],
+}
+
+# Verificação adicional de grpcurl para executor-grpc
+if "executor-grpc" in executores_a_despachar:
+    try:
+        subprocess.run(("grpcurl", "--version"), capture_output=True, timeout=5)
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        # grpcurl ausente é aviso, não bloqueio — grpcio é o fallback
+        print("[AVISO] grpcurl não encontrado — executor-grpc usará grpcio como fallback")
+
+binarios_ausentes = {}
+for executor, cmds in binarios.items():
+    if executor not in executores_a_despachar:
+        continue
+    ausentes = []
+    for cmd in cmds:
+        try:
+            subprocess.run(cmd, capture_output=True, timeout=5)
+        except (FileNotFoundError, subprocess.TimeoutExpired):
+            ausentes.append(cmd[0])
+    if ausentes:
+        binarios_ausentes[executor] = ausentes
+```
+
+- **Se `binarios_ausentes` estiver vazio** → prossiga normalmente.
+- **Se houver binários ausentes** → exiba ao usuário **antes** de despachar qualquer executor:
+  > ⚠️ **Binários ausentes detectados — os seguintes executores não poderão rodar:**
+  > [para cada executor com binário ausente]:
+  > - `[executor]` → requer `[binário]` — instale com: `[sugestão de instalação]`
+  >
+  > Sugestões de instalação:
+  > - `node` / `npx`: `https://nodejs.org` ou `winget install OpenJS.NodeJS`
+  > - `k6`: `winget install k6` (Windows) | `brew install k6` (macOS)
+  > - `python`: `https://python.org` ou `winget install Python.Python.3`
+  >
+  > **Deseja prosseguir sem os executores acima (eles serão marcados como `skipped`), ou cancelar para instalar os binários?**
+
+  Se o usuário optar por prosseguir → marque os TCs dos executores afetados como `skipped` com razão `binary_missing` e não os despache.
+  Se cancelar → encerre sem despachar nenhum executor.
 
 #### A) Validação rápida de TCs (fail-fast)
 
@@ -354,6 +846,8 @@ smoke, sanity, regressão, e2e, integração, contrato, visual, acessibilidade, 
 - tipo `soak` (qualquer configuração)
 - tipo `stress` com soma de duração de todos os stages > 3 minutos
 - tipo `performance` ou `carga` com vus > 50 E duration > 60s
+
+> **Nota:** A separação pipeline rápido/lento é baseada em **duração e VUs**, não no tipo do TC. Tipos `carga`, `stress` e `soak` são sempre despachados ao executor-performance (k6) — o que muda é se o executor vai executá-los ou retornar `skipped`. O orquestrador não filtra por tipo, apenas despacha.
 
 Para TCs do pipeline lento em invocação sem "--pipeline=full", marque como `skipped` com razão `pipeline_lento` e NÃO despache:
 ```json
@@ -395,9 +889,12 @@ Execute **todos** os tipos identificados. Nunca pergunte se deve executar um sub
 | `db` | `executor-banco` |
 | `playwright-multibrowser` | `executor-browser` com instrução de rodar em Chromium, Firefox e WebKit |
 | `playwright-mobile` | `executor-browser` com `device_emulation: true` e `device_name` coletado na Etapa 2g |
-| `parameterized` | Analise os steps para determinar o executor base: navegação de UI / formulários / verificações visuais → `executor-browser`; requisições HTTP / endpoints / status codes → `executor-api`. Se ambíguo, use `executor-browser`. Passe os conjuntos de dados dos steps como parâmetro adicional no contexto. |
-| `pact` | não execute — registre como não executado: tipo `contrato (Pact)`, motivo `Requer Pact Broker` |
+| `parameterized` | Analise os steps para determinar o executor base: **navegação de UI, formulários, seletores CSS/XPath, cliques, verificações visuais** → `executor-browser`; **requisições HTTP, endpoints, status codes, JSON response** → `executor-api`; **verificações de banco com múltiplos datasets** → `executor-banco`. Se ambíguo após essa análise, exiba ao usuário: > "O teste [ID] é parametrizado mas seu tipo base é ambíguo. Deve rodar como: (1) teste de browser — UI/formulário, (2) teste de API — HTTP/endpoints, ou (3) teste de banco?" Aguarde resposta antes de despachar. Passe os conjuntos de dados dos steps como `data_sets: [...]` no contexto do executor. |
+| `pact-real` | `executor-contrato` |
 | `appium` | `executor-mobile` com capabilities coletadas na Etapa 2g |
+| `websocket` | `executor-websocket` |
+| `grpc` | `executor-grpc` |
+| `graphql` | `executor-graphql` |
 
 **Para cada executor invocado, formate a mensagem exatamente assim:**
 
@@ -442,7 +939,9 @@ Regras de preenchimento por executor:
 
 Substitua cada campo pelo valor real coletado na Etapa 2. Use `null` nos campos que não se aplicam (ex: `"db_connection": null` para executores que não são banco, `"auth": null` para testes sem autenticação). Nunca omita `suite_dir` — sempre repasse o valor criado nesta etapa.
 
-**Quando `lean_mode: true`, adicione ao final da mensagem de cada executor:**
+****Campo `faker_locale` no contexto do executor-visual:** repasse `faker_locale` no contexto enviado ao executor-visual (assim como aos demais executores). O executor-visual recebe `faker_locale` no contexto mas não o usa atualmente — campo reservado para compatibilidade futura.
+
+Quando `lean_mode: true`, adicione ao final da mensagem de cada executor:**
 ```
 ## Modo enxuto — instruções de execução
 - Gere o **mínimo de arquivos** necessário por executor (sem POM, sem fixtures de teste). Exceção: `executor-visual` usa dois arquivos em lean mode (`spec.js` + `lean_playwright.config.js`) — o segundo é indispensável para persistir baselines entre execuções.
@@ -536,6 +1035,8 @@ Se após 2 tentativas o executor ainda retornar `credentials_failed: true`, regi
 ### Etapa 4A — Modo enxuto (`lean_mode: true`)
 
 **Não invoque o `reporter-qa`. Não salve nenhum arquivo de relatório em disco.**
+
+> **Limpeza de `setup_status.json`:** em lean mode, após receber o resultado do executor-browser, verifique se `setup_status.json` existe no diretório corrente e delete-o se existir — ele é lixo do globalSetup que não será lido pelo pipeline lean.
 
 Calcule diretamente a partir dos JSONs retornados pelos executores e exiba no chat o seguinte resumo inline:
 

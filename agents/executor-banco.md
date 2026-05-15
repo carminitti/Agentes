@@ -112,6 +112,36 @@ cursor.executescript("""
 
 5. **No relatório**, inclua obrigatoriamente:
    - Campo `"simulated": true` em cada resultado
+
+   **Esta instrução é inegociável:** o campo `"simulated": true` (ou `false`) deve estar presente em **todos** os objetos de resultado individual E no summary. Se o campo estiver ausente do resultado gerado, o reporter e o orquestrador não conseguem distinguir um banco real de um simulado.
+
+   Template obrigatório de resultado em modo simulado:
+   ```python
+   results.append({
+       "id": tc_id,
+       "title": title,
+       "status": "passed",      # ou "failed" / "error"
+       "duration_ms": ms,
+       "simulated": True,       # ← OBRIGATÓRIO, nunca omitir
+   })
+   ```
+
+   Template obrigatório de summary em modo simulado:
+   ```python
+   summary = {
+       "total":     len(results),
+       "passed":    sum(1 for r in results if r["status"] == "passed"),
+       "failed":    sum(1 for r in results if r["status"] == "failed"),
+       "skipped":   sum(1 for r in results if r["status"] == "skipped"),
+       "simulated": True,       # ← OBRIGATÓRIO em modo simulado
+       "simulation_note": "⚠️ Testes executados em SQLite in-memory — "
+                          "nenhuma conexão a banco real foi realizada. "
+                          "Revalidar contra o banco real antes do deploy.",
+   }
+   ```
+
+   Em modo real (`banco_mode: "real"`), os mesmos campos devem aparecer com `"simulated": False` e sem `simulation_note`.
+
    - Campo `"simulation_note"` na raiz do JSON com o aviso:
      > "⚠️ Execução em ambiente simulado (SQLite em memória). Os dados foram gerados automaticamente com base nos cenários de teste. Os resultados devem ser revalidados contra o banco real antes do deploy."
 
@@ -478,7 +508,8 @@ Se o `## Contexto de execução` contiver `"lean_mode": true`, aplique todas as 
 
 ### Código gerado
 - Gere um **único script Python** contendo tudo (conexão, queries, asserções) — sem arquivos auxiliares.
-- Salve em `[suite_dir]/banco/` com o nome `lean_db_[timestamp].py` e execute com `python`.
+- No início do script gerado, hardcode `SUITE_DIR = "[suite_dir]"` com o valor real do contexto (não use `os.environ.get` — o script é efêmero e o valor já é conhecido).
+- Salve em `[suite_dir]/banco/` com o nome `lean_db_[timestamp].py` e execute com `python lean_db_[timestamp].py`.
 
 ### Sem logs em disco
 - **Não grave `execution.log`** nem nenhum outro arquivo além de `resultado.json`.

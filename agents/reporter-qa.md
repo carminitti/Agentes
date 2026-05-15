@@ -107,11 +107,26 @@ nav{position:sticky;top:0;z-index:100;background:rgba(15,17,23,.96);backdrop-fil
 .nav-tech-links{display:none}
 body.mode-technical .nav-report-links{display:none}
 body.mode-technical .nav-tech-links{display:flex;align-items:center;gap:2px;flex-wrap:wrap}
-.mode-toggle{margin-left:auto;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:7px 16px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;transition:all .18s;white-space:nowrap;display:flex;align-items:center;gap:6px;flex-shrink:0}
-.mode-toggle:hover{background:var(--purple-dim);border-color:var(--purple);color:var(--purple-light)}
-body.mode-technical .mode-toggle{background:var(--purple-dim);border-color:var(--purple);color:var(--purple-light)}
+.mode-toggle{margin-left:auto;background:linear-gradient(135deg,var(--purple),#6d28d9);border:1px solid var(--purple-light);color:#fff;padding:9px 20px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700;transition:all .18s;white-space:nowrap;display:flex;align-items:center;gap:7px;flex-shrink:0;box-shadow:0 2px 12px rgba(139,92,246,.35);letter-spacing:.2px}
+.mode-toggle:hover{background:linear-gradient(135deg,var(--purple-light),var(--purple));box-shadow:0 4px 18px rgba(139,92,246,.5);transform:translateY(-1px)}
+body.mode-technical .mode-toggle{background:linear-gradient(135deg,var(--blue),#1d4ed8);border-color:var(--blue-light);box-shadow:0 2px 12px rgba(59,130,246,.35)}
+body.mode-technical .mode-toggle:hover{background:linear-gradient(135deg,var(--blue-light),var(--blue));box-shadow:0 4px 18px rgba(59,130,246,.5)}
 .for-tech{} .for-report{display:none}
 body.mode-technical .for-tech{display:none} body.mode-technical .for-report{display:inline}
+
+/* ── TECH MODE CTA BAR (faixa proeminente no modo relatório) ── */
+.tech-cta-bar{background:linear-gradient(135deg,rgba(139,92,246,.15),rgba(59,130,246,.1));border:1px solid var(--purple);border-radius:var(--radius);padding:18px 24px;display:flex;align-items:center;gap:16px;margin-bottom:36px;cursor:pointer;transition:all .2s;position:relative;overflow:hidden}
+.tech-cta-bar::before{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(139,92,246,.06),transparent);pointer-events:none}
+.tech-cta-bar:hover{border-color:var(--purple-light);background:linear-gradient(135deg,rgba(139,92,246,.22),rgba(59,130,246,.15));transform:translateY(-1px);box-shadow:0 4px 20px rgba(139,92,246,.2)}
+.tech-cta-icon{font-size:30px;flex-shrink:0;filter:drop-shadow(0 0 8px rgba(139,92,246,.6))}
+.tech-cta-body{flex:1;min-width:0}
+.tech-cta-title{font-size:15px;font-weight:800;color:var(--text);margin-bottom:4px;letter-spacing:-.2px}
+.tech-cta-sub{font-size:13px;color:var(--text-muted);line-height:1.5}
+.tech-cta-sub strong{color:var(--purple-light)}
+.tech-cta-btn{background:var(--purple);color:#fff;padding:10px 22px;border-radius:var(--radius-sm);font-size:13px;font-weight:700;border:none;cursor:pointer;white-space:nowrap;transition:all .15s;flex-shrink:0;box-shadow:0 2px 8px rgba(139,92,246,.4);letter-spacing:.2px}
+.tech-cta-btn:hover{background:var(--purple-light);color:#0f1117;box-shadow:0 4px 14px rgba(139,92,246,.5)}
+/* CTA bar visível apenas no modo relatório */
+body.mode-technical .tech-cta-bar{display:none}
 
 /* ── VIEW TOGGLE ── */
 .view-technical{display:none}
@@ -414,8 +429,8 @@ footer{text-align:center;padding:28px;color:var(--text-muted);font-size:13px;bor
   </div>
 
   <button class="mode-toggle" onclick="toggleMode()">
-    <span class="for-tech">⚙️ Modo Técnico</span>
-    <span class="for-report">📊 Modo Relatório</span>
+    <span class="for-tech">⚙️ Ver Modo Técnico</span>
+    <span class="for-report">📊 Voltar ao Relatório</span>
   </button>
 </nav>
 
@@ -513,6 +528,23 @@ footer{text-align:center;padding:28px;color:var(--text-muted);font-size:13px;bor
       </div>
     </div>
   </section>
+
+  <!-- ── TECH MODE CTA BAR — só se N_failed > 0 ── -->
+  <!-- INSTRUÇÃO: renderize este bloco APENAS se houver ao menos 1 teste com status failed ou error.
+       Se N_failed == 0, omita completamente. -->
+  <div class="tech-cta-bar" onclick="toggleMode()">
+    <span class="tech-cta-icon">⚙️</span>
+    <div class="tech-cta-body">
+      <div class="tech-cta-title">Modo Técnico disponível</div>
+      <div class="tech-cta-sub">
+        <strong>[N_failed] falha(s)</strong> com código executado, resposta bruta e diagnóstico linha a linha.
+        Clique para inspecionar cada erro em detalhe técnico completo.
+      </div>
+    </div>
+    <button class="tech-cta-btn" onclick="event.stopPropagation();toggleMode()">
+      ⚙️ Ver Modo Técnico →
+    </button>
+  </div>
 
   <!-- ── 2. ERROS DE AMBIENTE — só se houver ── -->
   <!-- INSTRUÇÃO: renderize esta seção apenas se algum executor retornou falha de infraestrutura
@@ -815,20 +847,37 @@ footer{text-align:center;padding:28px;color:var(--text-muted);font-size:13px;bor
       <div class="tc-body" id="tcb-[ID]">
 
         <!-- TAB BAR
-             INSTRUÇÃO: inclua a aba "❌ O que Falhou" APENAS para status failed/error.
+             INSTRUÇÃO DE TAB PADRÃO:
+             - status == "failed" ou "error" → aba padrão = "❌ O que Falhou" (classe "active" no btn tab-fail E no panel error)
+             - status == "passed", "warning", "skipped", "baseline_created" → aba padrão = "📋 Resumo"
+             Inclua a aba "❌ O que Falhou" APENAS para status failed/error.
              Inclua a aba "📎 Evidências" APENAS se screenshot_path ou video_path não-nulos. -->
+
+        <!-- PARA TCs com status == passed / warning / skipped (aba padrão = Resumo): -->
         <div class="tab-bar">
           <button class="tab-btn active" onclick="switchTab('[ID]','overview',this)">📋 Resumo</button>
           <button class="tab-btn" onclick="switchTab('[ID]','steps',this)">🔢 Steps</button>
-          <!-- apenas se status == failed ou error: -->
-          <!-- <button class="tab-btn tab-fail" onclick="switchTab('[ID]','error',this)">❌ O que Falhou</button> -->
           <button class="tab-btn" onclick="switchTab('[ID]','code',this)">💻 Código</button>
           <button class="tab-btn" onclick="switchTab('[ID]','logs',this)">📜 Logs</button>
           <!-- apenas se tem screenshot ou video: -->
           <!-- <button class="tab-btn" onclick="switchTab('[ID]','attach',this)">📎 Evidências</button> -->
         </div>
 
-        <!-- ── TAB: RESUMO ── -->
+        <!-- PARA TCs com status == failed ou error (aba padrão = O que Falhou):
+             substitua o tab-bar acima por este: -->
+        <!-- <div class="tab-bar">
+          <button class="tab-btn" onclick="switchTab('[ID]','overview',this)">📋 Resumo</button>
+          <button class="tab-btn" onclick="switchTab('[ID]','steps',this)">🔢 Steps</button>
+          <button class="tab-btn tab-fail active" onclick="switchTab('[ID]','error',this)">❌ O que Falhou</button>
+          <button class="tab-btn" onclick="switchTab('[ID]','code',this)">💻 Código</button>
+          <button class="tab-btn" onclick="switchTab('[ID]','logs',this)">📜 Logs</button>
+          apenas se tem screenshot ou video:
+          <button class="tab-btn" onclick="switchTab('[ID]','attach',this)">📎 Evidências</button>
+        </div> -->
+
+        <!-- ── TAB: RESUMO ──
+             INSTRUÇÃO: para status == failed/error, remova a classe "active" deste panel
+             (o panel "error" é que deve ter "active"). Para demais status, mantenha "active" aqui. -->
         <div class="tab-panel active" data-tc="[ID]" data-tab="overview">
           <div class="overview-grid">
             <div class="ov-item"><label>Status</label><span>[✅ Passou | ⚠️ Passou (flaky) | ❌ Falhou | ⚠️ Aviso | ⏭️ Skipped]</span></div>
@@ -919,6 +968,8 @@ footer{text-align:center;padding:28px;color:var(--text-muted);font-size:13px;bor
              E. Violações detalhadas (apenas acessibilidade)
              F. Imagens (apenas visual)
              G. Log relevante (últimas 10-15 linhas antes da falha) -->
+        <!-- INSTRUÇÃO: para status == failed/error, adicione a classe "active" neste panel
+             e remova do panel "overview". Para demais status este panel não é gerado. -->
         <div class="tab-panel" data-tc="[ID]" data-tab="error">
 
           <!-- A. CLASSIFICAÇÃO DO ERRO
@@ -1039,7 +1090,13 @@ footer{text-align:center;padding:28px;color:var(--text-muted);font-size:13px;bor
                rule_id = identificador axe-core (ex: "color-contrast", "button-name")
                impacto = critical | serious | moderate | minor
                elementos = seletor CSS do elemento afetado (ex: "button#submit", ".nav-link")
-               como corrigir = instrução técnica específica para esta regra -->
+               como corrigir = instrução técnica específica para esta regra
+
+               VIOLAÇÕES COM known_environment_failure: true —
+               Para violações com known_environment_failure: true, renderize com badge visual de aviso:
+               exiba known_failure_note como nota em itálico abaixo da descrição da violação
+               (ex: ⚠️ _falha conhecida do ambiente de demonstração — não corrigível pelo time_).
+               No modo técnico, inclua known_failure_note como campo separado na tab de detalhes da violação. -->
           <!-- <table class="viol-table">
             <tr><th>Regra (rule_id)</th><th>Impacto</th><th>Elementos afetados</th><th>Como corrigir</th></tr>
             [<tr>
@@ -1305,11 +1362,30 @@ drawDonut();
 // ── TOGGLE MODE ──
 function toggleMode() {
   const body = document.body;
-  const isReport = body.classList.contains('mode-report');
-  body.classList.toggle('mode-report', !isReport);
-  body.classList.toggle('mode-technical', isReport);
+  const goingTech = body.classList.contains('mode-report');
+  body.classList.toggle('mode-report',   !goingTech);
+  body.classList.toggle('mode-technical', goingTech);
   window.scrollTo({ top: 0, behavior: 'smooth' });
+  if (goingTech) initTechMode();
 }
+
+// ── INIT TECH MODE — auto-expande TCs falhos e activa aba "O que Falhou" ──
+function initTechMode() {
+  document.querySelectorAll('.tc-card[data-status="failed"], .tc-card[data-status="error"]').forEach(card => {
+    card.classList.add('open');
+    const id = card.id.replace('tc-', '');
+    // Ativa aba error se existir, senão mantém overview
+    const errorPanel = card.querySelector('[data-tab="error"]');
+    if (!errorPanel) return;
+    card.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    card.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    errorPanel.classList.add('active');
+    const errorBtn = card.querySelector('.tab-btn.tab-fail');
+    if (errorBtn) errorBtn.classList.add('active');
+  });
+}
+// Executa ao carregar se já estiver em modo técnico (ex: URL com hash ou reload)
+if (document.body.classList.contains('mode-technical')) initTechMode();
 
 // ── SUITE CARD TOGGLE (relatório) ──
 function toggleSuite(hdr) {

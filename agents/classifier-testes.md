@@ -61,7 +61,7 @@ Use esta tabela como base de classificação. As palavras-chave são indicadores
 | `regressão` | "regressão", "regression", "não quebrou", "continua funcionando", "comportamento anterior", "suite de regressão", "antes e depois", "nada foi quebrado" | `magnitude` ou `http` |
 | `e2e` | "end to end", "e2e", "ponta a ponta", "fluxo completo", "jornada do usuário", "do início ao fim", "fluxo de negócio", "múltiplos sistemas" | `magnitude` |
 | `integração` | "integração", "integration", "entre serviços", "comunicação entre componentes", "serviço A chama B", "API externa", "endpoint REST", "requisição HTTP" | `http` |
-| `contrato` | "contrato", "contract", "schema", "pact", "breaking change", "versionamento de API", "estrutura da resposta", "campos obrigatórios", "produtor e consumidor" | `pact` |
+| `contrato` | "contrato", "contract", "schema", "pact", "breaking change", "versionamento de API", "estrutura da resposta", "campos obrigatórios", "produtor e consumidor", "consumer-driven", "provider state" | `pact-real` |
 | `visual` | "visual", "screenshot", "aparência", "layout", "cor", "fonte", "design", "UI", "interface", "pixel", "regressão visual", "não mudou visualmente", "diferença visual" | `playwright-visual` |
 | `acessibilidade` | "acessibilidade", "accessibility", "WCAG", "aria", "leitor de tela", "screen reader", "contraste", "a11y", "deficiência", "acessível" | `axe-core` |
 | `performance` | "performance", "desempenho", "tempo de resposta", "latência", "ms", "milissegundos", "SLA", "p95", "p99", "rápido", "lento", "velocidade de resposta" | `k6` |
@@ -74,6 +74,9 @@ Use esta tabela como base de classificação. As palavras-chave são indicadores
 | `mobile` (web) | "responsivo", "mobile web", "PWA", "viewport mobile", "tela pequena", "adaptativo", "layout mobile", "celular", "smartphone" — **sem** menção a app nativo, APK, IPA ou Appium | `playwright-mobile` |
 | `mobile` (nativo) | "app nativo", "app móvel", "APK", "IPA", "Appium", "emulador", "device", "gestos nativos", "push notification", "notificação", "instalado no dispositivo", "Android", "iOS" — com ação que só faz sentido em app instalado | `appium` |
 | `data-driven` | "data-driven", "parametrizado", "múltiplos conjuntos de dados", "Scenario Outline", "Examples:", "para cada", "combinações de dados", "iteração com dados" | `parameterized` |
+| `websocket` | "WebSocket", "ws://", "wss://", "socket", "conexão persistente", "mensagem em tempo real", "evento push", "handshake", "frame", "chat em tempo real" | `websocket` |
+| `grpc` | "gRPC", "protobuf", "proto", "RPC", "server streaming", "client streaming", "bidirectional stream", "unary call", "grpcurl", "serviço gRPC", "método RPC" | `grpc` |
+| `graphql` | "GraphQL", "query", "mutation", "subscription", "resolver", "schema GraphQL", "introspection", "fragments", "GQL", "__schema", "variáveis GraphQL" | `graphql` |
 
 ---
 
@@ -114,6 +117,7 @@ Na dúvida genuína entre `visual` e `smoke`, classifique como `smoke` com `low_
 | Menciona Appium explicitamente | `mobile` nativo → `appium`, `mobile_target: "native"` |
 | Menciona "responsivo", "mobile web", "PWA", "viewport", "tela pequena" — sem ação de app instalado | `mobile` web → `playwright-mobile`, `mobile_target: "web"` |
 | Ambíguo (apenas "celular", "smartphone", "iOS", "Android" sem contexto) | `playwright-mobile`, `mobile_target: "web"`, `low_confidence: true` |
+| Menciona APK ou IPA E também "web", "PWA" ou "responsivo" no mesmo step | Priorize `nativo` — APK/IPA são mais específicos que PWA; use `appium`, `mobile_target: "native"`, `low_confidence: true` |
 
 Para testes com `type: "mobile"`, sempre inclua o campo `mobile_target: "web"` ou `mobile_target: "native"` no objeto de saída.
 5. **Threshold de confiança:**
@@ -121,7 +125,11 @@ Para testes com `type: "mobile"`, sempre inclua o campo `mobile_target: "web"` o
    - `0.50 ≤ confidence < 0.70` → classifique com o melhor palpite E adicione `"low_confidence": true` no objeto do teste. **Não bloqueia** — o orquestrador prossegue com a classificação informada, mas o reporter sinalizará a incerteza.
    - `confidence ≥ 0.70` → classifique normalmente (sem campo `low_confidence` ou com `"low_confidence": false`).
 6. **Lembre-se:** as palavras-chave são guias, não regras absolutas. Um teste pode não usar nenhuma palavra-chave listada e ainda ser claramente de um tipo — use o julgamento semântico. Mas na dúvida genuína, peça clarificação.
-7. **Testes sem steps (só título):** classifique usando apenas o título com julgamento semântico. Se o título for suficientemente claro, atribua o tipo com `confidence` proporcional à certeza. Se `confidence < 0.70`, inclua em `needs_clarification` com a pergunta: `"O teste '[título]' não possui steps definidos. Para classificá-lo corretamente, qual é o tipo? [lista dos 17 tipos]"`. Nunca descarte nem ignore um teste por falta de steps.
+7. **Testes sem steps (só título):** classifique usando apenas o título com julgamento semântico. Se o título for suficientemente claro, atribua o tipo com `confidence` proporcional à certeza. Se `confidence < 0.70`, inclua em `needs_clarification` com a pergunta: `"O teste '[título]' não possui steps definidos. Para classificá-lo corretamente, qual é o tipo? [lista dos 20 tipos]"`. Nunca descarte nem ignore um teste por falta de steps.
+
+8. **Desambiguação WebSocket vs. integração:** um teste com steps de "enviar requisição HTTP" é `integração` mesmo que mencione "tempo real". Só classifique como `websocket` se os steps incluírem explicitamente conexão persistente, envio de frames ou handshake ws://. Na dúvida entre `websocket` e `integração`, use `integração` com `low_confidence: true`.
+
+**Desambiguação GraphQL vs. integração:** um teste que "chama o endpoint /graphql com método POST" sem mencionar query/mutation/schema é `integração`. Só classifique como `graphql` se os steps definirem operações GraphQL explícitas (query, mutation, subscription, fields, variables). **Atenção:** as palavras "query" e "mutation" só disparam classificação `graphql` quando combinadas com outros indicadores GraphQL (endpoint `/graphql`, schema, resolver, fragments, variáveis GQL). **Regra banco vs. GraphQL:** se os steps contiverem qualquer das palavras `SELECT`, `INSERT`, `UPDATE`, `DELETE`, `CREATE TABLE`, `DROP`, `JOIN`, ou `WHERE [coluna]`, classifique como `banco` — mesmo que o step também mencione "query". "mutation" em contexto de dados/REST sem indicadores GQL é irrelevante para este tipo.
 
 ---
 
@@ -180,7 +188,7 @@ Retorne **apenas JSON válido**, sem texto adicional antes ou depois.
       "confidence": 0.45,
       "rationale": "O teste menciona verificação de resposta da API de pagamento e navegação na tela, sem indicadores claros de prioridade de tipo.",
       "candidates": ["e2e", "integração", "smoke"],
-      "question": "Não consegui classificar o teste TC-004 ('Verificar comportamento do módulo de pagamento') com segurança. Qual é o tipo correto?\n\n1. smoke — validação mínima de que o módulo está funcionando\n2. sanity — verificação rápida após um fix ou deploy\n3. regressão — garante que nada quebrou em relação ao comportamento anterior\n4. e2e — fluxo completo de ponta a ponta envolvendo múltiplos sistemas\n5. integração — comunicação entre serviços/APIs\n6. contrato — valida o schema/estrutura da resposta da API\n7. visual — verifica aparência/layout da tela\n8. acessibilidade — verifica conformidade WCAG\n9. performance — verifica tempo de resposta/SLA\n10. carga — simula múltiplos usuários simultâneos\n11. stress — testa além da capacidade do sistema\n12. soak — execução prolongada para detectar vazamentos\n13. segurança — verifica auth, headers, CORS, endpoints expostos\n14. banco — verifica integridade/persistência de dados\n15. cross-browser — valida em múltiplos navegadores\n16. mobile — executa em dispositivo/emulador\n17. data-driven — repete com múltiplos conjuntos de dados"
+      "question": "Não consegui classificar o teste TC-004 ('Verificar comportamento do módulo de pagamento') com segurança. Qual é o tipo correto?\n\n1. smoke — validação mínima de que o módulo está funcionando\n2. sanity — verificação rápida após um fix ou deploy\n3. regressão — garante que nada quebrou em relação ao comportamento anterior\n4. e2e — fluxo completo de ponta a ponta envolvendo múltiplos sistemas\n5. integração — comunicação entre serviços/APIs\n6. contrato — valida o schema/estrutura da resposta da API\n7. visual — verifica aparência/layout da tela\n8. acessibilidade — verifica conformidade WCAG\n9. performance — verifica tempo de resposta/SLA\n10. carga — simula múltiplos usuários simultâneos\n11. stress — testa além da capacidade do sistema\n12. soak — execução prolongada para detectar vazamentos\n13. segurança — verifica auth, headers, CORS, endpoints expostos\n14. banco — verifica integridade/persistência de dados\n15. cross-browser — valida em múltiplos navegadores\n16. mobile — executa em dispositivo/emulador\n17. data-driven — repete com múltiplos conjuntos de dados\n18. websocket — testa conexão/mensagens via WebSocket\n19. grpc — testa serviço gRPC via chamada RPC\n20. graphql — testa operação GraphQL (query, mutation, subscription)"
     }
   ],
   "excluded": [

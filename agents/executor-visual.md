@@ -34,6 +34,8 @@ O `orquestrador-qa` formata a mensagem com uma seção explícita. Procure no se
 
 Se essa seção estiver presente:
 - `base_url` → use como URL base, não pergunte
+- `multi_url` → se `true`, diferentes TCs podem ter URLs base distintas; leia `resolved_base_url` de cada TC para determinar a URL de navegação (`page.goto`) de cada cenário
+- `url_map` → dicionário TC → URL disponível para referência; use `tc.resolved_base_url` no código gerado
 - `auth.token` → use para autenticar no Playwright antes do screenshot, não pergunte nada
 - `auth.credentials` → use para fazer login no Playwright antes do screenshot, não pergunte nada
 - `suite_dir` → se presente, use `[suite_dir]/visual/` como diretório de artefatos; crie com `fs.mkdirSync`
@@ -187,6 +189,8 @@ Para cada teste:
    });
    ```
 
+> **Multi-URL:** quando o contexto contiver `multi_url: true`, cada TC pode ter uma URL de destino diferente. Ao gerar o código Playwright de cada TC, use `tc.resolved_base_url` como URL base do `page.goto()` daquele TC em vez da variável global `base_url`. Quando `multi_url: false` ou ausente, mantenha o comportamento atual.
+
    Para capturar apenas um elemento específico (ex: modal, card, componente isolado):
    ```typescript
    test('regressão visual — modal de confirmação', async ({ page }) => {
@@ -209,6 +213,64 @@ Para cada teste:
    - **Falha real de diff:** saída contém `"pixels"` e `"ratio"` indicando diferença percentual
 
    **Regra:** se o teste falhou E a saída contém indicação de snapshot recém-criado → reclassifique para `status: "baseline_created"` e `baseline: "created"`. **Não marque como `failed`.**
+
+   **Propagação obrigatória em scripts Python com compare_screenshots():**
+
+   Quando o executor gerar um script Python com a função `compare_screenshots()` (padrão lean/fallback), o `run()` wrapper deve lidar com o status `baseline_created` explicitamente. O padrão abaixo é **obrigatório** — sem ele, `baseline_created` aparece como `passed` porque nenhuma exceção é lançada:
+
+   ```python
+   class BaselineCreated(Exception):
+       pass
+
+   def compare_screenshots(tc_id, page, threshold_pct=0.2):
+       baseline_path = os.path.join(BASELINE_DIR, f"{tc_id}.png")
+       current_path  = os.path.join(CURRENT_DIR,  f"{tc_id}_current.png")
+       page.screenshot(path=current_path)
+       if not os.path.exists(baseline_path):
+           shutil.copy(current_path, baseline_path)
+           raise BaselineCreated(f"Baseline criado: {baseline_path}")
+       # ... lógica de comparação existente ...
+
+   def run(tc_id, title, fn):
+       t0 = time.time()
+       try:
+           fn()
+           ms = int((time.time()-t0)*1000)
+           results.append({"id": tc_id, "title": title,
+                            "status": "passed", "baseline": "existing",
+                            "duration_ms": ms})
+       except BaselineCreated as e:
+           ms = int((time.time()-t0)*1000)
+           results.append({"id": tc_id, "title": title,
+                            "status": "baseline_created", "baseline": "created",
+                            "duration_ms": ms,
+                            "note": "⚠️ Primeira execução — baseline gerado. "
+                                    "Valide visualmente o screenshot antes de usar como referência."})
+           print(f"  BASELINE  {tc_id} ({ms}ms) — {e}")
+       except AssertionError as e:
+           ms = int((time.time()-t0)*1000)
+           results.append({"id": tc_id, "title": title,
+                            "status": "failed", "baseline": "existing",
+                            "duration_ms": ms, "error": str(e)})
+       except Exception as e:
+           ms = int((time.time()-t0)*1000)
+           results.append({"id": tc_id, "title": title,
+                            "status": "error", "baseline": "unknown",
+                            "duration_ms": ms, "error": str(e)})
+   ```
+
+   O summary do resultado deve contar `baseline_created` separadamente de `passed`:
+   ```python
+   summary = {
+       "total":            len(results),
+       "passed":           sum(1 for r in results if r["status"] == "passed"),
+       "failed":           sum(1 for r in results if r["status"] == "failed"),
+       "baseline_created": sum(1 for r in results if r["status"] == "baseline_created"),
+       "error":            sum(1 for r in results if r["status"] == "error"),
+   }
+   ```
+
+   **TimeoutError durante captura:** se `toHaveScreenshot()` lançar `TimeoutError` (página travada em carregamento antes de chegar à asserção), marque como `skipped` com `"error": "Captura de screenshot não realizada — TimeoutError durante waitForLoadState. Verifique se a página carregou corretamente antes da asserção visual."`. Não marque como `failed` — não há diff a reportar.
 
    Para forçar criação/atualização de baseline:
    ```

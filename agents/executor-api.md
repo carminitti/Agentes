@@ -34,9 +34,12 @@ O `orquestrador-qa` formata a mensagem com uma seção explícita. Procure no se
 
 Se essa seção estiver presente:
 - `base_url` → defina `BASE_URL` no `.env`, não pergunte
+- `multi_url` → se `true`, diferentes TCs podem ter URLs base distintas; nesse caso leia o campo `resolved_base_url` de cada TC (injetado pelo orquestrador) para determinar a URL correta de cada requisição — não use `BASE_URL` do `.env` como prefixo global quando `multi_url: true`
+- `url_map` → dicionário TC → URL disponível para referência; use `tc.resolved_base_url` no código gerado em vez de referenciar o mapa diretamente
 - `auth.token` → defina `AUTH_TOKEN` no `.env` e use diretamente, não pergunte nada
 - `auth.credentials` → defina `USER_EMAIL` e `USER_PASSWORD` no `.env`; o `globalSetup` gera o token
 - `suite_dir` → se presente, use `[suite_dir]/api/` como diretório de artefatos; crie com `fs.mkdirSync`
+- `environment_type` → se `"production"`, adicione `[ENV] Ambiente de PRODUÇÃO detectado` nos logs e nunca execute auto-registro ou operações de escrita (se os steps pedirem); se `"demo"`, aplique as mesmas permissões de auto-registro que o globalSetup do executor-browser.
 - `environment_notes` → aplique as regras abaixo conforme palavras-chave:
   - Contém `certificado`, `SSL`, `autoassinado` ou `self-signed` → adicione `ignoreHTTPSErrors: true` no `playwright.config.ts`
   - Contém `VPN` ou `proxy` → adicione `[ENV] Ambiente pode exigir VPN/proxy` nos logs; se testes falharem com erro de conexão, inclua `"Possível causa: acesso via VPN/proxy necessário"` no campo `error`
@@ -181,6 +184,8 @@ export const test = base.extend<MyFixtures>({
 
 export { expect } from '@playwright/test';
 ```
+
+> **Multi-URL:** quando o contexto contiver `multi_url: true`, cada TC pode ter uma URL base diferente definida em `resolved_base_url`. Nesse caso, ao gerar o código de cada teste, use `tc.resolved_base_url` como URL base daquele TC em vez de `process.env.BASE_URL`. Se dois ou mais TCs tiverem o mesmo `resolved_base_url`, agrupe-os em um mesmo `request.newContext({ baseURL: resolved_base_url })`. Se cada TC tiver um domínio único, crie um contexto separado por TC. Quando `multi_url: false` ou ausente, mantenha o comportamento atual com `BASE_URL` único do `.env`.
 
 ---
 
@@ -534,6 +539,44 @@ const setupStatus = fs.existsSync('setup_status.json')
 fs.unlinkSync('setup_status.json');  // limpa após leitura
 ```
 
+**Detecção de 401 sistêmico por domínio — credencial de infraestrutura ausente:**
+
+Após executar todos os testes, verifique se há um padrão de 401/403 sistêmico por domínio. Se ≥ 80% dos testes de um mesmo domínio falharam com status HTTP 401 ou 403, isso indica credencial de infraestrutura ausente (API key, token de serviço) — não um bug na aplicação. Nesse caso, emita `credentials_failed: true` para que o orquestrador dispare o loop de retry com novas credenciais.
+
+```python
+from collections import defaultdict
+from urllib.parse import urlparse
+
+# Ao final da execução, antes de montar o JSON de saída:
+domain_stats = defaultdict(lambda: {"total": 0, "auth_errors": 0})
+
+for result in results:
+    domain = urlparse(result.get("url", base_url)).netloc
+    domain_stats[domain]["total"] += 1
+    if result.get("status_code") in (401, 403):
+        domain_stats[domain]["auth_errors"] += 1
+
+systemic_auth_failure = any(
+    stats["total"] > 0 and (stats["auth_errors"] / stats["total"]) >= 0.80
+    for stats in domain_stats.values()
+)
+
+if systemic_auth_failure:
+    failing_domains = [
+        f"{domain} ({stats['auth_errors']}/{stats['total']} → 401/403)"
+        for domain, stats in domain_stats.items()
+        if stats["total"] > 0 and (stats["auth_errors"] / stats["total"]) >= 0.80
+    ]
+    summary["credentials_failed"] = True
+    summary["credentials_error"] = (
+        "Padrão sistêmico de 401/403 detectado — credencial de infraestrutura ausente "
+        f"para: {'; '.join(failing_domains)}. "
+        "Exemplos: API key, token de serviço, certificado mTLS."
+    )
+```
+
+Essa checagem **complementa** a detecção via `setup_status.json` — não a substitui. Aplique ambas: setup_status para falha de login no globalSetup; checagem sistêmica para APIs que exigem credencial de infraestrutura independente do fluxo de login.
+
 ---
 
 ## Modo Enxuto (lean_mode: true)
@@ -541,9 +584,9 @@ fs.unlinkSync('setup_status.json');  // limpa após leitura
 Se o `## Contexto de execução` contiver `"lean_mode": true`, aplique todas as seguintes regras — elas **substituem** o comportamento padrão descrito nas seções anteriores:
 
 ### Código gerado
-- Gere um **único script Python** contendo tudo (token fetch, requests, asserções) — sem `playwright.config.ts`, sem POM, sem fixtures, sem arquivos auxiliares.
-- Use `requests` diretamente, sem Playwright `APIRequestContext`.
-- Salve em `[suite_dir]/api/` com o nome `lean_api_[timestamp].py` e execute com `python`.
+- Gere um **único arquivo `.py`** contendo tudo (requests, asserções, loop de TCs) — sem POM, sem fixtures, sem módulos separados.
+- Execute com `python` diretamente.
+- Salve em `[suite_dir]/api/` com o nome `lean_api_[timestamp].py`.
 
 ### Sem logs em disco
 - **Não grave `execution.log`** nem nenhum outro arquivo além de `resultado.json`.
@@ -551,16 +594,25 @@ Se o `## Contexto de execução` contiver `"lean_mode": true`, aplique todas as 
 ### JSON de saída mínimo
 ```json
 {
+  "executor": "api",
+  "environment": "https://staging.app.com",
+  "credentials_failed": false,
+  "generated_files": null,
   "results": [
-    { "id": "TC-010", "title": "GET /users retorna 200", "status": "passed", "duration_ms": 145 },
-    { "id": "TC-011", "title": "POST /login retorna token", "status": "failed", "duration_ms": 302, "error": "Status 401 — credenciais inválidas" }
+    { "id": "TC-010", "title": "Listar produtos retorna 200", "status": "passed", "duration_ms": 145 },
+    { "id": "TC-011", "title": "Criar produto retorna 201", "status": "failed", "duration_ms": 98, "error": "Esperado 201, obtido 422 — https://staging.app.com/api/products" }
   ],
-  "summary": { "total": 2, "passed": 1, "failed": 1, "skipped": 0, "credentials_failed": false }
+  "summary": {
+    "total": 2,
+    "passed": 1,
+    "failed": 1,
+    "skipped": 0,
+    "credentials_failed": false
+  }
 }
 ```
-Omita completamente: `logs`, `steps`, `request_body`, `response_body`, `generated_files`.
-O campo `error` só é obrigatório quando `status` for `"failed"` ou `"error"` — omita-o nos demais casos.
 
-### Sem exibição de código
-Não exiba o código gerado no chat, independentemente de haver falhas.
-Se `credentials_failed: true`, defina o mesmo campo tanto na raiz do JSON de saída quanto no `summary`. O orquestrador detecta este sinal e pede novas credenciais ao usuário antes de re-despachar.
+- Omita `logs` e `details` de cada TC.
+- O campo `error` só é incluído quando `status` for `"failed"` ou `"error"`.
+- `generated_files` é sempre `null` em lean_mode.
+- `credentials_failed` **deve** ser incluído no summary mesmo em lean_mode — é essencial para o retry loop do orquestrador.

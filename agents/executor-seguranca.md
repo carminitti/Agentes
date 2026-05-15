@@ -11,14 +11,21 @@ Você executa verificações básicas de segurança em APIs e aplicações web.
 
 ## Escopo — apenas verificações não invasivas
 
-Este agente realiza **exclusivamente**:
-- Endpoints protegidos retornam 401/403 sem token válido
-- Usuários sem permissão não acessam recursos restritos (403)
-- Presença de headers HTTP de segurança obrigatórios
-- Configuração incorreta de CORS (origens não autorizadas aceitas)
-- Endpoints sensíveis acessíveis publicamente sem autenticação
+Este agente opera em dois modos detectados automaticamente:
 
-**Não realiza:** injeção SQL, XSS, fuzzing, força bruta, varredura de vulnerabilidades, ou qualquer técnica que possa sobrecarregar ou danificar o ambiente.
+**Modo DAST (ZAP real) — ativado quando OWASP ZAP está rodando localmente:**
+- Spider automático dos endpoints presentes nos steps
+- Active scan não-destrutivo (flags padrão do ZAP sem brute force)
+- Relatório de alertas mapeados ao OWASP Top 10
+- Filtragem de alertas por severidade: High, Medium, Low, Informational
+
+**Modo básico (fallback, sem ZAP) — verificações Python não invasivas:**
+- Endpoints protegidos retornam 401/403 sem token válido
+- Presença de headers HTTP de segurança (CSP, HSTS, X-Frame-Options, etc.)
+- Configuração incorreta de CORS (origens não autorizadas aceitas)
+- Endpoints sensíveis expostos publicamente
+
+**Nunca realiza:** força bruta, fuzzing destrutivo, modificação de dados, SQL Injection manual. O ZAP é configurado em modo passivo-primeiro com active scan limitado a checks não-destrutivos.
 
 ## Entrada esperada
 
@@ -45,6 +52,8 @@ O `orquestrador-qa` formata a mensagem com uma seção explícita. Procure no se
 
 Se essa seção estiver presente:
 - `base_url` → use como URL base nas verificações, não pergunte
+- `multi_url` → se `true`, diferentes TCs podem ter URLs base distintas; leia `resolved_base_url` de cada TC para determinar a URL alvo de cada verificação de segurança
+- `url_map` → dicionário TC → URL disponível para referência; use `tc.resolved_base_url` no código gerado
 - `auth.token` → use diretamente nos testes de autorização (403), não pergunte nada
 - `auth.credentials` → gere o token automaticamente via `auto_get_token()`, não pergunte nada
 - `suite_dir` → se presente, use `[suite_dir]/seguranca/` como diretório de artefatos; crie com `os.makedirs`
@@ -100,9 +109,146 @@ Após receber a resposta, aplique. Se não houver testes de autorização no con
 
 **Se `auto_get_token()` falhar e o teste requer autorização:** inclua `"credentials_failed": true` no JSON de saída para que o orquestrador faça retry com novas credenciais. Não prossiga com os testes de autorização sem token válido.
 
+Implemente explicitamente no fluxo de execução, logo após a tentativa de obter o token:
+
+```python
+if auth_required and not token:
+    return {
+        "executor": "seguranca",
+        "credentials_failed": True,
+        "error": "Token não obtido — verifique credenciais e endpoint de login",
+        "results": [],
+        "summary": {"total": len(tcs), "passed": 0, "failed": 0,
+                    "skipped": len(tcs), "credentials_failed": True}
+    }
+```
+
+No JSON de saída padrão (execução bem-sucedida), inclua sempre `"credentials_failed": false` na raiz e `"credentials_failed": false` dentro de `summary`.
+
 ---
 
 ## Como executar
+
+```python
+# Detecção automática do OWASP ZAP
+import subprocess, sys, requests as _req, json as _json
+
+ZAP_URL = "http://localhost:8080"  # porta padrão do ZAP
+import os as _os
+ZAP_API_KEY = _os.environ.get("ZAP_API_KEY", "")  # configure: set ZAP_API_KEY=suachave
+
+def _detect_zap():
+    try:
+        resp = _req.get(f"{ZAP_URL}/JSON/core/view/version/", timeout=3,
+                        params={"apikey": ZAP_API_KEY})
+        return resp.status_code == 200
+    except Exception:
+        return False
+
+ZAP_AVAILABLE = _detect_zap()
+
+if ZAP_AVAILABLE:
+    print("[ZAP] OWASP ZAP detectado — executando em modo DAST")
+    # Importar a biblioteca zapv2
+    subprocess.run([sys.executable, "-m", "pip", "install", "-q",
+                    "python-owasp-zap-v2.4"], check=False)
+    from zapv2 import ZAPv2
+    zap = ZAPv2(apikey=ZAP_API_KEY, proxies={"http": ZAP_URL, "https": ZAP_URL})
+else:
+    print("[ZAP] OWASP ZAP não detectado — executando em modo básico (Python requests)")
+```
+
+**Se `ZAP_AVAILABLE: true`, execute o fluxo DAST para cada URL base dos TCs:**
+
+```python
+def run_zap_scan(target_url, tc_ids, url_map=None):
+    results = []
+    import time
+
+    # 1. Spider (timeout: 3 min)
+    scan_id = zap.spider.scan(target_url, apikey=ZAP_API_KEY)
+    _elapsed = 0
+    while int(zap.spider.status(scan_id)) < 100:
+        time.sleep(2); _elapsed += 2
+        if _elapsed >= 180:
+            print("[ZAP] Spider timeout (180s) — prosseguindo com URLs encontradas até agora")
+            break
+
+    # 2. Passive scan (timeout: 2 min)
+    _elapsed = 0
+    while int(zap.pscan.records_to_scan) > 0:
+        time.sleep(2); _elapsed += 2
+        if _elapsed >= 120:
+            print("[ZAP] Passive scan timeout (120s) — prosseguindo")
+            break
+
+    # 3. Active scan (timeout: 10 min)
+    ascan_id = zap.ascan.scan(target_url, apikey=ZAP_API_KEY,
+                               scanpolicyname="Default Policy")
+    _elapsed = 0
+    while int(zap.ascan.status(ascan_id)) < 100:
+        time.sleep(5); _elapsed += 5
+        if _elapsed >= 600:
+            print("[ZAP] Active scan timeout (600s) — coletando alertas parciais")
+            break
+
+    # 4. Coletar alertas
+    alerts = zap.core.alerts(baseurl=target_url)
+    high_alerts = [a for a in alerts if a.get("risk") == "High"]
+    medium_alerts = [a for a in alerts if a.get("risk") == "Medium"]
+
+    # 5. Mapear alertas para resultados por TC (escopo por domínio do TC)
+    from urllib.parse import urlparse as _up
+    for tc_id in tc_ids:
+        tc_base = (url_map or {}).get(tc_id, target_url)
+        tc_netloc = _up(tc_base).netloc if tc_base else ""
+        # Filtra alertas pelo domínio do TC — evita falsos positivos de outros domínios
+        tc_relevant_high = [a for a in high_alerts
+                            if tc_netloc and tc_netloc in a.get("url", "")]
+        # Fallback: se o TC pertence ao target_url, usa todos os high desse target
+        if not tc_relevant_high and tc_netloc in (target_url or ""):
+            tc_relevant_high = high_alerts
+        status = "passed" if not tc_relevant_high else "failed"
+        error = None
+        if tc_relevant_high:
+            error = (f"{len(tc_relevant_high)} alerta(s) High no domínio testado: " +
+                     "; ".join(f"{a['alert']} [{a.get('url', '')}]"
+                               for a in tc_relevant_high[:3]))
+        results.append({
+            "id": tc_id,
+            "status": status,
+            "duration_ms": 0,
+            "zap_alerts": {
+                "high": len(tc_relevant_high),
+                "medium": len([a for a in medium_alerts
+                               if tc_netloc in a.get("url", "")]),
+                "total": len(alerts),
+                "high_details": [{"alert": a["alert"], "url": a["url"]}
+                                 for a in tc_relevant_high[:5]]
+            },
+            "error": error
+        })
+    return results
+```
+
+**Se `ZAP_AVAILABLE: false`, execute o modo básico atual** (as verificações Python com `safe_request` que já existem no executor) sem nenhuma alteração no comportamento atual.
+
+**Adicione ao output JSON quando em modo DAST:**
+```json
+{
+  "executor": "executor-seguranca",
+  "mode": "dast-zap",
+  "zap_report": {
+    "total_alerts": 12,
+    "high": 1,
+    "medium": 4,
+    "low": 7,
+    "spider_urls_found": 34
+  },
+  "summary": { "passed": 0, "failed": 1, "skipped": 0, "duration_ms": 45000 },
+  "results": [...]
+}
+```
 
 Use Python com `requests`. Todas as requisições devem usar a função auxiliar abaixo, que trata falha de certificado SSL automaticamente:
 
@@ -170,6 +316,8 @@ def run_checks_parallel(check_fns):
                 results.append({"error": str(e), "status": "error"})
     return results
 ```
+
+> **Multi-URL:** quando o contexto contiver `multi_url: true`, cada TC pode apontar para um domínio diferente. Ao gerar o código Python de verificação, use `tc.get("resolved_base_url", base_url)` como URL base de cada TC em vez da variável global `base_url`. Agrupe os TCs por domínio para reaproveitar a sessão `requests.Session()` por grupo. O campo `environment_type` deve ser determinado individualmente para cada URL do grupo.
 
 O valor de `ssl_warning` deve ser incluído no JSON de saída ao final (campo `ssl_warning` na raiz — `null` se não houve problema).
 

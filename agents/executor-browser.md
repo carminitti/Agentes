@@ -36,6 +36,31 @@ Se essa seção estiver presente:
 - `base_url` → use como `BASE_URL` no `.env`, não pergunte
 - `auth.token` → defina `AUTH_TOKEN` no `.env` e use diretamente, não pergunte nada
 - `auth.credentials` → defina `USER_EMAIL`, `USER_PASSWORD` e `AUTH_REQUIRED=true` no `.env`; o `globalSetup` gera o token
+- `auth.type === "oauth2_ac"` → o login ocorre via redirect de browser (SSO/OIDC). No `globalSetup.ts`, implemente:
+  ```typescript
+  import { chromium } from '@playwright/test';
+
+  async function globalSetup() {
+    const browser = await chromium.launch();
+    const page = await browser.newPage();
+    await page.goto(process.env.OAUTH2_LOGIN_URL!);
+    await page.fill(process.env.OAUTH2_USER_SELECTOR!, process.env.USER_EMAIL!);
+    await page.fill(process.env.OAUTH2_PASS_SELECTOR!, process.env.USER_PASSWORD!);
+    await page.click(process.env.OAUTH2_SUBMIT_SELECTOR!);
+    await page.waitForURL(process.env.OAUTH2_REDIRECT_URL!, { timeout: 30000 });
+
+    // Captura cookies/token da sessão autenticada
+    const cookies = await page.context().cookies();
+    const storage = await page.context().storageState();
+    require('fs').mkdirSync('playwright/.auth', { recursive: true });
+    require('fs').writeFileSync('playwright/.auth/session.json', JSON.stringify(storage));
+    await browser.close();
+  }
+
+  export default globalSetup;
+  ```
+  Defina no `.env`: `OAUTH2_LOGIN_URL`, `OAUTH2_USER_SELECTOR`, `OAUTH2_PASS_SELECTOR`, `OAUTH2_SUBMIT_SELECTOR`, `OAUTH2_REDIRECT_URL`, `USER_EMAIL`, `USER_PASSWORD`.
+  No `playwright.config.ts`, adicione `storageState: 'playwright/.auth/session.json'` ao `use:{}` para reutilizar a sessão em todos os testes.
 - `auth` null ou ausente → não defina `USER_EMAIL`/`USER_PASSWORD` no `.env` e não inclua `AUTH_REQUIRED`; o `globalSetup` retornará imediatamente sem tentar auth
 - `suite_dir` → se presente, use `[suite_dir]/browser/` como diretório de artefatos; crie com `fs.mkdirSync`
 - `headed` → se `true`, defina `HEADED=true` no `.env`; se `false` ou ausente, não defina (padrão headless)
@@ -43,6 +68,43 @@ Se essa seção estiver presente:
 - `device_emulation` → se `true`, configure emulação de dispositivo mobile: defina `DEVICE_NAME` no `.env` com o valor de `device_name` (padrão: `iPhone 13`); use `import { defineConfig, devices } from '@playwright/test'` e `...devices[process.env.DEVICE_NAME]` no `use:{}` do config, substituindo o `viewport` fixo; defina `workers: 1` (mobile sempre sequencial)
 - `device_name` → nome do dispositivo Playwright (ex: `iPhone 13`, `Pixel 5`, `iPad Pro`, `Galaxy S9+`); relevante apenas quando `device_emulation: true`; quando ativo, reporte o campo `browser` no resultado como `"chromium-mobile (iPhone 13)"` (ou o device informado)
 - `code_output_dir` → se presente, crie o diretório `tmp_browser_[timestamp]` dentro desse caminho em vez da raiz do projeto
+- `browserstack_credentials` → se presente (formato `"user:access_key"`), configure o Playwright para execução remota no BrowserStack:
+  ```typescript
+  // playwright.config.ts (BrowserStack mode)
+  const [BS_USER, BS_KEY] = process.env.BROWSERSTACK_CREDENTIALS!.split(":");
+  const BS_ENDPOINT = `wss://cdp.browserstack.com/playwright?caps=${encodeURIComponent(JSON.stringify({
+    browser: "chrome",
+    browser_version: "latest",
+    "browserstack.username": BS_USER,
+    "browserstack.accessKey": BS_KEY,
+    "browserstack.local": false,
+    name: process.env.SUITE_DIR,
+    build: new Date().toISOString().slice(0,10),
+  }))}`;
+
+  export default defineConfig({
+    use: {
+      connectOptions: { wsEndpoint: BS_ENDPOINT },
+    },
+  });
+  ```
+  Se `browserstack_targets` for fornecido, gere uma configuração por target (cada entrada vira um `project` no `playwright.config.ts` com `browserName`, `channel` e `userAgent` correspondentes).
+
+  Se `browserstack_credentials` for null ou ausente, use o comportamento padrão (launch local do browser).
+  Ao gerar o `.env`, inclua `SUITE_DIR=${suite_dir}` quando `suite_dir` estiver no contexto — a config acima lê `process.env.SUITE_DIR` para nomear as sessões no dashboard BrowserStack.
+
+- `faker_locale` → se presente (ex: `"pt_BR"`), instale Faker e importe nos helpers de fixture:
+  ```typescript
+  // fixture.ts
+  import { faker } from '@faker-js/faker/locale/pt_BR'; // ou locale informado
+  export const testUser = {
+    name: faker.person.fullName(),
+    email: faker.internet.email(),
+    password: faker.internet.password({ length: 12 }),
+  };
+  ```
+  Instale via: `npm install --save-dev @faker-js/faker`
+
 - `environment_notes` → aplique as regras abaixo conforme palavras-chave:
   - Contém `certificado`, `SSL`, `autoassinado` ou `self-signed` → adicione `ignoreHTTPSErrors: true` no `playwright.config.ts`
   - Contém `VPN` ou `proxy` → adicione `[ENV] Ambiente pode exigir VPN/proxy` nos logs; se testes falharem com erro de conexão, inclua `"Possível causa: acesso via VPN/proxy necessário"` no campo `error`
@@ -177,6 +239,30 @@ await page.locator('.car-link').click();              // ❌ inferência
 await page.locator('h4 a').click();                  // ❌ inferência
 ```
 
+**Regra especial — navegação em menus laterais de SPAs (Vue, React, Angular):**
+
+Nunca use `a[href*='...']` para clicar em itens de menu em SPAs. Os paths de rota (ex: `pim/viewEmployeeList`, `viewSystemUsers`) mudam a cada versão do framework e não são estáveis.
+
+Use **exclusivamente** seletores por texto visível ou role:
+
+```typescript
+// ✅ CORRETO para menus SPA — usa texto visível
+await page.getByRole('link', { name: /PIM/i }).click();
+await page.getByRole('link', { name: /Admin/i }).first().click();
+await page.getByText('My Info').click();
+
+// Em Python sync Playwright:
+page.get_by_role("link", name="PIM").click()
+page.get_by_text("Admin").click()
+
+// ❌ PROIBIDO para navegação interna de SPA
+await page.locator("a[href*='pim/viewEmployeeList']").click();   // ❌ path muda por versão
+await page.locator("a[href*='viewSystemUsers']").click();         // ❌ idem
+page.click("a[href*='viewPersonalDetails']")                     # ❌ idem
+```
+
+Exceção: `href*=` é permitido apenas quando o href contém um domínio externo ou um path de API REST que o time controla (ex: `a[href*='https://docs.empresa.com']`).
+
 **3. Quando o elemento não tiver texto visível claro** — use seletor genérico
 tolerante e registre nos logs que o seletor é aproximado:
 ```typescript
@@ -186,10 +272,57 @@ await element.waitFor({ timeout: 15_000 });
 // [LOG] Seletor aproximado usado — elemento sem texto explícito no TC
 ```
 
+**Regra: falha de infraestrutura de ambiente ≠ falha de asserção**
+
+Quando o ambiente retorna 4xx (401, 403, 404, 429) **antes mesmo da lógica de teste começar** (ex: API key ausente, IP não liberado, rate limit na primeira requisição), o resultado correto é `skipped` com razão explícita — **nunca `assert True`** para forçar passed, e nunca `failed` por falha de asserção.
+
+Critério: se a resposta 4xx impede que qualquer verificação do TC seja executada, é falha de pré-condição de infraestrutura.
+
+```python
+# ✅ CORRETO — ambiente não coopera, TC não pode ser avaliado
+r = requests.get(url, timeout=10)
+if r.status_code in (401, 403):
+    results.append({
+        "id": tc_id, "title": title,
+        "status": "skipped",
+        "reason": "env_auth_required",
+        "error": f"Ambiente retornou {r.status_code} antes da execução do teste — "
+                 f"credencial de infraestrutura ausente (ex: API key, IP allowlist). "
+                 f"Forneça a credencial correta e re-execute."
+    })
+    return
+
+# ❌ PROIBIDO — nunca force passed com assert True quando o ambiente não coopera
+if r.status_code == 401:
+    assert True, "ambiente ok, credencial nao fornecida"   # ❌ falso positivo
+```
+
+Essa regra se aplica tanto a TypeScript quanto a Python, e tanto em testes de browser quanto em chamadas HTTP feitas dentro de um TC browser (ex: fetch direto via requests).
+
 **Se nenhum seletor funcionar após 15s:** marque o TC como `failed` com
 `error: "Elemento não encontrado — seletor não especificado no TC e inferência
 proibida. Adicione o seletor exato ao caso de teste."` — nunca tente
 adivinhar estruturas de DOM alternativas em loop.
+
+## Regra de asserções — mensagem obrigatória em Python
+
+Quando o executor gerar código Python com `assert` (sync Playwright, requests ou comparações diretas), **toda asserção deve incluir mensagem descritiva**. Asserções sem mensagem geram `AssertionError` com `str(e) == ""`, tornando o campo `error` do resultado completamente vazio — diagnóstico impossível.
+
+**OBRIGATÓRIO em Python:**
+```python
+# ✅ CORRETO — mensagem descreve o que falhou e onde
+assert element is not None, f"Botão 'Add to cart' não encontrado em {page.url}"
+assert len(items) >= 6, f"Esperado ≥ 6 produtos, encontrado: {len(items)} em {page.url}"
+assert response.status_code == 200, f"Esperado 200, obtido {response.status_code} — {url}"
+assert btn.is_enabled(), f"Botão 'Add to cart' desabilitado (disabled) em {page.url}"
+
+# ❌ PROIBIDO — assert sem mensagem
+assert element is not None
+assert len(items) >= 6
+assert response.status_code == 200
+```
+
+**Regra de ouro:** qualquer `assert` que não tenha `, f"..."` no final é código incompleto. Antes de finalizar o script, varredura obrigatória: substitua todo `assert <expr>` por `assert <expr>, f"[o que era esperado] — obtido: {<expr_ou_variável>} — url: {page.url}"`.
 
 ## Estratégia de espera — ordem obrigatória
 
@@ -209,6 +342,33 @@ await page.waitForSelector('[data-testid="content-loaded"]', { timeout: 30_000 }
 ```typescript
 // waitForSelector não aplicável: SPA sem indicador de render confiável
 await page.waitForTimeout(1_500);
+```
+
+**4. Hash-route SPAs (Angular, React hash-router, Vue hash mode)** — rotas do tipo `#/auth/login`, `#/products`, `#!/route` precisam de tratamento especial porque `networkidle` conclui **antes** do framework terminar de renderizar o componente de destino.
+
+Quando o step contiver `goto()` para uma URL com fragmento `#/`:
+```typescript
+// ✅ CORRETO para hash-routes
+await page.goto('https://app.com/#/auth/login', { waitUntil: 'domcontentloaded' });
+await page.waitForTimeout(800);   // aguarda framework renderizar o componente
+// Agora use wait_for_selector com timeout generoso
+await page.waitForSelector('[data-test="email"]', { timeout: 30_000 });
+await page.fill('[data-test="email"]', email);
+
+// Em Python sync Playwright:
+page.goto("https://app.com/#/auth/login", wait_until="domcontentloaded", timeout=30000)
+page.wait_for_timeout(800)   # aguarda Angular/Vue/React renderizar o componente
+page.wait_for_selector("[data-test='email']", timeout=30000)
+page.fill("[data-test='email']", email)
+```
+
+**Regra:** sempre que `goto()` navegar para uma URL contendo `#/`, substitua `wait_until="networkidle"` por `wait_until="domcontentloaded"` **e** adicione `wait_for_timeout(800)` logo depois. O timeout mínimo de `wait_for_selector` em formulários de hash-route é **30s** (não 15s).
+
+Após a navegação inicial para uma SPA (qualquer rota), aplique também o timeout adaptativo:
+```python
+if "practicesoftwaretesting" in page.url or "orangehrmlive" in page.url:
+    page.set_default_timeout(30000)
+    page.set_default_navigation_timeout(45000)
 ```
 
 **Timeouts adaptativos por domínio** — aplique no início de cada spec:

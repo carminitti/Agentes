@@ -34,12 +34,15 @@ O `orquestrador-qa` formata a mensagem com uma seção explícita. Procure no se
 
 Se essa seção estiver presente:
 - `base_url` → use como URL base nos scripts k6/Python, não pergunte
+- `multi_url` → se `true`, diferentes TCs podem ter URLs base distintas; leia `resolved_base_url` de cada TC para determinar a URL correta de cada cenário de carga
+- `url_map` → dicionário TC → URL disponível para referência; use `tc.resolved_base_url` no script gerado
 - `auth.token` → injete no script k6 como `const TOKEN = '...'`, não pergunte nada
 - `auth.credentials` → gere o token via Python antes de montar o script k6, não pergunte nada
 - `suite_dir` → se presente, use `[suite_dir]/performance/` como diretório de artefatos; crie com `os.makedirs`
 - `environment_notes` → aplique as regras abaixo conforme palavras-chave:
   - Contém `certificado`, `SSL`, `autoassinado` ou `self-signed` → adicione `insecureSkipTLSVerify: true` nas options do k6; no fallback Python use `verify=False`
   - Contém `VPN` ou `proxy` → adicione `[ENV] Ambiente pode exigir VPN/proxy` nos logs; se testes falharem com erro de conexão, inclua `"Possível causa: acesso via VPN/proxy necessário"` no campo `error`
+- `request_timeout_ms` → defina `TIMEOUT_S = request_timeout_ms / 1000` (default: 10) no início do script fallback Python e use-o em todas as chamadas `requests.get/request` em vez de `timeout=10`.
 
 **Se a seção `## Contexto de execução` estiver presente, ignore os passos abaixo e prossiga para a execução.**
 
@@ -69,8 +72,8 @@ def auto_get_token(base_url, credentials):
             if resp.status_code in [200, 201]:
                 data = resp.json()
                 token = (data.get('access_token') or data.get('token') or
-                         data.get('accessToken') or data.get('jwt') or
-                         data.get('authToken') or data.get('id_token'))
+                         data.get('accessToken') or data.get('AccessToken') or
+                         data.get('jwt') or data.get('authToken') or data.get('id_token'))
                 if token:
                     return token
         except Exception:
@@ -97,6 +100,31 @@ Se a geração falhar em todos os endpoints tentados, passe para o passo 3.
 Após receber a resposta, aplique. Se o usuário confirmar que não há autenticação, prossiga sem auth.
 
 **Se `auto_get_token()` falhar e o teste requer auth:** inclua `"credentials_failed": true` no JSON de saída para que o orquestrador faça retry com novas credenciais. Não execute com token inválido.
+
+**Detecção de 401 sistêmico nos scripts k6 / Python fallback:**
+
+Após rodar cada script k6 ou Python de performance, verifique o `error_rate_pct` combinado com o status HTTP predominante nas amostras de erro. Se `error_rate_pct >= 80` E as amostras de erro indicarem exclusivamente `status=401` ou `status=403`, isso é credencial de infraestrutura ausente, não falha de performance. Nesse caso:
+
+```python
+# Ao interpretar o resultado do k6/Python:
+if (
+    summary_result.get("error_rate_pct", 0) >= 80 and
+    all(e.get("status") in (401, 403)
+        for e in summary_result.get("error_samples", []))
+):
+    summary["credentials_failed"] = True
+    summary["credentials_error"] = (
+        f"error_rate={summary_result['error_rate_pct']}% com status 401/403 — "
+        "credencial de infraestrutura ausente (API key, token de serviço). "
+        "Forneça a credencial correta; os thresholds de performance não podem ser "
+        "avaliados enquanto o ambiente rejeitar todas as requisições."
+    )
+    # Marque todos os TCs do domínio afetado como skipped (não failed):
+    for tc in tc_results:
+        if tc["status"] == "failed" and "401" in tc.get("error", ""):
+            tc["status"] = "skipped"
+            tc["reason"] = "env_auth_required"
+```
 
 ---
 
@@ -157,6 +185,30 @@ Para cada TC recebido, verifique o tipo classificado:
 }
 ```
 
+**Algoritmo de skip — implemente antes de gerar qualquer script:**
+
+```python
+def should_skip(tc):
+    tc_type = tc.get("type", "")
+    steps_text = " ".join(tc.get("steps", [])).lower()
+    # Extrai duração total de stages em segundos
+    stage_duration_s = sum(
+        int(s.split("m")[0]) * 60 if "m" in s else int(s.replace("s",""))
+        for s in re.findall(r"\d+[ms]", steps_text)
+    ) or 0
+    if tc_type == "soak":
+        return True, "pipeline_lento", "Tipo 'soak' reservado para --pipeline=full."
+    if tc_type == "stress" and stage_duration_s > 180:
+        return True, "pipeline_lento", f"Stress com {stage_duration_s}s > 3min reservado para --pipeline=full."
+    vus = int(re.search(r"(\d+)\s*vus?", steps_text).group(1)) if re.search(r"(\d+)\s*vus?", steps_text) else 0
+    duration_s = stage_duration_s or (int(re.search(r"(\d+)s", steps_text).group(1)) if re.search(r"(\d+)s", steps_text) else 0)
+    if tc_type in ("performance", "carga") and vus > 50 and duration_s > 60:
+        return True, "pipeline_lento", f"VUs={vus} e duration={duration_s}s acima do limite do pipeline rápido."
+    return False, None, None
+```
+
+Retorne imediatamente `{"id": tc["id"], "status": "skipped", "reason": reason, "message": message}` para cada TC onde `should_skip` retornar `True`.
+
 Após esta verificação, processe apenas os TCs que não foram marcados como skipped.
 
 ---
@@ -197,6 +249,15 @@ export default function () {
 }
 ```
 
+> **Multi-URL:** quando o contexto contiver `multi_url: true`, cada TC pode apontar para um domínio diferente. Ao gerar o script k6, não declare uma constante `BASE_URL` global. Em vez disso, declare um objeto de URLs por TC no topo do script:
+> ```javascript
+> const TC_URLS = {
+>   "TC-PERF-01": "https://reqres.in/api",
+>   "TC-PERF-07": "https://jsonplaceholder.typicode.com",
+> };
+> ```
+> E use `TC_URLS[tc_id]` ao construir cada URL de requisição dentro da função `default`. Quando `multi_url: false` ou ausente, mantenha o comportamento atual com `BASE_URL` único no topo do script.
+
 **Stress (rampa crescente):**
 ```javascript
 export const options = {
@@ -226,6 +287,12 @@ export const options = {
 ```
 
 > Soak usa `vus` + `duration` fixos — **nunca use `stages`** para soak, pois o objetivo é medir degradação sob carga constante, não sob rampa.
+
+Antes de executar, valide que o script foi gerado:
+```python
+if not os.path.exists("script.js"):
+    return [{"id": tc["id"], "status": "error", "error": "script.js não foi gerado — verifique os steps do TC"} for tc in tcs]
+```
 
 Execute e capture o stdout completo:
 ```
@@ -259,9 +326,9 @@ def run_load_test(url, vus, duration_s, headers=None, method='GET', payload=None
             start = time.time()
             try:
                 if method == 'GET':
-                    resp = requests.get(url, headers=headers, timeout=10)
+                    resp = requests.get(url, headers=headers, timeout=TIMEOUT_S)
                 else:
-                    resp = requests.request(method, url, headers=headers, json=payload, timeout=10)
+                    resp = requests.request(method, url, headers=headers, json=payload, timeout=TIMEOUT_S)
                 duration_ms = (time.time() - start) * 1000
                 with lock:
                     results.append(duration_ms)

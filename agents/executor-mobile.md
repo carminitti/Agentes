@@ -136,7 +136,19 @@ timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
 
 # ── Driver ────────────────────────────────────────────────────────────────────
+def validate_capabilities(platform, app_package, app_path, app_activity):
+    if platform.lower() == "android":
+        if not app_package and not app_path:
+            raise ValueError("Android requer 'app_package' (app instalado) ou 'app' (caminho do APK). Nenhum fornecido.")
+        if app_package and not app_activity:
+            raise ValueError("Android com app_package requer 'app_activity'. Ex: 'com.app.MainActivity'.")
+    elif platform.lower() == "ios":
+        if not app_path and not app_package:
+            raise ValueError("iOS requer 'app' (caminho do .app/.ipa) ou 'bundleId'. Nenhum fornecido.")
+
+
 def build_driver():
+    validate_capabilities(PLATFORM, APP_PACKAGE, APP_PATH, APP_ACTIVITY)
     if PLATFORM.lower() == "android":
         options = AndroidUiAutomator2Options()
         options.platform_name = "Android"
@@ -407,6 +419,7 @@ O orquestrador só considera o resultado desta execução se `resultado.json` ex
 
 Se o contexto contiver `"lean_mode": true`:
 - **Não grave `execution.log`**
+- **Omita `generated_files` do JSON de saída.** Em modo completo (`lean_mode: false`), preencha `generated_files` com a lista de arquivos `.py` gerados (script de capabilities, script de teste Appium).
 - JSON mínimo por TC — omita `logs`, `platform`, `device`:
   ```json
   { "id": "TC-001", "title": "Login", "status": "passed", "duration_ms": 3240 }

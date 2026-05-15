@@ -34,6 +34,8 @@ O `orquestrador-qa` formata a mensagem com uma seção explícita. Procure no se
 
 Se essa seção estiver presente:
 - `base_url` → use como URL base, não pergunte
+- `multi_url` → se `true`, diferentes TCs podem ter URLs base distintas; leia `resolved_base_url` de cada TC para determinar a URL de navegação (`page.goto`) de cada cenário
+- `url_map` → dicionário TC → URL disponível para referência; use `tc.resolved_base_url` no código gerado
 - `auth.token` → use para autenticar no Playwright antes da análise axe-core, não pergunte nada
 - `auth.credentials` → use para fazer login no Playwright antes da análise axe-core, não pergunte nada
 - `suite_dir` → se presente, use `[suite_dir]/acessibilidade/` como diretório de artefatos; crie com `fs.mkdirSync`
@@ -169,6 +171,8 @@ Para cada teste:
    });
    ```
 
+> **Multi-URL:** quando o contexto contiver `multi_url: true`, cada TC pode ter uma URL de destino diferente. Ao gerar o código Playwright de cada TC, use `tc.resolved_base_url` como URL base do `page.goto()` daquele TC em vez da variável global `base_url`. Quando `multi_url: false` ou ausente, mantenha o comportamento atual.
+
 3. **Execute** e capture as violações completas (id, impact, description, nodes, helpUrl).
 
 4. **Determine o status final** usando o campo `impact` retornado pelo axe-core diretamente, sem nenhuma reclassificação:
@@ -192,9 +196,14 @@ Para cada teste:
    - Adicione o campo `"known_failure_note": "falha conhecida do ambiente de demonstração — não corrigível pelo time"` na violação
    - **Não bloqueie o deploy** para esta suite: o veredito `deploy_blocked` deve ser `false` mesmo que haja `critical`/`serious` — **apenas se todas as violações `failed` forem marcadas como `known_environment_failure: true`**
 
-   **Bloqueio de deploy por acessibilidade:**
-   - `production` ou `staging` → `deploy_blocked: true` se houver qualquer `failed`
-   - `demo` ou `demonstração` → `deploy_blocked: false` se todas as violações `failed` forem `known_environment_failure: true`; caso contrário, `deploy_blocked: true` normalmente
+   **Bloqueio de deploy por acessibilidade — algoritmo obrigatório:**
+   ```python
+   critical_or_serious = [v for v in violations if v["impact"] in ("critical", "serious")]
+   all_known = bool(critical_or_serious) and all(v.get("known_environment_failure", False) for v in critical_or_serious)
+   deploy_blocked = bool(critical_or_serious) and not all_known
+   ```
+   - `production` ou `staging` → aplique a regra acima diretamente
+   - `demo` ou `demonstração` → idem; se `all_known` for `True`, `deploy_blocked = False`
 
 6. **Flaky detection** — detecta testes que passaram somente após retry:
 
