@@ -659,7 +659,7 @@ Preencha os valores com dados reais de `execution_metrics`:
 ```
 
 **Regras de preenchimento:**
-- `[pct_tokens]`: `round(fase.tokens_total_est / execution_metrics.total_tokens_estimated * 100, 1)`
+- `[pct_tokens]`: `round(fase.tokens_total_est / execution_metrics.total_tokens_estimated * 100, 1)` — se `total_tokens_estimated` for 0, use `0` para evitar divisão por zero
 - Badge: use `metrics-badge-executor` para fases que começam com "Executor —", e `metrics-badge-phase` para as demais
 - Duração: se `duration_ms < 1000` → `"Xms"`, se `< 60000` → `"X.Xs"`, caso contrário → `"Xm Ys"`
 - Se `execution_metrics` não for passado (campo ausente), omita completamente esta seção sem erro

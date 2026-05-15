@@ -743,7 +743,7 @@ Para cada conjunto de testes:
      expect: { timeout: 5_000 },
      fullyParallel: !mobileDevice,
      workers: mobileDevice ? 1 : (process.env.CI ? 2 : 4),
-     retries: Math.max(1, parseInt(process.env.RETRY_COUNT || '1')),
+     retries: parseInt(process.env.RETRY_COUNT ?? '1'),
      testMatch: ['**/*.spec.ts'],
      reporter: [['html', { outputFolder: 'reports/html', open: 'never' }]],
      outputDir: 'reports/test-results',

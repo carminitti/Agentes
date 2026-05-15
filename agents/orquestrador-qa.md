@@ -1415,15 +1415,18 @@ Os executores **não devem perguntar nada ao usuário** — todas as informaçõ
 
 **Rastreamento de métricas por executor:**
 
-Para cada executor despachado, registre o tempo e tokens:
+Para cada executor despachado, registre o tempo e tokens usando um timestamp de início **individual por executor** (não compartilhado):
 
 ```python
-# Antes de despachar cada executor:
-_exec_start = time.time()
+# Registre o início de CADA executor separadamente, usando um dict:
+_exec_starts = {}  # { executor_name: start_ts }
+
+# Antes de despachar cada executor (substitua `executor_name` pelo nome real):
+_exec_starts[executor_name] = time.time()
 
 # ... dispatch do executor ...
 
-# Após receber o resultado de cada executor (substitua `executor_name` e `executor_result` pelos valores reais):
+# Após receber o resultado de cada executor:
 _exec_end = time.time()
 _track_phase(
     fase=f"Executor — {executor_name}",
@@ -1433,14 +1436,14 @@ _track_phase(
         f"{executor_result.get('summary', {}).get('failed', 0)} falhou, "
         f"{executor_result.get('summary', {}).get('skipped', 0)} pulado"
     ),
-    start_ts=_exec_start,
+    start_ts=_exec_starts[executor_name],
     end_ts=_exec_end,
     input_payload=json.dumps(contexto_enviado_ao_executor),
     output_payload=json.dumps(executor_result),
 )
 ```
 
-Se os executores foram despachados em paralelo (lean_mode: false), registre o tempo de cada um individualmente assim que cada resultado chegar.
+Em modo paralelo (lean_mode: false), cada executor tem seu próprio `_exec_starts[executor_name]` registrado no momento do dispatch, garantindo que durações individuais sejam precisas mesmo quando múltiplos executores correm simultaneamente.
 
 ### Progresso em tempo real
 
@@ -1558,7 +1561,7 @@ with open(suite_log_path, "w", encoding="utf-8") as f:
     f.write(f"=== Suite QA — {suite_dir} ===\n")
     f.write(f"Início: {suite_start_time}\n")
     f.write(f"Fim: {datetime.datetime.now().isoformat()}\n")
-    f.write(f"Ambiente: {base_url}\n\n")
+    f.write(f"Ambiente: {base_url if base_url else (list(url_map.values())[0] if url_map else '?')}\n\n")
     f.write("--- Executores despachados ---\n")
     for executor_name, result in executor_results.items():
         summary = result.get("summary", {})
@@ -1570,6 +1573,33 @@ with open(suite_log_path, "w", encoding="utf-8") as f:
         for retry in retries_performed:
             f.write(f"  {retry}\n")
     f.write("\n--- Fim do log da suite ---\n")
+
+# Grave o resultado estruturado para uso em retests (--rerun-failed e Etapa R.4):
+resultado_json_path = f"{suite_dir}/resultado.json"
+resultado = {
+    "suite_id": suite_dir,
+    "timestamp": datetime.datetime.now().isoformat(),
+    "base_url": base_url if base_url else (list(url_map.values())[0] if url_map else None),
+    "summary": {
+        "total": total_tcs,
+        "passed": sum(r.get("summary", {}).get("passed", 0) for r in executor_results.values()),
+        "failed": sum(r.get("summary", {}).get("failed", 0) for r in executor_results.values()),
+        "skipped": sum(r.get("summary", {}).get("skipped", 0) for r in executor_results.values()),
+    },
+    "tests": [
+        {
+            "id": tc.get("id"),
+            "title": tc.get("title"),
+            "executor": executor_name,
+            "status": tc.get("status"),
+            "error": tc.get("error"),
+        }
+        for executor_name, result in executor_results.items()
+        for tc in result.get("tests", [])
+    ],
+}
+with open(resultado_json_path, "w", encoding="utf-8") as f:
+    json.dump(resultado, f, indent=2, ensure_ascii=False)
 ```
 
 Após receber os resultados de todos os executores, invoque o subagente `reporter-qa` passando:
@@ -1584,26 +1614,19 @@ Após receber os resultados de todos os executores, invoque o subagente `reporte
 - O objeto `execution_metrics` com métricas completas de toda a execução:
 
 ```python
-_suite_end = time.time()
-_track_phase(
-    fase="Etapa 4 — Geração do relatório",
-    descricao="reporter-qa: consolidação dos resultados e geração do HTML",
-    start_ts=_suite_end - 1,   # placeholder — será atualizado após o reporter retornar
-    end_ts=_suite_end,
-    input_payload="[resultados dos executores]",
-    output_payload="[HTML gerado]",
-)
+# Registre o início da fase do relatório ANTES de invocar o reporter
+_t4_start = time.time()
 
 execution_metrics = {
     "suite_id": suite_dir,
     "suite_start_iso": datetime.datetime.fromtimestamp(_suite_start).isoformat(),
-    "suite_end_iso": datetime.datetime.fromtimestamp(_suite_end).isoformat(),
-    "total_duration_ms": int((_suite_end - _suite_start) * 1000),
+    "suite_end_iso": datetime.datetime.fromtimestamp(_t4_start).isoformat(),
+    "total_duration_ms": int((_t4_start - _suite_start) * 1000),
     "total_tokens_estimated": sum(p["tokens_total_est"] for p in _phase_metrics),
     "total_tokens_input_est": sum(p["tokens_input_est"] for p in _phase_metrics),
     "total_tokens_output_est": sum(p["tokens_output_est"] for p in _phase_metrics),
     "phases": _phase_metrics,   # lista completa de fases com tempo e tokens
-    "environment": base_url or list(url_map.values())[0] if url_map else "?",
+    "environment": base_url if base_url else (list(url_map.values())[0] if url_map else "?"),
     "executors_dispatched": list(executor_results.keys()),
     "tcs_total": total_tcs,
     "tcs_passed": sum(r.get("summary", {}).get("passed", 0) for r in executor_results.values()),
@@ -1620,10 +1643,23 @@ O `reporter-qa` retornará o relatório HTML dual-mode completo. Após receber:
    - **Bash:** `cat > "[caminho]" << 'EOF'` + conteúdo + `EOF`
    - **PowerShell:** `Set-Content -Path "[caminho]" -Value $conteudo -Encoding utf8`
 
-2. **Confirme ao usuário:**
+2. **Registre a fase do relatório** com o tempo real de geração:
+```python
+_t4_end = time.time()
+_track_phase(
+    fase="Etapa 4 — Geração do relatório",
+    descricao=f"reporter-qa: HTML salvo em {report_output_dir}/relatorio_{suite_dir}.html",
+    start_ts=_t4_start,
+    end_ts=_t4_end,
+    input_payload=json.dumps({"executors": list(executor_results.keys()), "tcs": total_tcs}),
+    output_payload=html_gerado[:400] if html_gerado else "",
+)
+```
+
+3. **Confirme ao usuário:**
    > "📄 Relatório salvo em: `[caminho completo]` — abra no navegador para visualizar."
 
-3. **Exiba o resumo de status** (suite aprovada/reprovada, contagem de passed/failed). Não exiba o conteúdo bruto do relatório no chat.
+4. **Exiba o resumo de status** (suite aprovada/reprovada, contagem de passed/failed). Não exiba o conteúdo bruto do relatório no chat.
 
 **Não exiba o HTML bruto no chat** — apenas o caminho do arquivo salvo e o resumo.
 
@@ -1679,8 +1715,13 @@ Se o usuário responder **S**:
 2. Se não houver falhas, informe: "Todos os testes passaram! Nada para retestar."
 3. Se houver falhas, pergunte:
    > "Antes de retestar, houve alguma mudança? (ex: correção de código, mudança de credenciais, novo deploy, etc.) Descreva ou responda 'nenhuma' para retestar com as mesmas configurações."
-4. Execute o retest com os TCs filtrados a partir da **Etapa 1** (classificação), mantendo o mesmo contexto de execução já coletado (URL, auth, etc.), aplicando apenas as mudanças de configuração informadas pelo usuário.
-5. Ao final do retest, no relatório inclua uma seção de comparação:
+4. **Antes de re-executar, resete o rastreador de métricas** para que o retest tenha suas próprias métricas independentes:
+```python
+_phase_metrics = []
+_suite_start = time.time()
+```
+5. Execute o retest com os TCs filtrados a partir da **Etapa 1** (classificação), mantendo o mesmo contexto de execução já coletado (URL, auth, etc.), aplicando apenas as mudanças de configuração informadas pelo usuário.
+6. Ao final do retest, no relatório inclua uma seção de comparação:
    - Testes que falharam na execução anterior
    - Testes que passaram no retest (recuperados)
    - Testes que continuaram falhando

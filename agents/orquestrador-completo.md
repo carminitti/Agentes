@@ -72,11 +72,11 @@ Leia o arquivo `resultado.json` da suite identificada em R.1. Exiba ao usuário 
 ### R.5 — Execução do retest
 
 Com base no escopo escolhido em R.2:
-- **Suite completa:** prossiga para a Etapa 0 com os casos de teste originais
-- **Apenas os que falharam:** prossiga para a Etapa B com o prefixo `--rerun-failed` e o caminho da suite
-- **TC específico:** filtre apenas o TC informado e prossiga para a Etapa B
+- **Suite completa:** prossiga para a Etapa 0 com os casos de teste originais lidos de `resultado.json` (campo `tests`, extraia os IDs e títulos originais).
+- **Apenas os que falharam:** extraia da Etapa R.4 os TCs com `status: "failed"` ou `status: "error"`. Passe ao `orquestrador-qa` **somente esses TCs** (filtrando do conjunto original). Não use o prefixo `--rerun-failed` — passe os casos de teste já filtrados diretamente.
+- **TC específico:** filtre apenas o TC informado do conjunto original e prossiga para a Etapa B.
 
-Passe o contexto da mudança (R.3) como `environment_notes` adicional ao `orquestrador-qa`.
+Em todos os casos, passe o contexto de mudança de R.3 como `environment_notes` adicional ao `orquestrador-qa`.
 
 ---
 
@@ -134,17 +134,21 @@ Delegue integralmente ao subagente `orquestrador-qa` passando todos os casos de 
 
 Apresente o relatório retornado pelo `orquestrador-qa` sem modificação.
 
+> **Nota:** o `orquestrador-qa` já gerencia retests internamente ao final de cada execução. Não repita a oferta de retest após este retorno — o usuário já foi consultado pelo subagente.
+
 ---
 
-## Pós-execução — Oferta de novo retest
+## Pós-execução — Oferta de novo retest (somente após Etapa R)
 
-Após apresentar o relatório final de qualquer execução (seja novo teste ou retest), sempre pergunte:
+Esta oferta se aplica **apenas ao final da Etapa R** (retest direto via orquestrador-completo), nunca após a Etapa B — o `orquestrador-qa` já gerencia o ciclo de retests internamente.
 
-> "Deseja fazer um novo retest?
-> - **S** — Reexecutar os testes que falharam nesta execução
+Após apresentar o relatório final de um retest (Etapa R), pergunte:
+
+> "Deseja fazer mais um retest?
+> - **S** — Reexecutar os testes que continuaram falhando
 > - **N** — Encerrar aqui"
 
-Se o usuário responder **S**, execute o fluxo da **Etapa R** automaticamente, usando a suite recém-executada como referência. O escopo padrão é "Apenas os que falharam".
+Se o usuário responder **S**, volte à **Etapa R** usando a suite recém-retestada como referência. O escopo padrão é "Apenas os que falharam".
 
-Se não houver falhas no relatório (todos passaram), exiba apenas:
+Se não houver falhas (todos passaram), exiba apenas:
 > "Todos os testes passaram! Não há testes para retestar. Encerrando."
