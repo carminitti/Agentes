@@ -134,6 +134,12 @@ Para testes com `type: "mobile"`, sempre inclua o campo `mobile_target: "web"` o
 
 8. **Desambiguação WebSocket vs. integração:** um teste com steps de "enviar requisição HTTP" é `integração` mesmo que mencione "tempo real". Só classifique como `websocket` se os steps incluírem explicitamente conexão persistente, envio de frames ou handshake ws://. Na dúvida entre `websocket` e `integração`, use `integração` com `low_confidence: true`.
 
+9. **Detecção de dependências entre TCs:** ao classificar cada TC, verifique se o título ou os steps mencionam explicitamente que o TC depende de outro TC anterior. Padrões a detectar:
+   - Menção direta: "após TC-XXX", "requer TC-XXX", "depende de TC-XXX", "dado que TC-XXX passou", "after TC-XXX", "requires TC-XXX", "depends on TC-XXX"
+   - Menção de pré-condição criada por outro TC: "com o usuário criado em TC-XXX", "usando o booking do TC-XXX"
+
+   Se detectado, preencha o campo `depends_on` com a lista de IDs. Se não detectado, use `null`.
+
 **Desambiguação GraphQL vs. integração:** um teste que "chama o endpoint /graphql com método POST" sem mencionar query/mutation/schema é `integração`. Só classifique como `graphql` se os steps definirem operações GraphQL explícitas (query, mutation, subscription, fields, variables). **Atenção:** as palavras "query" e "mutation" só disparam classificação `graphql` quando combinadas com outros indicadores GraphQL (endpoint `/graphql`, schema, resolver, fragments, variáveis GQL). **Regra banco vs. GraphQL:** se os steps contiverem qualquer das palavras `SELECT`, `INSERT`, `UPDATE`, `DELETE`, `CREATE TABLE`, `DROP`, `JOIN`, ou `WHERE [coluna]`, classifique como `banco` — mesmo que o step também mencione "query". "mutation" em contexto de dados/REST sem indicadores GQL é irrelevante para este tipo.
 
 **Regra de desambiguação: `data-driven`**
@@ -215,6 +221,7 @@ Retorne **apenas JSON válido**, sem texto adicional antes ou depois.
       "regression": false,
       "confidence": 0.95,
       "low_confidence": false,
+      "depends_on": null,
       "rationale": "Jornada completa de usuário com múltiplos steps e verificação de resultado final.",
       "steps": [
         "o usuário está na página de login",
@@ -231,6 +238,7 @@ Retorne **apenas JSON válido**, sem texto adicional antes ou depois.
       "regression": false,
       "confidence": 0.60,
       "low_confidence": true,
+      "depends_on": null,
       "rationale": "O teste menciona endpoint REST mas tem características ambíguas entre integração e smoke. Classificado como integração pelo indicador HTTP mais forte, mas com baixa confiança.",
       "steps": [
         "acesse o endpoint /api/reports",

@@ -1153,6 +1153,90 @@ Exiba ao usuário em até 4 linhas antes de despachar:
 
 Prossiga imediatamente após exibir — não aguarde confirmação do usuário.
 
+#### Análise de flakiness (pré-execução)
+
+Antes de despachar os executores, verifique se existe `.qa_history.json` no diretório atual ou em `suite_dir`:
+
+```python
+import json, os
+from collections import defaultdict
+
+flaky_tcs = set()
+history_path = os.path.join(suite_dir, ".qa_history.json") if suite_dir else ".qa_history.json"
+
+if os.path.exists(history_path):
+    try:
+        with open(history_path) as f:
+            history = json.load(f)
+        
+        # Conta pass/fail por TC nas últimas 5 execuções
+        tc_stats = defaultdict(lambda: {"passed": 0, "failed": 0, "total": 0})
+        for run in history[-5:]:
+            for r in run.get("results", []):
+                tc_id = r.get("id")
+                status = r.get("status")
+                if tc_id and status in ("passed", "failed"):
+                    tc_stats[tc_id]["total"] += 1
+                    tc_stats[tc_id][status] += 1
+        
+        # TC é flaky se: total >= 2 execuções E taxa de pass < 80% E >= 1 falha
+        for tc_id, stats in tc_stats.items():
+            if stats["total"] >= 2 and stats["failed"] >= 1:
+                pass_rate = stats["passed"] / stats["total"]
+                if pass_rate < 0.8:
+                    flaky_tcs.add(tc_id)
+    except Exception:
+        flaky_tcs = set()
+```
+
+Se `flaky_tcs` não estiver vazio, exiba ao usuário (antes de executar):
+> ⚠️ **Testes com histórico instável (flaky):** `[IDs]`
+> Esses testes falharam em pelo menos 1 das últimas 5 execuções. Os resultados serão marcados com `flaky: true` no relatório.
+
+Ao montar o contexto de cada executor, inclua o campo:
+```
+"flaky_tcs": ["TC-XXX", "TC-YYY"]  // lista de IDs flaky; null se vazio
+```
+
+Esta lógica deve ser executada apenas quando `lean_mode: false`. Se `lean_mode: true`, pule completamente (não carregar histórico).
+
+#### Ordenação por dependências (pré-dispatch)
+
+Ao receber o output do `classifier-testes`, verifique se algum TC possui o campo `depends_on` preenchido. Se sim:
+
+```python
+def sort_by_dependencies(tcs):
+    """Ordena TCs respeitando dependências (topological sort simples)."""
+    id_to_tc = {tc["id"]: tc for tc in tcs}
+    ordered = []
+    visited = set()
+    
+    def visit(tc_id):
+        if tc_id in visited:
+            return
+        visited.add(tc_id)
+        tc = id_to_tc.get(tc_id)
+        if not tc:
+            return
+        for dep_id in (tc.get("depends_on") or []):
+            visit(dep_id)
+        ordered.append(tc)
+    
+    for tc in tcs:
+        visit(tc["id"])
+    return ordered
+```
+
+Aplique `sort_by_dependencies` na lista de TCs de cada executor antes do dispatch. TCs sem `depends_on` mantêm sua ordem original.
+
+Se houver dependência circular (TC-A depende de TC-B que depende de TC-A), avise o usuário:
+> ⚠️ **Dependência circular detectada:** `[IDs envolvidos]`. Os TCs serão executados na ordem original e o resultado pode ser imprevisível.
+
+Adicione ao schema do contexto enviado aos executores:
+```
+"tc_execution_order": ["TC-001", "TC-003", "TC-002"]  // ordem garantindo dependências; null se sem depends_on
+```
+
 Com o contexto de execução completo, invoque os subagentes correspondentes.
 
 - **`lean_mode: false`:** invoque múltiplos executores **em paralelo** onde possível.

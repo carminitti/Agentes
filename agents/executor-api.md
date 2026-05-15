@@ -43,6 +43,7 @@ Se essa seção estiver presente:
 - `environment_notes` → aplique as regras abaixo conforme palavras-chave:
   - Contém `certificado`, `SSL`, `autoassinado` ou `self-signed` → adicione `ignoreHTTPSErrors: true` no `playwright.config.ts`
   - Contém `VPN` ou `proxy` → adicione `[ENV] Ambiente pode exigir VPN/proxy` nos logs; se testes falharem com erro de conexão, inclua `"Possível causa: acesso via VPN/proxy necessário"` no campo `error`
+- `max_parallel_executors` → se presente e > 1 (e `rate_limit` for null), execute os TCs em paralelo usando `ThreadPoolExecutor(max_workers=min(max_parallel_executors, 5))`. Se `rate_limit` não for null, ignore `max_parallel_executors` e execute sequencialmente para respeitar o throttle. Padrão: sequencial (1 worker).
 
 **Se a seção `## Contexto de execução` estiver presente, ignore os passos abaixo e prossiga para a execução.**
 
@@ -713,6 +714,24 @@ Se o `## Contexto de execução` contiver `"lean_mode": true`, aplique todas as 
 - Gere um **único arquivo `.py`** contendo tudo (requests, asserções, loop de TCs) — sem POM, sem fixtures, sem módulos separados.
 - Execute com `python` diretamente.
 - Salve em `[suite_dir]/api/` com o nome `lean_api_[timestamp].py`.
+
+**Execução paralela (max_parallel_executors):** quando o contexto contiver `max_parallel_executors > 1` e `rate_limit` for null, gere o código Python usando `ThreadPoolExecutor`:
+```python
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
+max_workers = min(int(os.environ.get("MAX_PARALLEL_EXECUTORS", "1")), 5)
+
+if max_workers > 1 and not rate_limit:
+    with ThreadPoolExecutor(max_workers=max_workers) as pool:
+        futures = {pool.submit(run_tc, tc): tc for tc in test_cases}
+        for future in as_completed(futures):
+            result = future.result()
+            results.append(result)
+else:
+    for tc in test_cases:
+        results.append(run_tc(tc))
+```
+Garanta que `run_tc` seja thread-safe: use variáveis locais dentro da função, não compartilhe estado mutável entre threads.
 
 ### Sem logs em disco
 - **Não grave `execution.log`** nem nenhum outro arquivo além de `resultado.json`.

@@ -34,6 +34,8 @@ O `orquestrador-qa` formata a mensagem com uma seção explícita. Procure no se
 
 Se essa seção estiver presente:
 - `base_url` → use como `BASE_URL` no `.env`, não pergunte
+- `multi_url` → se `true`, diferentes TCs podem ter URLs base distintas; leia `resolved_base_url` de cada TC (injetado pelo orquestrador) para determinar a URL base de navegação de cada cenário — não use `BASE_URL` do `.env` como prefixo global quando `multi_url: true`
+- `url_map` → dicionário TC → URL disponível para referência; use `tc.resolved_base_url` no código gerado em vez de referenciar o mapa diretamente
 - `auth.token` → defina `AUTH_TOKEN` no `.env` e use diretamente, não pergunte nada
 - `auth.credentials` → defina `USER_EMAIL`, `USER_PASSWORD` e `AUTH_REQUIRED=true` no `.env`; o `globalSetup` gera o token
 - `auth.type === "oauth2_ac"` → o login ocorre via redirect de browser (SSO/OIDC). No `globalSetup.ts`, implemente:
@@ -1037,6 +1039,8 @@ await page.waitForTimeout(1_500);
 
 Nunca confie apenas em `waitForLoadState('domcontentloaded')` para SPAs — o DOM pode estar
 pronto antes do conteúdo dinâmico ser renderizado.
+
+**Multi-URL:** quando o contexto contiver `multi_url: true`, cada TC pode ter uma URL de destino diferente definida em `resolved_base_url`. Ao gerar o código Playwright de cada TC, use `tc.resolved_base_url` (ou `tc["resolved_base_url"]`) como URL base do `page.goto()` daquele TC em vez da variável global `BASE_URL`. Quando `multi_url: false` ou ausente, mantenha o comportamento atual.
 
 ---
 

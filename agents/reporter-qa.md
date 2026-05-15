@@ -529,6 +529,28 @@ footer{text-align:center;padding:28px;color:var(--text-muted);font-size:13px;bor
     </div>
   </section>
 
+  <!-- ── DELTA BANNER — comparação com execução anterior ──
+       INSTRUÇÃO: renderize este bloco APENAS quando lean_mode: false E previous_run existir.
+       Se lean_mode: true OU previous_run for None, omita completamente.
+       Consulte a seção "Comparação histórica (delta)" no final deste arquivo para obter delta.diff, delta.prev_rate, delta.curr_rate, delta.prev_date e delta.regressed. -->
+
+  <!-- Se delta.diff > 0: -->
+  <!-- <div style="background:var(--green-dim);border:1px solid rgba(16,185,129,.35);border-radius:var(--radius-sm);padding:10px 18px;font-size:13px;font-weight:600;color:var(--green-light);margin-bottom:20px;display:flex;align-items:center;gap:8px">
+    ↑ +[delta.diff]% vs. execução anterior ([delta.prev_date])
+  </div> -->
+
+  <!-- Se delta.diff < 0: -->
+  <!-- <div style="background:var(--red-dim);border:1px solid rgba(239,68,68,.35);border-radius:var(--radius-sm);padding:10px 18px;font-size:13px;font-weight:600;color:var(--red-light);margin-bottom:20px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+    ↓ [delta.diff]% vs. execução anterior ([delta.prev_date])
+    <!-- se delta.regressed não-vazio: -->
+    <!-- <span style="color:var(--red-light)"> — TCs regredidos: [IDs separados por vírgula]</span> -->
+  </div> -->
+
+  <!-- Se delta.diff == 0: -->
+  <!-- <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 18px;font-size:13px;font-weight:600;color:var(--text-muted);margin-bottom:20px;display:flex;align-items:center;gap:8px">
+    = Sem variação vs. execução anterior ([delta.prev_date])
+  </div> -->
+
   <!-- ── TECH MODE CTA BAR — só se N_failed > 0 ── -->
   <!-- INSTRUÇÃO: renderize este bloco APENAS se houver ao menos 1 teste com status failed ou error.
        Se N_failed == 0, omita completamente. -->
@@ -796,6 +818,8 @@ footer{text-align:center;padding:28px;color:var(--text-muted);font-size:13px;bor
         <!-- <span>[suite_dir]/performance/k6_output.txt</span> -->
         <!-- executor-visual: -->
         <!-- <span>[suite_dir]/visual/baselines/</span> -->
+        <!-- JUnit XML (apenas quando lean_mode: false): -->
+        <!-- <span>[suite_dir]/results.xml</span> -->
       </div>
     </div>
   </section>
@@ -1314,6 +1338,8 @@ def test_get_users():
 
 <footer>
   Squad QA · [N_passed] passou · [N_failed] falhou · [N_total] total · [data/hora]
+  <!-- INSTRUÇÃO: quando lean_mode: false, adicione após o texto acima: -->
+  <!-- · <code>[suite_dir]/results.xml</code> (JUnit) -->
 </footer>
 
 <!-- SUMMARY_TEXT
@@ -1469,6 +1495,134 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
 </body>
 </html>
 ```
+
+---
+
+## Comparação histórica (delta vs. última execução)
+
+**Executar apenas quando `lean_mode: false`.** Se `lean_mode: true`, pule completamente esta seção.
+
+Ao gerar o relatório, tente carregar o arquivo `.qa_history.json`:
+```python
+import json, os
+
+history_path = os.path.join(suite_dir or ".", ".qa_history.json") if suite_dir else ".qa_history.json"
+previous_run = None
+if os.path.exists(history_path):
+    try:
+        with open(history_path) as f:
+            history = json.load(f)
+        if isinstance(history, list) and len(history) > 0:
+            previous_run = history[-1]  # última execução
+    except Exception:
+        previous_run = None
+```
+
+Se `previous_run` existir, calcule o delta:
+```python
+delta = None
+if previous_run:
+    prev_passed = previous_run.get("summary", {}).get("passed", 0)
+    prev_total  = previous_run.get("summary", {}).get("total", 1)
+    curr_passed = summary.get("passed", 0)
+    curr_total  = summary.get("total", 1)
+    prev_rate = round(prev_passed / prev_total * 100, 1) if prev_total else 0
+    curr_rate = round(curr_passed / curr_total * 100, 1) if curr_total else 0
+    delta = {
+        "prev_rate": prev_rate,
+        "curr_rate": curr_rate,
+        "diff": round(curr_rate - prev_rate, 1),
+        "prev_date": previous_run.get("date", "—"),
+        "regressed": [
+            tc["id"] for tc in current_results
+            if tc.get("status") == "failed"
+            and any(h.get("id") == tc["id"] and h.get("status") == "passed"
+                    for h in previous_run.get("results", []))
+        ]
+    }
+```
+
+Use os valores de `delta` para preencher o **banner de delta** no HTML (logo abaixo do hero/donut chart — ver bloco comentado na seção `<!-- ── DELTA BANNER ──`):
+- Se `delta.diff > 0`: banner verde "↑ +X.X% vs. execução anterior ([data])"
+- Se `delta.diff < 0`: banner vermelho "↓ X.X% vs. execução anterior ([data]) — TCs regredidos: [IDs]"
+- Se `delta.diff == 0`: banner neutro "= Sem variação vs. execução anterior ([data])"
+- Se `previous_run` for None: não exibir banner (execução inicial)
+
+Ao final do relatório, salve a execução atual no histórico:
+```python
+current_entry = {
+    "date": datetime.now().isoformat(),
+    "summary": summary,
+    "results": [{"id": r["id"], "status": r["status"]} for r in current_results]
+}
+history_list = []
+if os.path.exists(history_path):
+    try:
+        with open(history_path) as f:
+            history_list = json.load(f)
+    except Exception:
+        history_list = []
+history_list.append(current_entry)
+# Manter apenas as últimas 10 execuções
+history_list = history_list[-10:]
+with open(history_path, "w") as f:
+    json.dump(history_list, f, indent=2, ensure_ascii=False)
+```
+
+---
+
+## Geração de results.xml (JUnit)
+
+**Executar apenas quando `lean_mode: false`.** Se `lean_mode: true`, pule completamente esta seção.
+
+Após salvar o HTML, gere também `results.xml` no diretório da suite:
+
+```python
+from xml.etree.ElementTree import Element, SubElement, tostring
+from xml.dom import minidom
+
+def generate_junit_xml(suite_name, results, suite_dir):
+    testsuites = Element("testsuites")
+
+    # Agrupa por executor
+    by_executor = {}
+    for r in results:
+        exec_name = r.get("executor", "unknown")
+        by_executor.setdefault(exec_name, []).append(r)
+
+    for exec_name, tcs in by_executor.items():
+        ts = SubElement(testsuites, "testsuite",
+            name=exec_name,
+            tests=str(len(tcs)),
+            failures=str(sum(1 for t in tcs if t.get("status") == "failed")),
+            errors=str(sum(1 for t in tcs if t.get("status") == "error")),
+            skipped=str(sum(1 for t in tcs if t.get("status") in ("skipped", "baseline_created")))
+        )
+        for tc in tcs:
+            tc_elem = SubElement(ts, "testcase",
+                name=tc.get("title", tc.get("id", "unnamed")),
+                classname=exec_name,
+                time=str(round(tc.get("duration_ms", 0) / 1000, 3))
+            )
+            status = tc.get("status", "unknown")
+            if status == "failed":
+                fail = SubElement(tc_elem, "failure", message=tc.get("error", "assertion failed"))
+                fail.text = tc.get("error", "")
+            elif status == "error":
+                err = SubElement(tc_elem, "error", message=tc.get("error", "unexpected error"))
+                err.text = tc.get("error", "")
+            elif status in ("skipped", "baseline_created"):
+                skip = SubElement(tc_elem, "skipped")
+                skip.set("message", tc.get("reason", status))
+
+    xml_str = minidom.parseString(tostring(testsuites)).toprettyxml(indent="  ")
+    xml_path = os.path.join(suite_dir or ".", "results.xml")
+    with open(xml_path, "w", encoding="utf-8") as f:
+        f.write(xml_str)
+    return xml_path
+```
+
+Chame `generate_junit_xml(suite_dir or "suite", all_results, suite_dir)` ao final da geração. Mencione o caminho do `results.xml` no rodapé do HTML junto com os outros artefatos (ver bloco comentado no `<footer>`).
 
 ---
 
