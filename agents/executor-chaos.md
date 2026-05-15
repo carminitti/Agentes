@@ -290,8 +290,8 @@ BASE_URL         = "{{base_url}}"
 TOKEN            = os.environ.get("AUTH_TOKEN", "{{auth_token}}")
 ENVIRONMENT_TYPE = os.environ.get("ENVIRONMENT_TYPE", "{{environment_type}}")
 FAULT_PORT       = random.randint(9100, 9199)
-TIMEOUT_S        = int("{{request_timeout_ms}}" or "10000") // 1000
-RECOVERY_S       = int("{{recovery_timeout_s}}" or "10")
+TIMEOUT_S        = int(os.environ.get("REQUEST_TIMEOUT_MS", "10000")) // 1000
+RECOVERY_S       = int(os.environ.get("RECOVERY_TIMEOUT_S", "10"))
 SUITE_DIR        = os.environ.get("SUITE_DIR", "")
 CHAOS_MODE       = "{{chaos_mode}}"  # "toxiproxy" ou "http_simulation"
 
