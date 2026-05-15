@@ -1600,6 +1600,11 @@ resultado = {
 }
 with open(resultado_json_path, "w", encoding="utf-8") as f:
     json.dump(resultado, f, indent=2, ensure_ascii=False)
+
+# Salva os casos de teste originais (classificados, com steps) para retests futuros:
+casos_originais_path = f"{suite_dir}/casos_originais.json"
+with open(casos_originais_path, "w", encoding="utf-8") as f:
+    json.dump(classifier_json, f, indent=2, ensure_ascii=False)
 ```
 
 Após receber os resultados de todos os executores, invoque o subagente `reporter-qa` passando:

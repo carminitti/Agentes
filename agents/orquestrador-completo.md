@@ -71,10 +71,11 @@ Leia o arquivo `resultado.json` da suite identificada em R.1. Exiba ao usuário 
 
 ### R.5 — Execução do retest
 
-Com base no escopo escolhido em R.2:
-- **Suite completa:** prossiga para a Etapa 0 com os casos de teste originais lidos de `resultado.json` (campo `tests`, extraia os IDs e títulos originais).
-- **Apenas os que falharam:** extraia da Etapa R.4 os TCs com `status: "failed"` ou `status: "error"`. Passe ao `orquestrador-qa` **somente esses TCs** (filtrando do conjunto original). Não use o prefixo `--rerun-failed` — passe os casos de teste já filtrados diretamente.
-- **TC específico:** filtre apenas o TC informado do conjunto original e prossiga para a Etapa B.
+Com base no escopo escolhido em R.2, leia primeiro `casos_originais.json` do diretório da suite (gravado pelo `orquestrador-qa` durante a execução original — contém os casos de teste completos com steps). Se o arquivo não existir, peça ao usuário que forneça os casos de teste originais novamente antes de continuar.
+
+- **Suite completa:** passe todos os TCs de `casos_originais.json` ao `orquestrador-qa` via Etapa B.
+- **Apenas os que falharam:** extraia de `resultado.json` (Etapa R.4) os IDs com `status: "failed"` ou `status: "error"`. Filtre `casos_originais.json` mantendo apenas esses IDs. Passe ao `orquestrador-qa` somente os TCs filtrados (com steps completos) via Etapa B.
+- **TC específico:** filtre de `casos_originais.json` apenas o TC informado e prossiga para a Etapa B.
 
 Em todos os casos, passe o contexto de mudança de R.3 como `environment_notes` adicional ao `orquestrador-qa`.
 
