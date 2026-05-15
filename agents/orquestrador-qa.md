@@ -538,6 +538,228 @@ Armazene em `appium_config: { url, platform, device_name, app_package, app_activ
 
 > ⚠️ Se `lean_mode: true`, inclua a pergunta 2g **apenas** se houver testes mobile — não modifique as demais regras do lean mode.
 
+### 2i — Data-driven (quando houver testes `data-driven`)
+
+**Se houver testes classificados como `data-driven`:**
+
+> "Os testes data-driven ([IDs afetados]) precisam de um dataset para iterar. Forneça:
+> - **Fonte dos dados:** os dados estão nos próprios steps (Scenario Outline / Examples), em um arquivo CSV ou em um arquivo JSON?
+>   - **Scenario Outline/Examples** → os dados já estão nos steps; o executor extrai automaticamente.
+>   - **CSV** → informe o caminho do arquivo (ex: `./dados/usuarios.csv`)
+>   - **JSON** → informe o caminho do arquivo (ex: `./dados/usuarios.json`)
+> - **Tipo base dos testes** ([IDs afetados]): os testes são de (1) API/HTTP, (2) Browser/UI ou (3) Banco de dados?"
+
+Armazene:
+- `dataset`: array de objetos extraídos dos steps, ou `null` se o arquivo será lido pelo executor
+- `dataset_source`: `"scenario_outline"` | `"csv"` | `"json"`
+- `dataset_file`: caminho do arquivo | `null` (quando `scenario_outline`)
+- `data_driven_base_type`: `"api"` | `"browser"` | `"banco"`
+
+Adicione ao schema do contexto:
+```
+  dataset: [...] | null,
+  dataset_source: "scenario_outline" | "csv" | "json",
+  dataset_file: null | "/caminho/dados.csv",
+  data_driven_base_type: "api" | "browser" | "banco",
+```
+
+### 2j — Email (quando houver testes `email`)
+
+**Se houver testes classificados como `email`:**
+
+> "Os testes de email ([IDs afetados]) precisam de um provider de email de teste para verificar mensagens recebidas. Qual o provider?
+>
+> **1. MailHog** (local, mais comum em dev/staging)
+>    - API URL padrão: `http://localhost:8025` — confirme ou informe a URL correta
+> **2. Mailtrap**
+>    - API token: (informe o token de acesso da conta Mailtrap)
+>    - Inbox ID: (informe o ID da inbox de teste)
+> **3. IMAP genérico**
+>    - Host IMAP: (ex: `imap.gmail.com`)
+>    - Porta: (padrão `993`)
+>    - Usuário / senha da conta de email de teste
+> **4. Endereço de email de teste** (para todos os providers): qual é o endereço para o qual os emails de teste serão enviados?"
+
+Armazene:
+- `email_provider.type`: `"mailhog"` | `"mailtrap"` | `"imap"`
+- `email_provider.api_url`: URL da API do MailHog | `null`
+- `email_provider.api_token`: token Mailtrap | `null`
+- `email_provider.inbox_id`: ID da inbox Mailtrap | `null`
+- `email_provider.imap_host`: host IMAP | `null`
+- `email_provider.imap_port`: porta IMAP | `null`
+- `email_provider.imap_user`: usuário IMAP | `null`
+- `email_provider.imap_password`: senha IMAP | `null`
+- `email_test_address`: endereço de email de destino dos testes
+
+Adicione ao schema do contexto:
+```
+  email_provider: {
+    type: "mailhog" | "mailtrap" | "imap",
+    api_url: "http://localhost:8025" | null,
+    api_token: null | "...",
+    inbox_id: null | "...",
+    imap_host: null | "imap.gmail.com",
+    imap_port: null | 993,
+    imap_user: null | "...",
+    imap_password: null | "..."
+  } | null,
+  email_test_address: null | "teste@exemplo.com",
+```
+
+### 2k — Webhook (quando houver testes `webhook`)
+
+**Se houver testes classificados como `webhook`:**
+
+> "Os testes de webhook ([IDs afetados]) exigem um receptor HTTP temporário para capturar chamadas de entrada. Forneça:
+>
+> - **Assinatura HMAC:** o webhook envia um header de assinatura para validar a origem? (S/N)
+>   - Se S: informe o `hmac_secret` e o nome do header de assinatura (ex: `X-Hub-Signature-256`)
+> - **Exposição pública (ngrok):** o serviço a ser testado precisa alcançar o receptor via internet? (S/N)
+>   - Se S: o executor tentará iniciar um túnel ngrok automaticamente (requer `ngrok` instalado)
+> - **Timeout de recebimento:** quantos segundos aguardar pelo webhook chegar? (padrão: `30`)"
+
+Armazene:
+- `webhook_config.receiver_port`: `null` (porta alocada dinamicamente pelo executor)
+- `webhook_config.use_ngrok`: `true` | `false`
+- `webhook_config.hmac_secret`: string | `null`
+- `webhook_config.hmac_header`: nome do header | `null`
+- `webhook_config.timeout_s`: `30` (padrão) ou valor informado
+
+Adicione ao schema do contexto:
+```
+  webhook_config: {
+    receiver_port: null,
+    use_ngrok: false,
+    hmac_secret: null | "segredo",
+    hmac_header: null | "X-Hub-Signature-256",
+    timeout_s: 30
+  } | null,
+```
+
+### 2l — Queue/Broker de mensagens (quando houver testes `queue`)
+
+**Se houver testes classificados como `queue`:**
+
+> "Os testes de fila/broker ([IDs afetados]) precisam se conectar a um sistema de mensageria. Forneça:
+>
+> - **Tipo de broker:** Kafka / RabbitMQ / Amazon SQS / Azure Service Bus
+> - **Kafka:**
+>   - `bootstrap_servers`: (ex: `localhost:9092`)
+>   - `topic`: nome do tópico a consumir/produzir
+>   - Consumer group (padrão: `qa-squad-consumer`)
+> - **RabbitMQ:**
+>   - Connection string AMQP: (ex: `amqp://user:pass@localhost:5672/vhost`)
+>   - Queue name: nome da fila
+> - **Amazon SQS:**
+>   - Queue URL: (ex: `https://sqs.us-east-1.amazonaws.com/123456/minha-fila`)
+>   - AWS region / Access Key ID / Secret Access Key
+> - **Azure Service Bus:**
+>   - Connection string: (ex: `Endpoint=sb://...`)
+>   - Queue/Topic name"
+
+Armazene:
+- `queue_config.type`: `"kafka"` | `"rabbitmq"` | `"sqs"` | `"servicebus"`
+- `queue_config.bootstrap_servers`: string | `null`
+- `queue_config.topic`: string | `null`
+- `queue_config.consumer_group`: string | `"qa-squad-consumer"`
+- `queue_config.amqp_url`: string | `null`
+- `queue_config.queue_name`: string | `null`
+- `queue_config.sqs_queue_url`: string | `null`
+- `queue_config.aws_region`: string | `null`
+- `queue_config.aws_access_key_id`: string | `null`
+- `queue_config.aws_secret_access_key`: string | `null`
+- `queue_config.servicebus_connection_string`: string | `null`
+
+Adicione ao schema do contexto:
+```
+  queue_config: {
+    type: "kafka" | "rabbitmq" | "sqs" | "servicebus",
+    bootstrap_servers: null | "localhost:9092",
+    topic: null | "meu-topico",
+    consumer_group: "qa-squad-consumer",
+    amqp_url: null | "amqp://...",
+    queue_name: null | "minha-fila",
+    sqs_queue_url: null | "https://sqs...",
+    aws_region: null | "us-east-1",
+    aws_access_key_id: null | "AKIA...",
+    aws_secret_access_key: null | "...",
+    servicebus_connection_string: null | "Endpoint=sb://..."
+  } | null,
+```
+
+### 2m — Internacionalização (quando houver testes `i18n`)
+
+**Se houver testes classificados como `i18n`:**
+
+> "Os testes de internacionalização ([IDs afetados]) precisam saber como alternar o locale na aplicação. Forneça:
+>
+> - **Locales a testar:** quais idiomas/regiões? (ex: `pt-BR`, `en-US`, `es-ES` — informe separados por vírgula)
+> - **Método de troca de locale:**
+>   1. **URL prefix** — ex: `/pt-BR/pagina`, `/en-US/page`
+>   2. **Query param** — ex: `?lang=pt-BR` ou `?locale=en-US` (informe o nome do param)
+>   3. **Cookie** — ex: `locale=pt-BR` (informe o nome do cookie)
+>   4. **Header HTTP** — `Accept-Language: pt-BR`
+> - **Arquivos de tradução** (opcional): há arquivos `.json` de i18n localmente para validar chaves faltantes? (informe o caminho do diretório, ou deixe em branco para pular essa verificação)"
+
+Armazene:
+- `i18n_config.locales`: lista de strings (ex: `["pt-BR", "en-US"]`)
+- `i18n_config.locale_switch_method`: `"url_prefix"` | `"query_param"` | `"cookie"` | `"header"`
+- `i18n_config.locale_param_name`: nome do query param / cookie (quando aplicável) | `null`
+- `i18n_config.translation_files`: caminho do diretório com arquivos `.json` | `null`
+
+Adicione ao schema do contexto:
+```
+  i18n_config: {
+    locales: ["pt-BR", "en-US"],
+    locale_switch_method: "url_prefix" | "query_param" | "cookie" | "header",
+    locale_param_name: null | "lang",
+    translation_files: null | "/caminho/locales/"
+  } | null,
+```
+
+### 2n — Chaos/Resiliência (quando houver testes `chaos`)
+
+**Se houver testes classificados como `chaos`:**
+
+**Verificação prévia obrigatória:** se `environment_type == "production"`, NÃO faça nenhuma pergunta e registre imediatamente:
+> ❌ **executor-chaos bloqueado:** testes de caos não são permitidos em produção. Os TCs [IDs] serão marcados como `skipped` com razão `chaos_blocked_production`.
+
+Somente prossiga com as perguntas abaixo se `environment_type != "production"`:
+
+> "Os testes de caos/resiliência ([IDs afetados]) vão injetar falhas controladas no ambiente para verificar comportamento sob degradação. Forneça:
+>
+> - **Ferramenta de injeção:**
+>   1. **Toxiproxy** (proxy de falhas local — recomendado para ambientes controlados): Toxiproxy está disponível? (S/N)
+>      - Se S: informe o endereço da API do Toxiproxy (padrão: `http://localhost:8474`)
+>   2. **HTTP simulation** — o executor simula falhas interceptando respostas HTTP (sem dependência externa)
+>
+> - **Tipos de falha a injetar** (selecione os que se aplicam):
+>   - `http_503` — simula serviço indisponível
+>   - `http_429` — simula rate limit excedido
+>   - `latency` — adiciona latência artificial (informe ms, ex: `2000`)
+>   - `timeout` — simula timeout na requisição
+>   - `connection_reset` — simula reset de conexão TCP (somente Toxiproxy)
+>
+> - **Timeout de recuperação:** quantos segundos aguardar a aplicação se recuperar após cada injeção de falha? (padrão: `10`)"
+
+Armazene:
+- `chaos_config.type`: `"toxiproxy"` | `"http_simulation"`
+- `chaos_config.toxiproxy_api_url`: URL da API Toxiproxy | `null`
+- `chaos_config.fault_types`: lista (ex: `["http_503", "latency"]`)
+- `chaos_config.latency_ms`: valor em ms | `null`
+- `chaos_config.recovery_timeout_s`: `10` (padrão) ou valor informado
+
+Adicione ao schema do contexto:
+```
+  chaos_config: {
+    type: "toxiproxy" | "http_simulation",
+    toxiproxy_api_url: null | "http://localhost:8474",
+    fault_types: ["http_503", "latency"],
+    latency_ms: null | 2000,
+    recovery_timeout_s: 10
+  } | null,
+```
+
 ### 2c.1 — Autenticação por domínio (multi_url)
 
 **Aplique somente quando `multi_url: true`.**
@@ -580,7 +802,7 @@ Adicione `auth_map` ao schema do contexto:
 
 ### Envio da pergunta
 
-Se houver qualquer item pendente dos itens 2a–2g, **agrupe tudo em uma única mensagem** e aguarde a resposta do usuário antes de continuar. Não prossiga com dados assumidos ou incompletos.
+Se houver qualquer item pendente dos itens 2a–2n, **agrupe tudo em uma única mensagem** e aguarde a resposta do usuário antes de continuar. Não prossiga com dados assumidos ou incompletos.
 
 Após receber as respostas, monte o **contexto de execução**:
 
@@ -637,7 +859,55 @@ contexto = {
     app: "/caminho/app.apk" | null,
     bundle_id: "com.exemplo.app" | null,
     udid: "..." | null
-  } | null
+  } | null,
+  dataset: null | [...],                        // data-driven: registros extraídos dos steps ou null (lido pelo executor)
+  dataset_source: null | "scenario_outline" | "csv" | "json",
+  dataset_file: null | "/caminho/dados.csv",
+  data_driven_base_type: null | "api" | "browser" | "banco",
+  email_provider: null | {                      // email: configuração do provider de teste
+    type: "mailhog" | "mailtrap" | "imap",
+    api_url: null | "http://localhost:8025",
+    api_token: null | "...",
+    inbox_id: null | "...",
+    imap_host: null | "imap.gmail.com",
+    imap_port: null | 993,
+    imap_user: null | "...",
+    imap_password: null | "..."
+  },
+  email_test_address: null | "teste@exemplo.com",
+  webhook_config: null | {                      // webhook: receptor HTTP temporário
+    receiver_port: null,
+    use_ngrok: false,
+    hmac_secret: null | "segredo",
+    hmac_header: null | "X-Hub-Signature-256",
+    timeout_s: 30
+  },
+  queue_config: null | {                        // queue: conexão com broker de mensagens
+    type: "kafka" | "rabbitmq" | "sqs" | "servicebus",
+    bootstrap_servers: null | "localhost:9092",
+    topic: null | "meu-topico",
+    consumer_group: "qa-squad-consumer",
+    amqp_url: null | "amqp://...",
+    queue_name: null | "minha-fila",
+    sqs_queue_url: null | "https://sqs...",
+    aws_region: null | "us-east-1",
+    aws_access_key_id: null | "AKIA...",
+    aws_secret_access_key: null | "...",
+    servicebus_connection_string: null | "Endpoint=sb://..."
+  },
+  i18n_config: null | {                         // i18n: locales e método de troca
+    locales: ["pt-BR", "en-US"],
+    locale_switch_method: "url_prefix" | "query_param" | "cookie" | "header",
+    locale_param_name: null | "lang",
+    translation_files: null | "/caminho/locales/"
+  },
+  chaos_config: null | {                        // chaos: injeção de falhas controladas
+    type: "toxiproxy" | "http_simulation",
+    toxiproxy_api_url: null | "http://localhost:8474",
+    fault_types: ["http_503", "latency"],
+    latency_ms: null | 2000,
+    recovery_timeout_s: 10
+  }
 }
 ```
 
@@ -665,6 +935,12 @@ Antes de despachar qualquer executor, derive o nome e **use a ferramenta Bash ou
    | `db` | `db` |
    | `playwright-mobile` | `mob_web` |
    | `appium` | `mob_nat` |
+   | `data-driven` | `dd` |
+   | `email` | `eml` |
+   | `webhook` | `wh` |
+   | `queue` | `que` |
+   | `i18n` | `i18n` |
+   | `chaos` | `cha` |
 
    Junte as abreviações presentes separadas por `_`, aplique o timestamp: `suite_[abrev1]_[abrev2]_[YYYYMMDD_HHMMSS]`. Exemplo: executores `http` (api) + `db` → `suite_api_db_20260511_100000`.
 
@@ -776,6 +1052,12 @@ binarios = {
     "executor-grpc":          [("python", "--version")],   # grpcurl verificado separadamente
     "executor-graphql":       [("python", "--version")],
     "executor-contrato":      [("python", "--version")],
+    "executor-datadrive":     [("python", "--version")],
+    "executor-email":         [("python", "--version")],
+    "executor-webhook":       [("python", "--version")],
+    "executor-queue":         [("python", "--version")],
+    "executor-i18n":          [("node", "--version"), ("npx", "--version")],
+    "executor-chaos":         [("python", "--version")],
 }
 
 # Verificação adicional de grpcurl para executor-grpc
@@ -840,7 +1122,7 @@ Registre cada TC ignorado como:
 Classifique cada TC restante em um dos dois grupos:
 
 **Pipeline rápido** — executa sempre:
-smoke, sanity, regressão, e2e, integração, contrato, visual, acessibilidade, segurança, banco, cross-browser, mobile, data-driven
+smoke, sanity, regressão, e2e, integração, contrato, visual, acessibilidade, segurança, banco, cross-browser, mobile, data-driven, email, webhook, queue, i18n, chaos
 
 **Pipeline lento** — executa APENAS se a mensagem de invocação contiver "--pipeline=full", "full", "completo" ou "release":
 - tipo `soak` (qualquer configuração)
@@ -895,6 +1177,12 @@ Execute **todos** os tipos identificados. Nunca pergunte se deve executar um sub
 | `websocket` | `executor-websocket` |
 | `grpc` | `executor-grpc` |
 | `graphql` | `executor-graphql` |
+| `data-driven` | `executor-datadrive` |
+| `email` | `executor-email` |
+| `webhook` | `executor-webhook` |
+| `queue` | `executor-queue` |
+| `i18n` | `executor-i18n` |
+| `chaos` | `executor-chaos` — **NUNCA despache se `environment_type == "production"`**: nesse caso, retorne ao usuário `❌ executor-chaos bloqueado: testes de caos não são permitidos em produção.` e marque todos os TCs chaos como `skipped` com razão `chaos_blocked_production`. |
 
 **Para cada executor invocado, formate a mensagem exatamente assim:**
 

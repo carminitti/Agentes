@@ -73,10 +73,15 @@ Use esta tabela como base de classificação. As palavras-chave são indicadores
 | `cross-browser` | "cross-browser", "Chrome", "Firefox", "Safari", "Edge", "WebKit", "múltiplos navegadores", "compatibilidade entre navegadores" | `playwright-multibrowser` |
 | `mobile` (web) | "responsivo", "mobile web", "PWA", "viewport mobile", "tela pequena", "adaptativo", "layout mobile", "celular", "smartphone" — **sem** menção a app nativo, APK, IPA ou Appium | `playwright-mobile` |
 | `mobile` (nativo) | "app nativo", "app móvel", "APK", "IPA", "Appium", "emulador", "device", "gestos nativos", "push notification", "notificação", "instalado no dispositivo", "Android", "iOS" — com ação que só faz sentido em app instalado | `appium` |
-| `data-driven` | "data-driven", "parametrizado", "múltiplos conjuntos de dados", "Scenario Outline", "Examples:", "para cada", "combinações de dados", "iteração com dados" | `parameterized` |
+| `data-driven` | "Scenario Outline", "Examples:", "parametrizado", "dataset", "múltiplas linhas", "múltiplos datasets", "data driven", "iteração sobre dados", "CSV de casos", "para cada linha", "tabela de inputs", "múltiplos conjuntos de dados", "para cada", "combinações de dados", "iteração com dados" | `executor-datadrive` |
 | `websocket` | "WebSocket", "ws://", "wss://", "socket", "conexão persistente", "mensagem em tempo real", "evento push", "handshake", "frame", "chat em tempo real" | `websocket` |
 | `grpc` | "gRPC", "protobuf", "proto", "RPC", "server streaming", "client streaming", "bidirectional stream", "unary call", "grpcurl", "serviço gRPC", "método RPC" | `grpc` |
 | `graphql` | "GraphQL", "query", "mutation", "subscription", "resolver", "schema GraphQL", "introspection", "fragments", "GQL", "__schema", "variáveis GraphQL" | `graphql` |
+| `email` | "email enviado", "verificar email", "email de boas-vindas", "email de confirmação", "email chegou", "caixa de entrada", "assunto do email", "corpo do email", "link de reset", "Mailhog", "Mailtrap", "IMAP", "email transacional" | `executor-email` |
+| `webhook` | "webhook entregue", "webhook chegou", "callback HTTP", "evento enviado para URL", "payload do webhook", "assinatura HMAC", "X-Hub-Signature", "webhook de pagamento", "notificação webhook", "delivery do webhook" | `executor-webhook` |
+| `queue` | "fila de mensagens", "Kafka", "RabbitMQ", "SQS", "Service Bus", "evento publicado", "mensagem na fila", "consumer", "producer", "tópico", "publish", "consume", "event-driven", "mensagem assíncrona", "broker de mensagens" | `executor-queue` |
+| `i18n` | "tradução", "idioma", "locale", "internacionalização", "i18n", "l10n", "localização", "strings traduzidas", "texto em português", "formato de data por locale", "moeda local", "hardcoded strings", "pt-BR", "en-US", "de-DE", "multilíngue" | `executor-i18n` |
+| `chaos` | "resiliência", "degradação graciosa", "serviço fora do ar", "injeção de falha", "chaos", "Toxiproxy", "timeout do serviço", "circuit breaker", "fallback", "comportamento com dependência indisponível", "latência injetada", "falha de rede simulada", "recuperação após falha" | `executor-chaos` |
 
 ---
 
@@ -125,11 +130,63 @@ Para testes com `type: "mobile"`, sempre inclua o campo `mobile_target: "web"` o
    - `0.50 ≤ confidence < 0.70` → classifique com o melhor palpite E adicione `"low_confidence": true` no objeto do teste. **Não bloqueia** — o orquestrador prossegue com a classificação informada, mas o reporter sinalizará a incerteza.
    - `confidence ≥ 0.70` → classifique normalmente (sem campo `low_confidence` ou com `"low_confidence": false`).
 6. **Lembre-se:** as palavras-chave são guias, não regras absolutas. Um teste pode não usar nenhuma palavra-chave listada e ainda ser claramente de um tipo — use o julgamento semântico. Mas na dúvida genuína, peça clarificação.
-7. **Testes sem steps (só título):** classifique usando apenas o título com julgamento semântico. Se o título for suficientemente claro, atribua o tipo com `confidence` proporcional à certeza. Se `confidence < 0.70`, inclua em `needs_clarification` com a pergunta: `"O teste '[título]' não possui steps definidos. Para classificá-lo corretamente, qual é o tipo? [lista dos 20 tipos]"`. Nunca descarte nem ignore um teste por falta de steps.
+7. **Testes sem steps (só título):** classifique usando apenas o título com julgamento semântico. Se o título for suficientemente claro, atribua o tipo com `confidence` proporcional à certeza. Se `confidence < 0.70`, inclua em `needs_clarification` com a pergunta: `"O teste '[título]' não possui steps definidos. Para classificá-lo corretamente, qual é o tipo? [lista dos 26 tipos]"`. Nunca descarte nem ignore um teste por falta de steps.
 
 8. **Desambiguação WebSocket vs. integração:** um teste com steps de "enviar requisição HTTP" é `integração` mesmo que mencione "tempo real". Só classifique como `websocket` se os steps incluírem explicitamente conexão persistente, envio de frames ou handshake ws://. Na dúvida entre `websocket` e `integração`, use `integração` com `low_confidence: true`.
 
 **Desambiguação GraphQL vs. integração:** um teste que "chama o endpoint /graphql com método POST" sem mencionar query/mutation/schema é `integração`. Só classifique como `graphql` se os steps definirem operações GraphQL explícitas (query, mutation, subscription, fields, variables). **Atenção:** as palavras "query" e "mutation" só disparam classificação `graphql` quando combinadas com outros indicadores GraphQL (endpoint `/graphql`, schema, resolver, fragments, variáveis GQL). **Regra banco vs. GraphQL:** se os steps contiverem qualquer das palavras `SELECT`, `INSERT`, `UPDATE`, `DELETE`, `CREATE TABLE`, `DROP`, `JOIN`, ou `WHERE [coluna]`, classifique como `banco` — mesmo que o step também mencione "query". "mutation" em contexto de dados/REST sem indicadores GQL é irrelevante para este tipo.
+
+**Regra de desambiguação: `data-driven`**
+
+`Scenario Outline` sempre classifica como `data-driven`, independente do tipo base (browser, api, banco). Para o executor-datadrive, registre também o campo `base_type` indicando o tipo subjacente (`api`, `browser`, `banco`, etc.) para que o executor saiba qual infraestrutura usar.
+
+| Indicador | Tipo correto |
+|---|---|
+| `Scenario Outline` com `Examples:` | `data-driven` (registre `base_type`) |
+| Steps parametrizados com `<variável>` | `data-driven` |
+| Teste iterando sobre CSV / tabela de inputs | `data-driven` |
+| Teste normal sem parametrização mesmo que mencione "dados" | tipo base correspondente |
+
+**Regra de desambiguação: `email`**
+
+| Indicador | Tipo correto |
+|---|---|
+| Verifica que o email chegou na caixa de entrada, lê assunto/corpo, segue link | `email` |
+| Menciona Mailhog, Mailtrap ou IMAP | `email` |
+| Chama endpoint de envio de email e verifica que a API retornou 200 | `integração` |
+
+**Regra de desambiguação: `webhook`**
+
+| Indicador | Tipo correto |
+|---|---|
+| Verifica que o webhook foi entregue, checa payload, valida assinatura HMAC | `webhook` |
+| Menciona `X-Hub-Signature`, `delivery do webhook` | `webhook` |
+| Apenas faz POST para salvar/registrar uma URL de webhook | `integração` |
+
+**Regra de desambiguação: `queue`**
+
+| Indicador | Tipo correto |
+|---|---|
+| Publica ou consome mensagem em Kafka, RabbitMQ, SQS, Service Bus | `queue` |
+| Menciona tópico, consumer, producer, broker de mensagens | `queue` |
+| API retorna lista de mensagens (HTTP simples) | `integração` |
+
+**Regra de desambiguação: `i18n`**
+
+| Indicador | Tipo correto |
+|---|---|
+| Verifica que texto está traduzido corretamente para um locale específico (pt-BR, en-US, de-DE) | `i18n` |
+| Menciona `locale`, `i18n`, `l10n`, `internacionalização`, `hardcoded strings`, `formato de data por locale` | `i18n` |
+| Verifica texto presente na tela sem relacionar a tradução ou locale | `regressão` (browser) |
+
+**Regra de desambiguação: `chaos`**
+
+| Indicador | Tipo correto |
+|---|---|
+| Testa comportamento da aplicação quando uma dependência está fora do ar, com latência injetada ou falha de rede simulada | `chaos` |
+| Menciona Toxiproxy, circuit breaker, fallback, degradação graciosa, injeção de falha | `chaos` |
+| Chama endpoint e verifica que retorna 503 (sem simular falha externa) | `integração` |
+| `environment_type == "production"` + indicadores de chaos | `needs_clarification` — nunca classifique como `chaos` em produção |
 
 ---
 
@@ -188,7 +245,7 @@ Retorne **apenas JSON válido**, sem texto adicional antes ou depois.
       "confidence": 0.45,
       "rationale": "O teste menciona verificação de resposta da API de pagamento e navegação na tela, sem indicadores claros de prioridade de tipo.",
       "candidates": ["e2e", "integração", "smoke"],
-      "question": "Não consegui classificar o teste TC-004 ('Verificar comportamento do módulo de pagamento') com segurança. Qual é o tipo correto?\n\n1. smoke — validação mínima de que o módulo está funcionando\n2. sanity — verificação rápida após um fix ou deploy\n3. regressão — garante que nada quebrou em relação ao comportamento anterior\n4. e2e — fluxo completo de ponta a ponta envolvendo múltiplos sistemas\n5. integração — comunicação entre serviços/APIs\n6. contrato — valida o schema/estrutura da resposta da API\n7. visual — verifica aparência/layout da tela\n8. acessibilidade — verifica conformidade WCAG\n9. performance — verifica tempo de resposta/SLA\n10. carga — simula múltiplos usuários simultâneos\n11. stress — testa além da capacidade do sistema\n12. soak — execução prolongada para detectar vazamentos\n13. segurança — verifica auth, headers, CORS, endpoints expostos\n14. banco — verifica integridade/persistência de dados\n15. cross-browser — valida em múltiplos navegadores\n16. mobile — executa em dispositivo/emulador\n17. data-driven — repete com múltiplos conjuntos de dados\n18. websocket — testa conexão/mensagens via WebSocket\n19. grpc — testa serviço gRPC via chamada RPC\n20. graphql — testa operação GraphQL (query, mutation, subscription)"
+      "question": "Não consegui classificar o teste TC-004 ('Verificar comportamento do módulo de pagamento') com segurança. Qual é o tipo correto?\n\n1. smoke — validação mínima de que o módulo está funcionando\n2. sanity — verificação rápida após um fix ou deploy\n3. regressão — garante que nada quebrou em relação ao comportamento anterior\n4. e2e — fluxo completo de ponta a ponta envolvendo múltiplos sistemas\n5. integração — comunicação entre serviços/APIs\n6. contrato — valida o schema/estrutura da resposta da API\n7. visual — verifica aparência/layout da tela\n8. acessibilidade — verifica conformidade WCAG\n9. performance — verifica tempo de resposta/SLA\n10. carga — simula múltiplos usuários simultâneos\n11. stress — testa além da capacidade do sistema\n12. soak — execução prolongada para detectar vazamentos\n13. segurança — verifica auth, headers, CORS, endpoints expostos\n14. banco — verifica integridade/persistência de dados\n15. cross-browser — valida em múltiplos navegadores\n16. mobile (web) — testa responsividade e PWA via Playwright com viewport mobile\n17. mobile (nativo) — executa em app instalado via Appium (APK/IPA/emulador)\n18. data-driven — repete com múltiplos conjuntos de dados (Scenario Outline)\n19. websocket — testa conexão/mensagens via WebSocket\n20. grpc — testa serviço gRPC via chamada RPC\n21. graphql — testa operação GraphQL (query, mutation, subscription)\n22. email — verifica recebimento e conteúdo de email transacional\n23. webhook — verifica entrega e payload de webhook\n24. queue — verifica publicação/consumo de mensagem em fila (Kafka, RabbitMQ, SQS)\n25. i18n — verifica traduções e internacionalização por locale\n26. chaos — verifica resiliência com injeção de falha ou dependência indisponível"
     }
   ],
   "excluded": [
