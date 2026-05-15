@@ -92,6 +92,40 @@ Adicione ao schema do contexto:
 
 ---
 
+## Rastreamento de métricas de execução
+
+No início de toda execução (logo após a Etapa 0 ser concluída), inicialize o rastreador de métricas:
+
+```python
+import datetime, time, json
+
+# Rastreador de métricas global para o relatório
+_suite_start = time.time()
+_phase_metrics = []   # lista de { "fase", "descricao", "start", "end", "duration_ms", "tokens_input_est", "tokens_output_est" }
+
+def _track_phase(fase: str, descricao: str, start_ts: float, end_ts: float,
+                 input_payload="", output_payload=""):
+    """Registra métricas de tempo e estimativa de tokens de uma fase."""
+    duration_ms = int((end_ts - start_ts) * 1000)
+    # Estimativa: 4 caracteres ≈ 1 token (padrão de mercado)
+    tokens_in  = max(1, len(str(input_payload)) // 4)
+    tokens_out = max(1, len(str(output_payload)) // 4)
+    _phase_metrics.append({
+        "fase": fase,
+        "descricao": descricao,
+        "start_iso": datetime.datetime.fromtimestamp(start_ts).isoformat(),
+        "end_iso": datetime.datetime.fromtimestamp(end_ts).isoformat(),
+        "duration_ms": duration_ms,
+        "tokens_input_est": tokens_in,
+        "tokens_output_est": tokens_out,
+        "tokens_total_est": tokens_in + tokens_out,
+    })
+```
+
+Use `_track_phase(...)` ao finalizar cada etapa abaixo.
+
+---
+
 ## Etapa 1 — Classificação
 
 Invoque o subagente `classifier-testes` passando integralmente os casos de teste recebidos. **Não repasse `lean_mode` ao classifier** — o classifier retorna sempre o output completo (com `steps` e `rationale`), pois os executores precisam dos steps para gerar código de teste. Aguarde o JSON de resposta completo antes de continuar.
@@ -115,6 +149,20 @@ Aguarde confirmação do usuário. Se o usuário optar por revisar, apresente os
    - TC-YYY: tipo confirmado = [tipo informado]
    ```
 4. Aguarde o JSON final sem `needs_clarification` antes de continuar para a Etapa 2.
+
+Após receber o JSON do `classifier-testes`, registre as métricas da fase:
+```python
+_t1_end = time.time()
+_track_phase(
+    fase="Etapa 1 — Classificação",
+    descricao=f"classifier-testes: {len(casos_de_teste)} TCs recebidos, {len(testes_classificados)} classificados",
+    start_ts=_suite_start,
+    end_ts=_t1_end,
+    input_payload=casos_de_teste_raw,
+    output_payload=json.dumps(classifier_json),
+)
+_t2_start = time.time()
+```
 
 ---
 
@@ -394,8 +442,8 @@ Adicione ao schema do contexto:
 >
 > Você autoriza todas essas operações agora, sem interrupção durante o fluxo? (S/N — padrão: S)"
 
-> **Retry de testes com falha:**
-> - *(somente se `lean_mode: false`)* "Deseja fazer retry automático de testes que falharem? (padrão: **0 retries** — se sim, informe quantas tentativas: `1`, `2` ou `3`)"
+> **Retry automático de testes com falha:**
+> - *(somente se `lean_mode: false`)* "Testes que falharem serão retestados automaticamente ao menos **1 vez** antes de serem marcados como falha definitiva. Deseja configurar um número maior de retries? (padrão: **1 retry** — informe `2` ou `3` para mais tentativas, ou `0` para desativar o retry)"
 
 Armazene como `retry_count: 0` (padrão) | N (número informado).
 
@@ -403,13 +451,15 @@ Se `lean_mode: true`, `retry_count` é sempre `0` (sem retry em modo enxuto).
 
 Adicione ao schema do contexto:
 ```
-  retry_count: 0,   // número de retries automáticos para testes com falha (0 = sem retry)
+  retry_count: 1,   // número de retries automáticos para testes com falha (0 = sem retry)
 ```
 
-**Repasse `retry_count` no contexto de todos os executores.** Os executores devem configurar:
-- `executor-browser` / `executor-visual` / `executor-acessibilidade`: `retries: N` no `playwright.config`
-- `executor-api` / `executor-seguranca` / `executor-banco`: loop de retry manual com `for attempt in range(retry_count + 1)`
+**Repasse `retry_count` no contexto de todos os executores.** O valor mínimo é `1` — nunca repasse `0` (todo teste que falha deve ser retestado ao menos uma vez). Os executores devem configurar:
+- `executor-browser` / `executor-visual` / `executor-acessibilidade`: `retries: N` no `playwright.config` (mínimo 1)
+- `executor-api` / `executor-seguranca` / `executor-banco`: loop de retry manual com `for attempt in range(retry_count + 1)` — guarde os logs de cada tentativa separadamente para exibir diferenças no relatório
 - `executor-performance`: não aplica retry (k6 não tem retry nativo por TC)
+
+**Regra de retry:** quando um teste falha e é retestado, o executor deve armazenar os logs de cada tentativa individualmente. Se os logs forem diferentes entre tentativas (erro diferente, trace diferente), isso deve ser reportado como `retry_diff_logs: true` com o campo `attempt_logs: [{"attempt": 1, "logs": [...]}, {"attempt": 2, "logs": [...]}]` no resultado do TC.
 
 > **Limpeza de dados de teste (teardown):**
 > - *(somente se `lean_mode: false` e houver testes de API ou browser que criam dados)* "Deseja que os executores tentem remover os dados criados durante os testes ao final de cada suite? (padrão: **N** — somente marque S se o ambiente tiver endpoints de exclusão disponíveis)"
@@ -806,6 +856,19 @@ Se houver qualquer item pendente dos itens 2a–2n, **agrupe tudo em uma única 
 
 Após receber as respostas, monte o **contexto de execução**:
 
+```python
+_t2_end = time.time()
+_track_phase(
+    fase="Etapa 2 — Coleta de informações",
+    descricao="Coleta de URL, auth, ambiente, diretórios e demais parâmetros",
+    start_ts=_t2_start,
+    end_ts=_t2_end,
+    input_payload="[interação com usuário]",
+    output_payload=json.dumps(contexto),
+)
+_t3_start = time.time()
+```
+
 ```
 contexto = {
   base_url: "https://staging.app.com" | null,   // null quando multi_url: true
@@ -842,7 +905,7 @@ contexto = {
   screenshot_all: true | false,
   lean_mode: true | false,
   blanket_permission: true | false,
-  retry_count: 0,
+  retry_count: 1,
   teardown_enabled: false,
   faker_locale: null,                            // null | "pt_BR"
   history_enabled: false,
@@ -1350,6 +1413,35 @@ Quando `lean_mode: true`, adicione ao final da mensagem de cada executor:**
 
 Os executores **não devem perguntar nada ao usuário** — todas as informações necessárias já foram coletadas aqui.
 
+**Rastreamento de métricas por executor:**
+
+Para cada executor despachado, registre o tempo e tokens:
+
+```python
+# Antes de despachar cada executor:
+_exec_start = time.time()
+
+# ... dispatch do executor ...
+
+# Após receber o resultado de cada executor (substitua `executor_name` e `executor_result` pelos valores reais):
+_exec_end = time.time()
+_track_phase(
+    fase=f"Executor — {executor_name}",
+    descricao=(
+        f"{len(tcs_deste_executor)} TCs → "
+        f"{executor_result.get('summary', {}).get('passed', 0)} passou, "
+        f"{executor_result.get('summary', {}).get('failed', 0)} falhou, "
+        f"{executor_result.get('summary', {}).get('skipped', 0)} pulado"
+    ),
+    start_ts=_exec_start,
+    end_ts=_exec_end,
+    input_payload=json.dumps(contexto_enviado_ao_executor),
+    output_payload=json.dumps(executor_result),
+)
+```
+
+Se os executores foram despachados em paralelo (lean_mode: false), registre o tempo de cada um individualmente assim que cada resultado chegar.
+
 ### Progresso em tempo real
 
 Assim que cada executor retornar resultado, exiba imediatamente uma linha de progresso antes de processar o próximo:
@@ -1489,6 +1581,36 @@ Após receber os resultados de todos os executores, invoque o subagente `reporte
 - O valor de `screenshot_all` (`true` ou `false`) coletado na Etapa 2f
 - O valor de `lean_mode: false`
 - O total de TCs **despachados** — ou seja, classificados menos os ignorados pela pré-validação A (url_placeholder, auth_missing). TCs do pipeline lento (pipeline_lento) também são excluídos. Esse número é usado pelo reporter para decidir o formato de saída e calcular percentuais corretos.
+- O objeto `execution_metrics` com métricas completas de toda a execução:
+
+```python
+_suite_end = time.time()
+_track_phase(
+    fase="Etapa 4 — Geração do relatório",
+    descricao="reporter-qa: consolidação dos resultados e geração do HTML",
+    start_ts=_suite_end - 1,   # placeholder — será atualizado após o reporter retornar
+    end_ts=_suite_end,
+    input_payload="[resultados dos executores]",
+    output_payload="[HTML gerado]",
+)
+
+execution_metrics = {
+    "suite_id": suite_dir,
+    "suite_start_iso": datetime.datetime.fromtimestamp(_suite_start).isoformat(),
+    "suite_end_iso": datetime.datetime.fromtimestamp(_suite_end).isoformat(),
+    "total_duration_ms": int((_suite_end - _suite_start) * 1000),
+    "total_tokens_estimated": sum(p["tokens_total_est"] for p in _phase_metrics),
+    "total_tokens_input_est": sum(p["tokens_input_est"] for p in _phase_metrics),
+    "total_tokens_output_est": sum(p["tokens_output_est"] for p in _phase_metrics),
+    "phases": _phase_metrics,   # lista completa de fases com tempo e tokens
+    "environment": base_url or list(url_map.values())[0] if url_map else "?",
+    "executors_dispatched": list(executor_results.keys()),
+    "tcs_total": total_tcs,
+    "tcs_passed": sum(r.get("summary", {}).get("passed", 0) for r in executor_results.values()),
+    "tcs_failed": sum(r.get("summary", {}).get("failed", 0) for r in executor_results.values()),
+    "tcs_skipped": sum(r.get("summary", {}).get("skipped", 0) for r in executor_results.values()),
+}
+```
 
 O `reporter-qa` retornará o relatório HTML dual-mode completo. Após receber:
 
@@ -1541,3 +1663,24 @@ Confirme ao usuário:
 > ✅ Perfil `[nome]` salvo em `[profile_file]`.
 > Na próxima execução use: `--profile=[nome]`
 > **Nota:** token e senha não são persistidos por segurança — serão solicitados ao carregar o perfil.
+
+---
+
+## Pós-execução — Oferta de novo retest
+
+Após apresentar o relatório final ao usuário, sempre pergunte:
+
+> "Deseja fazer um novo retest?
+> - **S** — Reexecutar os testes que falharam nesta execução
+> - **N** — Encerrar aqui"
+
+Se o usuário responder **S**:
+1. Identifique todos os TCs com `status: "failed"` ou `status: "error"` do relatório recém-gerado.
+2. Se não houver falhas, informe: "Todos os testes passaram! Nada para retestar."
+3. Se houver falhas, pergunte:
+   > "Antes de retestar, houve alguma mudança? (ex: correção de código, mudança de credenciais, novo deploy, etc.) Descreva ou responda 'nenhuma' para retestar com as mesmas configurações."
+4. Execute o retest com os TCs filtrados a partir da **Etapa 1** (classificação), mantendo o mesmo contexto de execução já coletado (URL, auth, etc.), aplicando apenas as mudanças de configuração informadas pelo usuário.
+5. Ao final do retest, no relatório inclua uma seção de comparação:
+   - Testes que falharam na execução anterior
+   - Testes que passaram no retest (recuperados)
+   - Testes que continuaram falhando

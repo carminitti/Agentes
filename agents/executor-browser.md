@@ -7,6 +7,8 @@ Você executa testes de browser em um ambiente real usando Playwright com TypeSc
 
 **Regra:** nunca faça perguntas ao usuário durante ou após a execução. A única exceção é antes de iniciar: se alguma informação obrigatória não estiver presente nos casos de teste, pergunte ao usuário uma única vez, agrupando tudo que falta.
 
+**Mobile web:** testes de sites responsivos em mobile (viewport simulado) são tratados por este executor com `device_emulation: true`. O executor `executor-mobile` é exclusivo para apps nativos (APK/IPA via Appium). Quando o contexto indicar `device_emulation: true`, configure o Playwright com o device descriptor correspondente.
+
 **PRINCÍPIO QA — você é um testador, não um desenvolvedor:** sua função é executar cenários de teste, observar o comportamento do sistema e reportar o que era esperado versus o que aconteceu. Você nunca modifica código-fonte, arquivos de configuração, arquivos de aplicação ou qualquer arquivo fora dos diretórios temporários `tmp_*/` que você mesmo criou para os testes. Toda interação com o sistema em teste ocorre exclusivamente através de suas interfaces públicas (UI, APIs) — exatamente como um QA faria manualmente. A integridade do sistema é absoluta e não pode ser comprometida.
 
 ## Entrada esperada
@@ -741,7 +743,7 @@ Para cada conjunto de testes:
      expect: { timeout: 5_000 },
      fullyParallel: !mobileDevice,
      workers: mobileDevice ? 1 : (process.env.CI ? 2 : 4),
-     retries: process.env.CI ? 2 : 0,
+     retries: Math.max(1, parseInt(process.env.RETRY_COUNT || '1')),
      testMatch: ['**/*.spec.ts'],
      reporter: [['html', { outputFolder: 'reports/html', open: 'never' }]],
      outputDir: 'reports/test-results',
@@ -754,8 +756,8 @@ Para cada conjunto de testes:
        ignoreHTTPSErrors: true,
        baseURL: process.env.BASE_URL,
        trace: 'retain-on-failure',
-       screenshot: process.env.SCREENSHOT_ALL === 'true' ? 'on' : 'only-on-failure',
-       video: process.env.SCREENSHOT_ALL === 'true' ? 'on' : 'retain-on-failure',
+       screenshot: 'on',
+       video: 'on',
      },
    });
    ```
@@ -859,6 +861,22 @@ Para cada conjunto de testes:
      if (flaky) {
        result.logs.push(`[RETRY] Flaky detectado — passou na tentativa ${attempts}/${attempts} (${attempts - 1} falha(s) anteriore(s))`);
      }
+
+     // Retry diff logs: se houve múltiplas tentativas, guarda os logs de cada uma separadamente
+     if (attempts > 1) {
+       result.attempt_logs = testResults.map((attempt: any, idx: number) => ({
+         attempt: idx + 1,
+         status: attempt.status,
+         logs: (attempt.errors || []).map((e: any) => e.message || String(e)),
+         duration_ms: attempt.duration || 0,
+       }));
+       // Se os erros/logs diferirem entre tentativas, marca como retry_diff_logs
+       const errorMsgs = result.attempt_logs.map((a: any) => a.logs.join('|'));
+       result.retry_diff_logs = new Set(errorMsgs).size > 1;
+     } else {
+       result.attempt_logs = null;
+       result.retry_diff_logs = false;
+     }
    }
    ```
 
@@ -891,10 +909,10 @@ Durante a execução, colete um log de cada ação relevante realizada por cada 
 
 ## Persistência obrigatória em disco
 
-**Inclua `SUITE_DIR` e `SCREENSHOT_ALL` no `.env` gerado** (quando presentes no contexto):
+**Inclua `SUITE_DIR` no `.env` gerado** (quando presente no contexto). Quando o contexto contiver `retry_count`, inclua também `RETRY_COUNT`:
 ```
 SUITE_DIR=suite_browser_20260511_100000
-SCREENSHOT_ALL=true   # apenas quando screenshot_all: true no contexto; omita quando false
+RETRY_COUNT=<valor_do_retry_count>
 ```
 
 Ao final de cada execução, grave os artefatos no diretório correto:
@@ -1086,6 +1104,13 @@ pronto antes do conteúdo dinâmico ser renderizado.
       "network_logs": [
         "[NETWORK] GET /api/users → 200",
         "[NETWORK] POST /api/auth/session → 200"
+      ],
+      "attempts": 2,
+      "flaky": false,
+      "retry_diff_logs": true,
+      "attempt_logs": [
+        { "attempt": 1, "status": "failed", "logs": ["[ERROR] Elemento não encontrado após 5000ms"], "duration_ms": 4200 },
+        { "attempt": 2, "status": "passed", "logs": [], "duration_ms": 1100 }
       ],
       "error": null
     },

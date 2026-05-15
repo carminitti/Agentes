@@ -34,6 +34,80 @@ O **Total classificado** deve bater com `summary.environment_tests` do classifie
 - `screenshot_all`: `true` ou `false` (padrão `false`)
 - `lean_mode`: `true` ou `false` (padrão `false`)
 - `total_tcs`: número de TCs despachados (exclui pré-validação skips)
+- `execution_metrics`: objeto com métricas de toda a execução (fases, tokens, tempos) — veja schema abaixo
+
+```json
+// Schema de execution_metrics (passado pelo orquestrador-qa)
+{
+  "suite_id": "suite_brw_api_20260515_140000",
+  "suite_start_iso": "2026-05-15T14:00:00.000",
+  "suite_end_iso": "2026-05-15T14:08:32.412",
+  "total_duration_ms": 512412,
+  "total_tokens_estimated": 48320,
+  "total_tokens_input_est": 28140,
+  "total_tokens_output_est": 20180,
+  "phases": [
+    {
+      "fase": "Etapa 1 — Classificação",
+      "descricao": "classifier-testes: 12 TCs recebidos, 12 classificados",
+      "start_iso": "2026-05-15T14:00:00.000",
+      "end_iso": "2026-05-15T14:00:08.210",
+      "duration_ms": 8210,
+      "tokens_input_est": 1240,
+      "tokens_output_est": 980,
+      "tokens_total_est": 2220
+    },
+    {
+      "fase": "Etapa 2 — Coleta de informações",
+      "descricao": "Coleta de URL, auth, ambiente, diretórios",
+      "start_iso": "...",
+      "end_iso": "...",
+      "duration_ms": 45000,
+      "tokens_input_est": 320,
+      "tokens_output_est": 210,
+      "tokens_total_est": 530
+    },
+    {
+      "fase": "Executor — executor-browser",
+      "descricao": "8 TCs → 7 passou, 1 falhou, 0 pulado",
+      "start_iso": "...",
+      "end_iso": "...",
+      "duration_ms": 124000,
+      "tokens_input_est": 8400,
+      "tokens_output_est": 6200,
+      "tokens_total_est": 14600
+    }
+  ],
+  "environment": "https://staging.app.com",
+  "executors_dispatched": ["executor-browser", "executor-api"],
+  "tcs_total": 12,
+  "tcs_passed": 10,
+  "tcs_failed": 2,
+  "tcs_skipped": 0
+}
+```
+
+---
+
+## Reports separados por domínio
+
+Ao consolidar os resultados, separe os testes em três grupos distintos:
+
+**Grupo 1 — Report Principal** (`relatorio.html`): todos os testes EXCETO os de performance e segurança.
+
+**Grupo 2 — Report de Performance** (`relatorio-performance.html`): somente testes com executor `k6` (tipos: `performance`, `carga`, `stress`, `soak`, `spike`). Gerado APENAS quando houver testes de performance na suite.
+
+**Grupo 3 — Report de Segurança** (`relatorio-seguranca.html`): somente testes com executor `zap` (tipo: `segurança`). Gerado APENAS quando houver testes de segurança na suite.
+
+**Geração:**
+- Sempre gere o `relatorio.html` principal.
+- Gere `relatorio-performance.html` somente se houver testes de performance — use o mesmo template HTML dual-mode, com o título "QA Report — Performance" e seção de métricas k6 destacada.
+- Gere `relatorio-seguranca.html` somente se houver testes de segurança — use o mesmo template HTML dual-mode, com o título "QA Report — Segurança" e seção de OWASP Top 10 destacada.
+- Ao final de sua resposta, informe ao orquestrador quais reports foram gerados: `{ "reports_generated": ["relatorio.html", "relatorio-performance.html"] }`.
+
+**No relatório principal**, onde seriam exibidos os testes de performance e segurança, exiba apenas um card de referência:
+> "🔗 Testes de performance em report separado: `relatorio-performance.html`"
+> "🔗 Testes de segurança em report separado: `relatorio-seguranca.html`"
 
 ---
 
@@ -394,6 +468,15 @@ pre.code-content{background:rgba(0,0,0,.5);border:1px solid var(--border);border
 .lnet{color:var(--cyan)}
 .log-empty{font-size:12px;color:var(--text-dim);font-style:italic}
 
+/* ── RETRY BADGE ── */
+.retry-badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;background:var(--orange-dim);color:var(--orange-light);border:1px solid var(--orange);white-space:nowrap}
+.retry-badge.diff{background:var(--purple-dim);color:var(--purple-light);border-color:var(--purple)}
+.retry-attempts{margin-top:12px}
+.retry-attempt-block{background:rgba(0,0,0,.3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:8px;font-family:'Courier New',monospace;font-size:12px}
+.retry-attempt-block .attempt-hdr{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;display:flex;gap:8px;align-items:center}
+.retry-attempt-block.attempt-pass .attempt-hdr{color:var(--green-light)}
+.retry-attempt-block.attempt-fail .attempt-hdr{color:var(--red-light)}
+
 /* ── TAB: EVIDÊNCIAS ── */
 .attach-section{margin-bottom:20px}
 .attach-lbl{font-size:12px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px}
@@ -404,6 +487,44 @@ pre.code-content{background:rgba(0,0,0,.5);border:1px solid var(--border);border
 
 /* ── FOOTER ── */
 footer{text-align:center;padding:28px;color:var(--text-muted);font-size:13px;border-top:1px solid var(--border)}
+
+/* ══════════════════════════════════════════════
+   PAINEL DE MÉTRICAS (topo da página)
+══════════════════════════════════════════════ */
+.metrics-panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px 28px;margin-bottom:32px}
+.metrics-panel-title{font-size:14px;font-weight:800;color:var(--text);margin-bottom:18px;display:flex;align-items:center;gap:10px;letter-spacing:-.2px}
+.metrics-top-row{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:20px}
+.metrics-kpi{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px 20px;min-width:140px;flex:1;text-align:center}
+.metrics-kpi .kpi-val{font-size:28px;font-weight:800;line-height:1;margin-bottom:4px}
+.metrics-kpi .kpi-lbl{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.4px}
+.kpi-tokens .kpi-val{color:var(--purple-light)}
+.kpi-time .kpi-val{color:var(--cyan)}
+.kpi-phases .kpi-val{color:var(--blue-light)}
+.metrics-table{width:100%;border-collapse:collapse;font-size:13px}
+.metrics-table th{background:var(--surface2);padding:9px 14px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);border:1px solid var(--border)}
+.metrics-table td{padding:9px 14px;border:1px solid rgba(46,52,80,.4);vertical-align:middle}
+.metrics-table tr:nth-child(even) td{background:rgba(0,0,0,.1)}
+.metrics-table tr:hover td{background:rgba(255,255,255,.03)}
+.metrics-phase-name{font-weight:600;color:var(--text)}
+.metrics-phase-desc{font-size:11px;color:var(--text-muted);margin-top:2px}
+.metrics-bar-wrap{width:120px;background:var(--surface2);border-radius:99px;height:5px;overflow:hidden}
+.metrics-bar-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--purple),var(--blue-light))}
+.metrics-tokens-col{font-family:'Courier New',monospace;font-size:12px;color:var(--purple-light)}
+.metrics-time-col{font-family:'Courier New',monospace;font-size:12px;color:var(--cyan)}
+.metrics-badge-executor{font-size:10px;background:var(--blue-dim);color:var(--blue-light);border:1px solid var(--blue);border-radius:4px;padding:1px 6px;margin-left:6px;white-space:nowrap}
+.metrics-badge-phase{font-size:10px;background:var(--surface2);color:var(--text-muted);border:1px solid var(--border);border-radius:4px;padding:1px 6px;margin-left:6px;white-space:nowrap}
+/* Seção de log completo de auditoria */
+.audit-section{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px 28px;margin-bottom:32px}
+.audit-title{font-size:14px;font-weight:800;color:var(--text);margin-bottom:16px;display:flex;align-items:center;gap:10px}
+.audit-timeline{display:flex;flex-direction:column;gap:0}
+.audit-entry{display:flex;gap:16px;padding:10px 0;border-bottom:1px solid rgba(46,52,80,.3);align-items:flex-start}
+.audit-entry:last-child{border-bottom:none}
+.audit-time{font-family:'Courier New',monospace;font-size:11px;color:var(--text-dim);white-space:nowrap;min-width:90px;padding-top:2px}
+.audit-icon{font-size:14px;flex-shrink:0;padding-top:1px}
+.audit-content{flex:1}
+.audit-event{font-size:13px;font-weight:600;color:var(--text)}
+.audit-detail{font-size:12px;color:var(--text-muted);margin-top:2px;line-height:1.5}
+.audit-log-block{background:rgba(0,0,0,.4);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 14px;font-family:'Courier New',monospace;font-size:11.5px;color:var(--text-muted);white-space:pre-wrap;max-height:250px;overflow-y:auto;line-height:1.6;margin-top:8px}
 </style>
 </head>
 <body class="mode-report">
@@ -434,7 +555,183 @@ footer{text-align:center;padding:28px;color:var(--text-muted);font-size:13px;bor
   </button>
 </nav>
 
+**Painel de métricas — gere este bloco logo após `</nav>` e antes de `<main>`:**
+
+```html
+<!-- ════════════════ PAINEL DE MÉTRICAS ════════════════ -->
+<div style="background:var(--surface2);border-bottom:1px solid var(--border);padding:12px 24px;font-size:12px;color:var(--text-muted);display:flex;gap:20px;flex-wrap:wrap;align-items:center">
+  <span>⏱ Duração total: <strong style="color:var(--cyan)">[DURATION_FORMATTED]</strong></span>
+  <span>⬢ Tokens estimados: <strong style="color:var(--purple-light)">[TOTAL_TOKENS]</strong></span>
+  <span>📋 Suite: <code>[SUITE_ID]</code></span>
+  <span>🕐 Início: <strong>[SUITE_START]</strong></span>
+  <span>🏁 Fim: <strong>[SUITE_END]</strong></span>
+</div>
+
 <main>
+```
+
+Preencha os valores com dados reais de `execution_metrics`:
+- `[DURATION_FORMATTED]`: converta `total_duration_ms` para `Xm Ys` (ex: `8m 32s`) ou `Xs` se menos de 1 minuto
+- `[TOTAL_TOKENS]`: `total_tokens_estimated` formatado com separador de milhar (ex: `48.320`)
+- `[SUITE_ID]`: `suite_id`
+- `[SUITE_START]`: `suite_start_iso` formatado como `DD/MM/YYYY HH:mm:ss`
+- `[SUITE_END]`: `suite_end_iso` formatado como `DD/MM/YYYY HH:mm:ss`
+
+<main>
+
+**Seção de métricas detalhadas — gere imediatamente após `<main>` e antes de qualquer outro conteúdo, em ambos os modos (relatório e técnico):**
+
+```html
+<!-- ════════════════ MÉTRICAS DETALHADAS ════════════════ -->
+<div class="metrics-panel">
+  <div class="metrics-panel-title">📊 Métricas de Execução — [SUITE_ID]</div>
+  
+  <!-- KPIs -->
+  <div class="metrics-top-row">
+    <div class="metrics-kpi kpi-tokens">
+      <div class="kpi-val">[TOTAL_TOKENS_FORMATTED]</div>
+      <div class="kpi-lbl">Tokens Estimados</div>
+    </div>
+    <div class="metrics-kpi kpi-time">
+      <div class="kpi-val">[DURATION_FORMATTED]</div>
+      <div class="kpi-lbl">Duração Total</div>
+    </div>
+    <div class="metrics-kpi kpi-phases">
+      <div class="kpi-val">[N_PHASES]</div>
+      <div class="kpi-lbl">Fases / Processos</div>
+    </div>
+    <div class="metrics-kpi">
+      <div class="kpi-val" style="color:var(--orange-light)">[TOKENS_INPUT_FORMATTED]</div>
+      <div class="kpi-lbl">Tokens Entrada</div>
+    </div>
+    <div class="metrics-kpi">
+      <div class="kpi-val" style="color:var(--green-light)">[TOKENS_OUTPUT_FORMATTED]</div>
+      <div class="kpi-lbl">Tokens Saída</div>
+    </div>
+  </div>
+
+  <!-- Tabela de fases -->
+  <table class="metrics-table">
+    <thead>
+      <tr>
+        <th>Fase / Processo</th>
+        <th>Tokens (est.)</th>
+        <th>Entrada</th>
+        <th>Saída</th>
+        <th>Tempo</th>
+        <th>% do Total</th>
+        <th>Início</th>
+      </tr>
+    </thead>
+    <tbody>
+      <!-- Para cada fase em execution_metrics.phases, gere uma linha: -->
+      <tr>
+        <td>
+          <div class="metrics-phase-name">[fase.fase] <span class="metrics-badge-[executor|phase]">[tipo]</span></div>
+          <div class="metrics-phase-desc">[fase.descricao]</div>
+        </td>
+        <td class="metrics-tokens-col">[fase.tokens_total_est]</td>
+        <td class="metrics-tokens-col" style="color:var(--orange-light)">[fase.tokens_input_est]</td>
+        <td class="metrics-tokens-col" style="color:var(--green-light)">[fase.tokens_output_est]</td>
+        <td class="metrics-time-col">[fase.duration_ms formatado como Xs ou Xms]</td>
+        <td>
+          <div class="metrics-bar-wrap">
+            <div class="metrics-bar-fill" style="width:[pct_tokens]%"></div>
+          </div>
+          <div style="font-size:11px;color:var(--text-dim);margin-top:3px">[pct_tokens]%</div>
+        </td>
+        <td style="font-size:11px;color:var(--text-dim)">[fase.start_iso formatado como HH:mm:ss]</td>
+      </tr>
+      <!-- ...uma linha por fase... -->
+      <!-- Linha de total: -->
+      <tr style="border-top:2px solid var(--border2);font-weight:700">
+        <td><strong>TOTAL</strong></td>
+        <td class="metrics-tokens-col"><strong>[total_tokens_estimated]</strong></td>
+        <td class="metrics-tokens-col" style="color:var(--orange-light)"><strong>[total_tokens_input_est]</strong></td>
+        <td class="metrics-tokens-col" style="color:var(--green-light)"><strong>[total_tokens_output_est]</strong></td>
+        <td class="metrics-time-col"><strong>[total_duration_ms formatado]</strong></td>
+        <td><strong>100%</strong></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+```
+
+**Regras de preenchimento:**
+- `[pct_tokens]`: `round(fase.tokens_total_est / execution_metrics.total_tokens_estimated * 100, 1)`
+- Badge: use `metrics-badge-executor` para fases que começam com "Executor —", e `metrics-badge-phase` para as demais
+- Duração: se `duration_ms < 1000` → `"Xms"`, se `< 60000` → `"X.Xs"`, caso contrário → `"Xm Ys"`
+- Se `execution_metrics` não for passado (campo ausente), omita completamente esta seção sem erro
+
+**Seção de auditoria — gere logo após o painel de métricas:**
+
+```html
+<!-- ════════════════ LOG DE AUDITORIA ════════════════ -->
+<details class="audit-section" style="margin-bottom:32px">
+  <summary class="audit-title" style="cursor:pointer;list-style:none">
+    📋 Log Completo de Auditoria — [SUITE_ID]
+    <span style="font-size:11px;color:var(--text-muted);font-weight:400;margin-left:8px">[N] eventos registrados — clique para expandir</span>
+  </summary>
+  
+  <div style="margin-top:16px">
+  <!-- Timeline de eventos: cada fase gera entradas de timeline -->
+  <div class="audit-timeline">
+
+    <!-- Entrada de início da suite -->
+    <div class="audit-entry">
+      <span class="audit-time">[suite_start HH:mm:ss]</span>
+      <span class="audit-icon">🚀</span>
+      <div class="audit-content">
+        <div class="audit-event">Suite iniciada</div>
+        <div class="audit-detail">ID: [suite_id] | Ambiente: [environment] | Modo: [lean_mode ? 'Enxuto' : 'Completo']</div>
+      </div>
+    </div>
+
+    <!-- Para cada fase em execution_metrics.phases: -->
+    <div class="audit-entry">
+      <span class="audit-time">[fase.start_iso HH:mm:ss]</span>
+      <span class="audit-icon">[ícone por tipo: 🔍 classificação, ⚙️ coleta, ▶️ executor, 📝 relatório]</span>
+      <div class="audit-content">
+        <div class="audit-event">[fase.fase]</div>
+        <div class="audit-detail">[fase.descricao] | Duração: [duration formatado] | Tokens: [tokens_total_est]</div>
+      </div>
+    </div>
+
+    <!-- Para cada executor, expandir os logs internos do resultado: -->
+    <!-- (se o resultado do executor tiver campo `execution_log` ou logs por TC) -->
+    <!-- Para cada TC do executor: -->
+    <div class="audit-entry" style="padding-left:24px;border-left:2px solid var(--border)">
+      <span class="audit-time"></span>
+      <span class="audit-icon">[✅|❌|⏭️]</span>
+      <div class="audit-content">
+        <div class="audit-event">[TC-ID] — [título]</div>
+        <div class="audit-detail">Status: [status] | Duração: [duration_ms]ms | Tentativas: [attempts]</div>
+        <!-- Se o TC tiver logs: -->
+        <div class="audit-log-block">[logs do TC, um por linha — máximo 50 linhas, depois "... e mais N linhas"]</div>
+      </div>
+    </div>
+
+    <!-- Entrada de encerramento -->
+    <div class="audit-entry">
+      <span class="audit-time">[suite_end HH:mm:ss]</span>
+      <span class="audit-icon">🏁</span>
+      <div class="audit-content">
+        <div class="audit-event">Suite encerrada</div>
+        <div class="audit-detail">Total: [tcs_total] TCs | Passou: [tcs_passed] | Falhou: [tcs_failed] | Skipped: [tcs_skipped] | Duração total: [DURATION_FORMATTED] | Tokens estimados: [TOTAL_TOKENS]</div>
+      </div>
+    </div>
+
+  </div><!-- /audit-timeline -->
+  </div>
+</details>
+```
+
+**Regras de geração da auditoria:**
+- Use `<details>`/`<summary>` para manter o log colapsado por padrão (não polui a tela)
+- Para cada TC com logs, exiba no máximo 50 linhas do array `logs`; se houver mais, termine com `… e mais [N] linhas`
+- Se `execution_metrics` não estiver disponível, omita completamente a seção sem erro
+- Ícones por tipo de fase: `🔍` para classificação, `⚙️` para coleta, `▶️` para executores, `📝` para relatório, `🔄` para retry
 
 <!-- ════════════════════════════════════════════════ -->
 <!--                  MODO RELATÓRIO                  -->
@@ -1283,6 +1580,47 @@ def test_get_users():
               demais → sem span
             </div>
           </div> -->
+
+          <!-- BLOCO 4: RETRY / TENTATIVAS — apenas se attempts > 1 no resultado
+
+**Exibição de tentativas (retry):**
+
+Para cada TC com `attempts > 1` no resultado:
+- Exiba um badge de retry ao lado do status na header do card:
+  ```html
+  <span class="retry-badge [diff_class]">🔄 [N] tentativa(s)</span>
+  ```
+  onde `[diff_class]` é `"diff"` se `retry_diff_logs: true` (logs diferentes entre tentativas), vazio caso contrário.
+
+- Na aba "Logs" do TC, após os blocos de logs normais, adicione uma seção "Tentativas":
+  ```html
+  <div class="retry-attempts">
+    <div class="log-section-lbl">🔄 Tentativas (retry)</div>
+    <!-- Para cada tentativa em attempt_logs: -->
+    <div class="retry-attempt-block [attempt-pass|attempt-fail]">
+      <div class="attempt-hdr">
+        <span>Tentativa [N]</span>
+        <span class="badge [b-green|b-red]">[passed|failed]</span>
+        <span style="color:var(--text-dim)">[duration_ms]ms</span>
+      </div>
+      <!-- se logs não vazios: -->
+      <div>[logs da tentativa]</div>
+    </div>
+  ```
+
+- Se `retry_diff_logs: true`, exiba um aviso destacado antes das tentativas:
+  ```html
+  <div style="background:var(--purple-dim);border:1px solid var(--purple);border-radius:6px;padding:8px 12px;margin-bottom:8px;font-size:12px;color:var(--purple-light)">
+    ⚠️ Logs diferentes entre tentativas — o comportamento do sistema variou entre execuções. Possível flakiness ou falha intermitente.
+  </div>
+  ```
+
+**Contagem de tentativas no overview:**
+
+No card de summary do executor (modo técnico), adicione a contagem:
+- `"Retestados automaticamente: [N] TC(s)"` — TCs com `attempts > 1`
+- `"Com logs divergentes: [N] TC(s)"` — TCs com `retry_diff_logs: true`
+          -->
 
         </div>
 
