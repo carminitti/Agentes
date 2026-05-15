@@ -275,6 +275,76 @@ SUITE_DIR="[valor de suite_dir do contexto]" python [suite_dir]/mobile/tmp_mobil
 
 ---
 
+### Deep linking (Intent Android / Universal Link iOS)
+
+Quando o TC menciona "abrir app via deep link", "URL scheme", `myapp://rota` ou `https://app.exemplo.com/produto/123`:
+
+**Android (adb intent):**
+```python
+# ✅ Dispara deep link via adb antes de conectar o driver
+import subprocess
+
+def open_deep_link_android(device_serial: str, deep_link: str):
+    subprocess.run([
+        "adb", "-s", device_serial, "shell",
+        "am", "start", "-a", "android.intent.action.VIEW",
+        "-d", deep_link
+    ], check=True)
+
+# Exemplo de uso no step
+open_deep_link_android("emulator-5554", "myapp://produto/123")
+time.sleep(2)  # aguarda o app abrir a rota
+element = wait.until(EC.presence_of_element_located((AppiumBy.ACCESSIBILITY_ID, "produto-detalhe")))
+assert element.is_displayed(), "Tela de produto não abriu via deep link"
+```
+
+**iOS (xcrun simctl openurl):**
+```python
+def open_deep_link_ios(udid: str, deep_link: str):
+    subprocess.run([
+        "xcrun", "simctl", "openurl", udid, deep_link
+    ], check=True)
+```
+
+**Se `device_serial` / `udid` não estiver disponível:** use o driver Appium diretamente:
+```python
+driver.execute_script("mobile: deepLink", {"url": deep_link, "package": APP_PACKAGE})
+```
+
+### Gestos complexos — W3C Actions API (Appium 2.x)
+
+Appium 2.x usa W3C Actions. `MultiAction` e `TouchAction` estão **deprecados**. Use `driver.execute_script("mobile: swipe", ...)` ou `ActionChains`:
+
+```python
+from appium.webdriver.common.appiumby import AppiumBy
+from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.common.actions.pointer_input import PointerInput
+from selenium.webdriver.common.actions import interaction
+
+# ✅ Swipe (scroll para baixo)
+driver.execute_script("mobile: swipe", {
+    "direction": "up",    # sobe o conteúdo (scroll down)
+    "element": driver.find_element(AppiumBy.XPATH, "//android.widget.ScrollView").id
+})
+
+# ✅ Pinch to zoom (W3C multi-touch)
+actions = ActionChains(driver)
+finger1 = actions.w3c_actions.add_pointer_input(interaction.POINTER_TOUCH, "finger1")
+finger2 = actions.w3c_actions.add_pointer_input(interaction.POINTER_TOUCH, "finger2")
+# ... configura posições e movimentos
+actions.perform()
+
+# ✅ Long press
+driver.execute_script("mobile: longClickGesture", {
+    "elementId": element.id,
+    "duration": 1500  # ms
+})
+```
+
+❌ **Nunca use** `TouchAction(driver).press(...).move_to(...).release().perform()` em Appium 2.x — depreciado e pode falhar silenciosamente.
+
+---
+
 ## Mapeamento de steps → ações Appium
 
 | Step (linguagem natural) | Ação Appium gerada |

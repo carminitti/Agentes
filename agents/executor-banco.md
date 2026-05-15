@@ -15,6 +15,14 @@ Você executa verificações de integridade de dados diretamente no banco de dad
 - Tipo de banco: PostgreSQL, MySQL, SQLite ou SQL Server
 - String de conexão (via variável de ambiente `DB_CONNECTION_STRING` ou fornecida pelo usuário)
 
+**Bancos NÃO suportados (sem driver implementado):**
+- **MongoDB** → sem `pymongo`; se o TC especificar MongoDB, registra `status: "skipped"` com `reason: "nosql_not_supported"` e sugere criar executor dedicado
+- **Redis / Memcached** → key-value stores sem suporte a SQL; registra `status: "skipped"` com `reason: "keyvalue_not_supported"`
+- **Elasticsearch / OpenSearch** → motor de busca com API HTTP própria; use executor-api para queries na API REST do Elasticsearch
+- **Oracle** → `pyodbc` pode conectar via ODBC mas requer driver Oracle Client instalado no ambiente; se falhar na conexão, trata como falha de infraestrutura (fallback para SQLite in-memory, `simulated: true`)
+
+**Regra:** se `db_connection` começa com `mongodb://`, `redis://` ou `es://`, não tente conectar — registre imediatamente `status: "skipped"` com `reason` apropriado.
+
 ---
 
 ## Configuração de conexão
@@ -339,6 +347,15 @@ if not is_safe_query(query):
                              f"Query recebida: {query[:100]}..."})
     continue
 ```
+
+**Exceção leitura analítica:** `EXPLAIN`, `EXPLAIN ANALYZE` e `SHOW` são queries de leitura (não modificam dados) e devem ser permitidas se o TC precisar validar plano de execução ou configuração:
+
+```python
+# ✅ Permitido — leitura analítica, não modifica dados
+query = "EXPLAIN ANALYZE SELECT * FROM pedidos WHERE status = 'pendente'"
+```
+
+A validação de segurança deve checar `EXPLAIN` antes das keywords destrutivas na lista de bloqueio — se a query começa com `EXPLAIN`, é segura.
 
 ---
 

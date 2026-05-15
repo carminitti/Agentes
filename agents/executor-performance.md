@@ -11,7 +11,7 @@ Você executa testes de performance usando k6.
 
 ## Entrada esperada
 
-- Lista de testes com executor `k6` dos tipos `performance`, `carga`, `stress` ou `soak`
+- Lista de testes com executor `k6` dos tipos `performance`, `carga`, `stress`, `soak` ou `spike`
 - URL base do ambiente alvo
 - Parâmetros de carga quando explicitados nos steps (VUs, duração, RPS alvo)
 
@@ -92,6 +92,44 @@ export default function () {
 
 Se a geração falhar em todos os endpoints tentados, passe para o passo 3.
 
+### Correlação de token entre requests (estado por VU)
+
+Quando o cenário requer login seguido de múltiplas requisições autenticadas, **cada VU precisa fazer login uma vez** e reutilizar o token nas iterações:
+
+```javascript
+// ✅ Padrão correto — VU-level state com setup por VU
+import { sleep } from 'k6';
+import http from 'k6/http';
+
+// Variável de estado por VU (não compartilhada entre VUs)
+let vuToken = null;
+
+export function setup() {
+  // Se token global (compartilhado) for possível, obtenha aqui
+  // Caso contrário, use vuToken no default function
+}
+
+export default function () {
+  // Login uma vez por VU (na primeira iteração)
+  if (!vuToken) {
+    const loginRes = http.post(`${BASE_URL}/auth/login`, JSON.stringify({
+      username: USERNAME,
+      password: PASSWORD,
+    }), { headers: { 'Content-Type': 'application/json' } });
+    vuToken = loginRes.json('token') || loginRes.json('access_token');
+  }
+
+  // Usa token nas iterações seguintes
+  const res = http.get(`${BASE_URL}/api/resource`, {
+    headers: { Authorization: `Bearer ${vuToken}` },
+  });
+  check(res, { 'status 200': (r) => r.status === 200 });
+  sleep(1);
+}
+```
+
+❌ **Nunca** faça login em **cada iteração** — duplica requisições de auth, distorce métricas e pode disparar rate limiting.
+
 **3. Sem token e sem credenciais nos steps** → pergunte ao usuário antes de prosseguir:
 > "Para executar o(s) teste(s) [IDs afetados], preciso de acesso autenticado. Você pode fornecer:
 > - Um **Bearer token** pronto para uso, ou
@@ -168,6 +206,7 @@ Para cada TC recebido, verifique o tipo classificado:
 |---|---|---|
 | `soak` | qualquer | **SKIPAR** — nunca executar em pipeline rápido |
 | `stress` | soma de stages > 3 min | **SKIPAR** — nunca executar em pipeline rápido |
+| `spike` | VUS_PEAK > 50 E duração total > 2 min | **SKIPAR** — nunca executar em pipeline rápido |
 | `performance` / `carga` | vus > 50 E duration > 60s | **SKIPAR** — nunca executar em pipeline rápido |
 
 **REGRA ABSOLUTA — sem exceção, sem interpretação:**
@@ -223,6 +262,7 @@ Para cada teste, extraia dos steps:
   - `carga`: 50 VUs, 60s
   - `stress`: rampa de 0 a 100 VUs em 2 min (nunca use 200 VUs como default — pode derrubar o ambiente)
   - `soak`: 20 VUs, **3 min** (default conservador — se o usuário precisar de mais, deve especificar explicitamente nos steps; nunca assuma 10 min)
+  - `spike`: 50 VUs de pico, stages `[10s subida, 1m pico, 10s descida]` (total ~1min20s — dentro do pipeline rápido por padrão)
 
 ### Modo k6 (preferencial)
 
@@ -287,6 +327,77 @@ export const options = {
 ```
 
 > Soak usa `vus` + `duration` fixos — **nunca use `stages`** para soak, pois o objetivo é medir degradação sob carga constante, não sob rampa.
+
+**`spike`** (rampa instantânea — testa resiliência a pico súbito de tráfego):
+- VUs sobem de 0 para o pico em **menos de 30 segundos** (diferença de `stress`, que sobe gradualmente)
+- Stages padrão: `[ {duration:'10s', target: VUS_PEAK}, {duration:'1m', target: VUS_PEAK}, {duration:'10s', target:0} ]`
+- Métricas relevantes: error rate no pico, tempo de recuperação após pico, requests dropped
+- Threshold adicional: `http_req_failed` durante o pico deve ser `< 5%` (tolerância maior que performance normal)
+
+```javascript
+export const options = {
+  stages: [
+    { duration: '10s', target: VUS_PEAK },  // rampa instantânea (spike)
+    { duration: '1m',  target: VUS_PEAK },  // sustenta pico
+    { duration: '10s', target: 0 },         // down
+  ],
+  thresholds: {
+    http_req_duration: [`p(95)<${P95_THRESHOLD_MS}`],
+    http_req_failed:   ['rate<0.05'],        // 5% tolerado no pico
+  },
+};
+```
+
+**Regra de pipeline:** spike com `VUS_PEAK > 50 AND duração total > 2min` → `skipped` com `reason: "pipeline_lento"` (igual a stress).
+
+### Template k6 — WebSocket sob carga
+
+Quando o TC descreve "N usuários simultâneos conectados via WebSocket", "latência de mensagem sob carga" ou `type: "performance"` em endpoint `ws://` / `wss://`:
+
+```javascript
+import ws from 'k6/ws';
+import { check, sleep } from 'k6';
+import { Trend } from 'k6/metrics';
+
+const msgLatency = new Trend('ws_msg_latency');
+
+export const options = {
+  vus: VUS,
+  duration: `${DURATION_S}s`,
+  thresholds: {
+    ws_msg_latency: ['p(95)<500'],     // latência de mensagem p95 < 500ms
+    'ws_session_duration': ['p(95)<10000'],
+  },
+};
+
+export default function () {
+  const url = WS_URL;
+  const sentAt = {};
+
+  const res = ws.connect(url, { headers: AUTH_HEADERS }, function (socket) {
+    socket.on('open', () => {
+      const msgId = `msg-${__VU}-${Date.now()}`;
+      sentAt[msgId] = Date.now();
+      socket.send(JSON.stringify({ id: msgId, type: 'ping' }));
+    });
+
+    socket.on('message', (data) => {
+      const msg = JSON.parse(data);
+      if (sentAt[msg.id]) {
+        msgLatency.add(Date.now() - sentAt[msg.id]);
+        delete sentAt[msg.id];
+      }
+    });
+
+    socket.setTimeout(() => socket.close(), DURATION_S * 1000 - 500);
+  });
+
+  check(res, { 'WebSocket conectou (101)': (r) => r && r.status === 101 });
+  sleep(1);
+}
+```
+
+**Thresholds obrigatórios para WS:** `ws_msg_latency p(95)` (latência de round-trip de mensagem) e `ws_session_duration`. Reporta `failed` se ultrapassados.
 
 Antes de executar, valide que o script foi gerado:
 ```python

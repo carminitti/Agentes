@@ -365,6 +365,108 @@ response = safe_request("GET", "https://staging.app.com/api/admin", timeout=10)
 assert response.status_code == 401
 ```
 
+### Verificação de claims do JWT (exp, iss, aud)
+
+Quando o TC menciona "token expirado deve ser rejeitado", "issuer incorreto" ou "validar claims do JWT":
+
+```python
+import base64, json, time
+
+def decode_jwt_payload(token: str) -> dict:
+    """Decodifica payload sem verificar assinatura (inspeção apenas)."""
+    parts = token.split(".")
+    if len(parts) != 3:
+        return {}
+    # Corrige padding base64
+    payload_b64 = parts[1] + "=" * (4 - len(parts[1]) % 4)
+    return json.loads(base64.urlsafe_b64decode(payload_b64))
+
+# ✅ Verifica que token expirado retorna 401
+expired_token = "eyJhbGciOiJIUzI1NiJ9.<payload_expirado>.<sig>"
+resp = session.get(f"{base_url}/api/resource",
+                   headers={"Authorization": f"Bearer {expired_token}"})
+assert resp.status_code == 401, f"Token expirado aceito: {resp.status_code}"
+
+# ✅ Verifica claims do token atual
+if auth_token:
+    claims = decode_jwt_payload(auth_token)
+    now = int(time.time())
+    checks.append({
+        "check": "JWT exp não expirado",
+        "result": "passed" if claims.get("exp", 0) > now else "failed",
+        "actual": f"exp={claims.get('exp')}, now={now}"
+    })
+    if expected_issuer := auth.get("expected_issuer"):
+        checks.append({
+            "check": f"JWT iss == '{expected_issuer}'",
+            "result": "passed" if claims.get("iss") == expected_issuer else "failed",
+            "actual": claims.get("iss")
+        })
+```
+
+### Verificação de redirect HTTP → HTTPS
+
+```python
+import requests
+
+def check_http_to_https(base_url: str) -> dict:
+    """Verifica que HTTP redireciona para HTTPS (não serve conteúdo em claro)."""
+    http_url = base_url.replace("https://", "http://")
+    try:
+        resp = requests.get(http_url, allow_redirects=False, timeout=5, verify=False)
+        if resp.status_code in (301, 302, 307, 308):
+            location = resp.headers.get("Location", "")
+            return {
+                "check": "HTTP redireciona para HTTPS",
+                "result": "passed" if location.startswith("https://") else "failed",
+                "actual": f"{resp.status_code} → {location}"
+            }
+        elif resp.status_code == 200:
+            return {
+                "check": "HTTP redireciona para HTTPS",
+                "result": "failed",
+                "actual": f"HTTP retornou 200 (conteúdo servido em claro sem redirect)",
+                "severity": "high"
+            }
+    except Exception as e:
+        return {"check": "HTTP redireciona para HTTPS", "result": "skipped",
+                "reason": str(e)}
+```
+
+Execute este check automaticamente quando `base_url` começar com `https://` e `environment_type == "production"`.
+
+### Verificação de secrets expostos em response headers/body
+
+```python
+import re
+
+SENSITIVE_PATTERNS = [
+    (r'(?i)(password|passwd|secret|api[_-]?key|access[_-]?token|private[_-]?key)\s*[=:]\s*\S+', "segredo em texto plano"),
+    (r'Bearer\s+[A-Za-z0-9\-_]+\.[A-Za-z0-9\-_]+\.[A-Za-z0-9\-_]+', "JWT exposto"),
+    (r'(?i)authorization\s*:\s*\S+', "header Authorization exposto"),
+    (r'AKIA[0-9A-Z]{16}', "AWS Access Key ID"),
+    (r'(?i)-----BEGIN (RSA|EC|OPENSSH) PRIVATE KEY-----', "chave privada"),
+]
+
+def check_secrets_in_response(resp) -> list:
+    results = []
+    body = resp.text if hasattr(resp, 'text') else ""
+    headers_str = str(dict(resp.headers))
+    content = body + headers_str
+
+    for pattern, label in SENSITIVE_PATTERNS:
+        if re.search(pattern, content):
+            results.append({
+                "check": f"Secrets expostos: {label}",
+                "result": "failed",
+                "severity": "high",
+                "actual": "padrão encontrado no response"
+            })
+    return results
+```
+
+Execute em **todos** os endpoints verificados. Se `environment_type == "public_test_api"`, reduza para `warning` em vez de `failed`.
+
 **2. Autorização (usuário sem permissão deve receber 403):**
 ```python
 headers = {"Authorization": f"Bearer {token_usuario_comum}"}

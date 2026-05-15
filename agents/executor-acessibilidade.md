@@ -229,6 +229,71 @@ Para cada teste:
    }
    ```
 
+### Teste de navegação por teclado (complementar ao axe-core)
+
+axe-core verifica **declaração ARIA** mas **não simula** teclas Tab/Enter/Escape. Quando o TC menciona "navegação por teclado", "focus trap em modal", "Tab order", "acessível via teclado":
+
+```typescript
+// ✅ Verifica Tab order — foca elementos na sequência esperada
+await page.keyboard.press('Tab');
+const first = await page.evaluate(() => document.activeElement?.getAttribute('data-testid'));
+expect(first).toBe('btn-principal');
+
+await page.keyboard.press('Tab');
+const second = await page.evaluate(() => document.activeElement?.getAttribute('data-testid'));
+expect(second).toBe('campo-email');
+
+// ✅ Verifica focus trap em modal
+await page.locator('[data-testid="abrir-modal"]').click();
+// Tab loop dentro do modal — após 10 Tabs, deve continuar dentro do modal
+for (let i = 0; i < 10; i++) {
+  await page.keyboard.press('Tab');
+  const focused = await page.evaluate(() => document.activeElement?.closest('[role="dialog"]'));
+  expect(focused).not.toBeNull(); // foco não saiu do modal
+}
+// Fecha modal com Escape
+await page.keyboard.press('Escape');
+const modalClosed = await page.locator('[role="dialog"]').isHidden();
+expect(modalClosed).toBe(true);
+```
+
+**Resultado adicional no JSON do TC:**
+```json
+{
+  "keyboard_nav": {
+    "tab_order_correct": true,
+    "focus_trap_working": true,
+    "escape_closes_modal": true
+  }
+}
+```
+
+Se o TC não especificar navegação por teclado, esta verificação é **opcional** — não execute por padrão.
+
+### Verificação de aria-live regions
+
+axe-core não verifica se `aria-live` realmente **anuncia** no momento certo. Quando o TC menciona "mensagem de erro deve ser anunciada", "status dinâmico acessível" ou `aria-live`:
+
+```typescript
+// ✅ Aguarda que o live region receba conteúdo após ação
+const liveRegion = page.locator('[aria-live]');
+
+// Executa a ação que deve disparar o anúncio
+await page.locator('form button[type="submit"]').click();
+
+// Verifica que o live region foi preenchido (com timeout razoável)
+await expect(liveRegion).not.toBeEmpty({ timeout: 3000 });
+const announcement = await liveRegion.textContent();
+
+// Valida que a mensagem contém o conteúdo esperado (definido no step)
+expect(announcement).toContain(EXPECTED_ANNOUNCEMENT);
+```
+
+**Falhas comuns:**
+- Live region existe mas `aria-live="off"` → não anuncia → `status: "failed"` com `error: "aria-live está 'off' — região não anuncia"`
+- Live region com `aria-atomic="false"` + updates parciais → leitores de tela anunciam partes — verificar se `aria-atomic="true"` é necessário
+- Live region injetado dinamicamente via JS (não existe no HTML inicial) → axe-core não detecta → este teste complementar captura
+
 ---
 
 ## Formato de saída

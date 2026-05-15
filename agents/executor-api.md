@@ -130,6 +130,49 @@ export class ApiClient {
 }
 ```
 
+### Payload multipart/form-data (upload de arquivo)
+
+Quando o step descreve upload de arquivo ou `Content-Type: multipart/form-data`:
+
+**TypeScript (Playwright APIRequestContext):**
+```typescript
+import * as fs from 'fs';
+import * as path from 'path';
+
+const filePath = path.join(TC_DIR, 'test-upload.pdf');
+fs.writeFileSync(filePath, '%PDF-1.4 test content');
+
+const response = await request.post(`${BASE_URL}/api/upload`, {
+  multipart: {
+    file: {
+      name: 'test-upload.pdf',
+      mimeType: 'application/pdf',
+      buffer: fs.readFileSync(filePath),
+    },
+    description: 'Arquivo de teste',
+  },
+});
+expect(response.status()).toBe(200);
+```
+
+**Python (fallback):**
+```python
+import requests, os
+
+file_path = os.path.join(TC_DIR, 'test-upload.pdf')
+with open(file_path, 'wb') as f:
+    f.write(b'%PDF-1.4 test content')
+
+resp = session.post(
+    f"{base_url}/api/upload",
+    files={"file": ("test-upload.pdf", open(file_path, "rb"), "application/pdf")},
+    data={"description": "Arquivo de teste"},
+)
+assert resp.status_code == 200, f"Upload falhou: {resp.status_code} — {resp.text}"
+```
+
+❌ **Nunca** use `data=json.dumps(payload)` com `content-type: multipart` — o servidor rejeita com 400 ou 415.
+
 ---
 
 ## Zod Schema
@@ -151,6 +194,37 @@ export type Product = z.infer<typeof productSchema>;
 ```
 
 Crie um schema para cada recurso que apareça nas validações dos steps.
+
+---
+
+### Validação de resposta binária
+
+Quando o endpoint retorna conteúdo binário (`Content-Type: application/pdf`, `image/*`, `application/zip`, `application/octet-stream`):
+
+**TypeScript:**
+```typescript
+const response = await request.get(`${BASE_URL}/api/report/export`);
+expect(response.status()).toBe(200);
+
+// ✅ Valida content-type sem tentar parsear como JSON
+const contentType = response.headers()['content-type'] ?? '';
+expect(contentType).toContain('application/pdf');  // ou image/png, etc.
+
+// ✅ Valida que o body tem tamanho > 0
+const body = await response.body();
+expect(body.byteLength).toBeGreaterThan(0);
+```
+
+**Python:**
+```python
+resp = session.get(f"{base_url}/api/report/export")
+assert resp.status_code == 200, f"Export falhou: {resp.status_code}"
+assert "application/pdf" in resp.headers.get("content-type", ""), \
+    f"Esperado PDF, recebido: {resp.headers.get('content-type')}"
+assert len(resp.content) > 0, "Resposta binária vazia"
+```
+
+❌ **Nunca** chame `response.json()` em endpoint que retorna binário — lança `SyntaxError` ou `JSONDecodeError` e oculta o erro real.
 
 ---
 
@@ -225,6 +299,36 @@ export default async function globalSetup(_config: FullConfig): Promise<void> {
   }
 }
 ```
+
+### Autenticação mTLS (certificado client-side)
+
+Quando `auth.type: "mtls"` está configurado, passe o certificado no contexto da request:
+
+**TypeScript (Playwright APIRequestContext):**
+```typescript
+// Em playwright.config.ts ou no beforeAll
+const request = await playwright.request.newContext({
+  clientCertificates: [
+    {
+      origin: BASE_URL,
+      certPath: auth.mtls.cert_path,   // PEM ou PFX
+      keyPath: auth.mtls.key_path,     // chave privada PEM (se cert em PEM)
+      pfxPath: auth.mtls.pfx_path,     // alternativa: PFX/P12 com senha
+      passphrase: auth.mtls.passphrase // senha do PFX (opcional)
+    }
+  ]
+});
+```
+
+**Python (fallback):**
+```python
+session = requests.Session()
+if auth.get("mtls"):
+    # Tuple (cert, key) para PEM, ou string para PFX (requer pyOpenSSL)
+    session.cert = (auth["mtls"]["cert_path"], auth["mtls"]["key_path"])
+```
+
+Se `auth.mtls.cert_path` não for fornecido, registra `status: "skipped"` com `reason: "mtls_cert_missing"` — **nunca** tenta conexão sem certificado em endpoint que exige mTLS.
 
 ---
 
@@ -576,6 +680,28 @@ if systemic_auth_failure:
 ```
 
 Essa checagem **complementa** a detecção via `setup_status.json` — não a substitui. Aplique ambas: setup_status para falha de login no globalSetup; checagem sistêmica para APIs que exigem credencial de infraestrutura independente do fluxo de login.
+
+---
+
+### Regra: Server-Sent Events e chunked streaming não são suportados
+
+`APIRequestContext` do Playwright aguarda a resposta completa antes de retornar — **não suporta streaming incremental** (`Content-Type: text/event-stream`, `Transfer-Encoding: chunked` com múltiplos chunks progressivos).
+
+**Comportamento obrigatório** quando o TC descreve "verificar eventos SSE", "consumir stream", "ler chunks em tempo real":
+```python
+results.append({
+    "id": tc_id,
+    "title": title,
+    "status": "skipped",
+    "reason": "streaming_not_supported",
+    "message": "APIRequestContext não suporta SSE/chunked streaming. "
+               "Use executor-websocket para streams bidirecionais ou "
+               "teste apenas o endpoint de inicialização do stream (status 200).",
+    "logs": [f"[SKIP] {title} — streaming requer cliente assíncrono dedicado"]
+})
+```
+
+Se o TC tiver **duas partes** — (1) iniciar stream + (2) consumir eventos — execute somente a parte 1 (status 200) e registre parte 2 como `skipped`.
 
 ---
 

@@ -263,6 +263,25 @@ page.click("a[href*='viewPersonalDetails']")                     # ❌ idem
 
 Exceção: `href*=` é permitido apenas quando o href contém um domínio externo ou um path de API REST que o time controla (ex: `a[href*='https://docs.empresa.com']`).
 
+## Regra de seletores em Shadow DOM
+
+**Shadow DOM encapsulado** (Web Components, Lit, Stencil, FAST) **não é acessível** via seletores CSS normais nem `getByTestId`. Use a sintaxe `pierce/` do Playwright para atravessar shadow boundaries:
+
+```typescript
+// ✅ pierce/ atravessa shadow root automaticamente
+const btn = page.locator('pierce/button[data-testid="submit"]');
+await btn.click();
+
+// ✅ Locator encadeado a partir do host element
+const inner = page.locator('my-component').locator('button');
+await inner.click();
+```
+
+**Se o componente pertencer a third-party** sem `data-testid` e inacessível mesmo com `pierce/`:
+- Registra `status: "skipped"` com `reason: "shadow_dom_inaccessible"`
+- Documenta nos `logs`: `[SKIP] Componente <nome> encapsulado — shadow root sem accessor público`
+- **Nunca** tenta adivinhar XPath interno de Web Component de terceiros
+
 **3. Quando o elemento não tiver texto visível claro** — use seletor genérico
 tolerante e registre nos logs que o seletor é aproximado:
 ```typescript
@@ -370,6 +389,22 @@ if "practicesoftwaretesting" in page.url or "orangehrmlive" in page.url:
     page.set_default_timeout(30000)
     page.set_default_navigation_timeout(45000)
 ```
+
+**5. Multi-tab (link que abre nova aba)**
+
+Quando o step descreve "clicar em link que abre nova aba" ou elemento com `target="_blank"`:
+
+```typescript
+// ✅ Aguarda nova página ANTES do clique
+const [newPage] = await Promise.all([
+  page.context().waitForEvent('page'),
+  page.locator('a[target="_blank"]').click(),
+]);
+await newPage.waitForLoadState('domcontentloaded');
+// Continua os steps seguintes em newPage (não em page)
+```
+
+❌ **Nunca** clique no link sem capturar o evento `'page'` — a aba abre mas não há referência para continuar o teste e o script falha com `TimeoutError` no próximo seletor.
 
 **Timeouts adaptativos por domínio** — aplique no início de cada spec:
 ```typescript
@@ -930,6 +965,49 @@ O campo `generated_files` no JSON **sempre é preenchido** com todos os arquivos
 
 Nunca use seletores por classe CSS gerada dinamicamente (ex: `.css-1x2y3z`).
 
+**6. Campos contenteditable (TipTap, ProseMirror, Quill, CKEditor)**
+
+`fill()` e `type()` **não funcionam** em `contenteditable="true"`. Causam falha silenciosa — o campo parece preenchido mas está vazio.
+
+```typescript
+// ✅ keyboard.type() funciona em contenteditable focado
+await page.locator('[contenteditable="true"]').click();
+await page.keyboard.type('Texto digitado pelo usuário');
+
+// ✅ Se o step precisar de conteúdo HTML estruturado
+await page.evaluate(() => {
+  const el = document.querySelector('[contenteditable="true"]');
+  el.innerHTML = '<p>conteúdo estruturado</p>';
+  el.dispatchEvent(new Event('input', { bubbles: true }));
+  el.dispatchEvent(new Event('change', { bubbles: true }));
+});
+```
+
+❌ **Nunca use**: `locator('[contenteditable]').fill('texto')` — silencia sem erro e deixa campo vazio.
+
+## Regra para upload de arquivo (file input / dialog nativo)
+
+`input[type="file"]` e dialogs nativos do SO requerem tratamento especial — `click()` simples trava aguardando interação do usuário:
+
+```typescript
+// ✅ Intercepta o filechooser ANTES do clique que o dispara
+const [fileChooser] = await Promise.all([
+  page.waitForEvent('filechooser'),
+  page.locator('button:has-text("Enviar arquivo")').click(),
+]);
+await fileChooser.setFiles('/caminho/para/arquivo.pdf');
+
+// ✅ Se o input[type="file"] está diretamente acessível no DOM
+await page.locator('input[type="file"]').setInputFiles('/caminho/para/arquivo.pdf');
+```
+
+**Se o TC não especificar o caminho do arquivo:** crie um arquivo temporário mínimo em `tmp_browser_[timestamp]/`:
+- PDF → arquivo com `%PDF-1.4` no header
+- Imagem → use `page.screenshot()` em uma página em branco
+- CSV → `"col1","col2"\n"val1","val2"`
+
+❌ **Nunca** use `page.locator('input[type="file"]').click()` sem `waitForEvent('filechooser')` — trava indefinidamente em CI/CD (sem display real).
+
 ### Timeout adaptativo por tipo de ambiente
 
 - `*.herokuapp.com`: `defaultNavigationTimeout 60000ms`, `defaultTimeout 30000ms`
@@ -1054,6 +1132,13 @@ const setupStatus = fs.existsSync('setup_status.json')
 fs.existsSync('setup_status.json') && fs.unlinkSync('setup_status.json');
 ```
 Se `credentials_failed: true`, defina o campo na raiz e no `summary`. O orquestrador detecta e pede novas credenciais ao usuário antes de re-despachar.
+
+---
+
+## O que este executor NÃO faz
+
+- **App Electron** (`electron://`, `app://`) — requer `_electron.launch()` do Playwright, não disponível neste executor. Registra `status: "skipped"` com `reason: "executor_incompatible"` e orienta uso de executor dedicado para Electron.
+- **PWA em modo offline / Service Worker** — Playwright não controla cache de Service Worker por padrão. Se o step mencionar "modo offline", "sem conexão" ou "cache local", registra `status: "skipped"` com `reason: "offline_mode_not_supported"` em vez de tentar navegar e falhar com `net::ERR_INTERNET_DISCONNECTED`.
 
 ---
 

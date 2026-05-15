@@ -189,6 +189,62 @@ Para cada teste:
    });
    ```
 
+### Parametrização por color scheme (dark/light mode)
+
+Quando o TC menciona "dark mode", "tema escuro", "light mode" ou "verificar ambos os temas":
+
+```typescript
+// ✅ Teste com dark mode
+test('Visual — dark mode', async ({ browser }) => {
+  const context = await browser.newContext({
+    colorScheme: 'dark',   // 'light' | 'dark' | 'no-preference'
+  });
+  const page = await context.newPage();
+  await page.goto(URL, { waitUntil: 'domcontentloaded' });
+  await expect(page).toHaveScreenshot(`${TC_ID}-dark.png`, { threshold: 0.02 });
+});
+```
+
+**Regra:** baseline gerado em dark mode **não é comparável** com baseline em light mode. Os arquivos de baseline devem ter sufixo distinto (`-dark.png` vs `-light.png`).
+
+Se o TC pede "testar os dois temas", gera 2 resultados: `TC-ID-dark` e `TC-ID-light`, cada um com seu baseline.
+
+### Regra: devicePixelRatio e baseline portabilidade
+
+Baselines criados em máquina com `devicePixelRatio: 1` (monitores comuns) **divergem** em máquinas retina/HiDPI (`devicePixelRatio: 2`). Resultado: `baseline_created` na máquina nova mas `failed` com diff alto em CI.
+
+**Solução obrigatória:** fixe `deviceScaleFactor` explicitamente no contexto do Playwright:
+
+```typescript
+const context = await browser.newContext({
+  deviceScaleFactor: 1,  // Fixo — nunca use o valor do dispositivo host
+  viewport: { width: 1280, height: 720 },
+});
+```
+
+**Regra:** se `deviceScaleFactor` não estiver explícito no contexto, o executor DEVE fixá-lo em `1` automaticamente antes de criar baselines. Documenta nos logs: `[CONFIG] deviceScaleFactor=1 (fixado para portabilidade de baseline)`.
+
+### Captura de print CSS (`@media print`)
+
+Quando o TC menciona "verificar layout de impressão", "PDF de relatório" ou "print preview":
+
+```typescript
+// ✅ Captura screenshot no contexto de impressão
+await page.emulateMedia({ media: 'print' });
+await expect(page).toHaveScreenshot(`${TC_ID}-print.png`, { threshold: 0.02 });
+
+// ✅ Gera PDF diretamente (alternativa)
+await page.pdf({
+  path: path.join(SUITE_DIR, `${TC_ID}-print.pdf`),
+  format: 'A4',
+  printBackground: true,
+});
+```
+
+Baseline de print é **separado** do baseline padrão — use sufixo `-print.png`.
+
+**Se o TC não especificar "print" mas mencionar relatório/exportação:** use o screenshot normal (modo `screen`), não `print`.
+
 > **Multi-URL:** quando o contexto contiver `multi_url: true`, cada TC pode ter uma URL de destino diferente. Ao gerar o código Playwright de cada TC, use `tc.resolved_base_url` como URL base do `page.goto()` daquele TC em vez da variável global `base_url`. Quando `multi_url: false` ou ausente, mantenha o comportamento atual.
 
    Para capturar apenas um elemento específico (ex: modal, card, componente isolado):
