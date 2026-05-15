@@ -22,7 +22,7 @@ function Get-SquadVersion {
 # ── Banner ─────────────────────────────────────────────────────────────────
 Write-Host ""
 Write-Host "=================================================="
-Write-Host "   Squad QA — Atualizador de versao"
+Write-Host "   Squad QA - Atualizador de versao"
 Write-Host "=================================================="
 Write-Host ""
 
