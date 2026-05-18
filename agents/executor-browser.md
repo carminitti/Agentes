@@ -727,7 +727,19 @@ Para cada conjunto de testes:
    | "deve estar desabilitado" | `expect(locator).toBeDisabled()` |
    | diálogo de confirmação | `page.once('dialog', d => d.accept())` antes do clique |
 
-5. **Gere `playwright.config.ts`:**
+5. **Determine `EVIDENCE_MODE` antes de gerar o config** — analise os `type` de todos os TCs recebidos:
+
+   | Condição | `EVIDENCE_MODE` | Comportamento |
+   |---|---|---|
+   | Todos os TCs são `smoke` ou `regressão` | `failure-only` | Screenshots e vídeos gerados **apenas em falhas** — testes aprovados não geram artefatos visuais |
+   | Qualquer TC é `sanity`, `e2e`, `cross-browser` ou `mobile` | `full` | Screenshots e vídeos gerados **sempre**, independente do resultado |
+   | `screenshot_all: true` no contexto do orquestrador | `full` | Força evidência completa independente dos tipos |
+
+   Defina `EVIDENCE_MODE` no `.env` conforme a regra acima.
+
+   **Por que:** testes de smoke e regressão são executados com alta frequência; evidências de casos aprovados geram ruído sem valor diagnóstico. Testes de sanity, E2E e cross-browser validam fluxos e componentes visuais — a evidência positiva é necessária para confirmar o comportamento esperado.
+
+6. **Gere `playwright.config.ts`:**
 
    ```typescript
    import { defineConfig, devices } from '@playwright/test';
@@ -756,15 +768,15 @@ Para cada conjunto de testes:
        ignoreHTTPSErrors: true,
        baseURL: process.env.BASE_URL,
        trace: 'retain-on-failure',
-       screenshot: 'on',
-       video: 'on',
+       screenshot: process.env.EVIDENCE_MODE === 'failure-only' ? 'retain-on-failure' : 'on',
+       video: process.env.EVIDENCE_MODE === 'failure-only' ? 'retain-on-failure' : 'on',
      },
    });
    ```
 
    Quando `DEVICE_NAME` estiver definido no `.env`, o spread `...devices[DEVICE_NAME]` injeta viewport, userAgent e hasTouch do dispositivo automaticamente. Não adicione `viewport` fixo em paralelo — o device descriptor já define o correto.
 
-6. **Instale dependências e execute:**
+7. **Instale dependências e execute:**
 
    Use cache compartilhado para evitar `npm install` completo a cada execução:
    ```powershell
@@ -909,10 +921,11 @@ Durante a execução, colete um log de cada ação relevante realizada por cada 
 
 ## Persistência obrigatória em disco
 
-**Inclua `SUITE_DIR` no `.env` gerado** (quando presente no contexto). Quando o contexto contiver `retry_count`, inclua também `RETRY_COUNT`:
+**Inclua `SUITE_DIR` no `.env` gerado** (quando presente no contexto). Quando o contexto contiver `retry_count`, inclua também `RETRY_COUNT`. Inclua sempre `EVIDENCE_MODE` conforme a política determinada no passo 5:
 ```
 SUITE_DIR=suite_browser_20260511_100000
 RETRY_COUNT=<valor_do_retry_count>
+EVIDENCE_MODE=<failure-only | full>
 ```
 
 Ao final de cada execução, grave os artefatos no diretório correto:
