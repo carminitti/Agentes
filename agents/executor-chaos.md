@@ -266,7 +266,7 @@ def test_recovery(app_url, auth_headers, endpoint, recovery_timeout_s=10):
 
 | Tipo | Implementação | O que testa |
 |------|--------------|-------------|
-| `latency` | Toxiproxy `latency` / sleep 5 s | Timeout próprio da app |
+| `latency` | Toxiproxy `latency` (end-to-end) / sleep 5 s no fault server chamado diretamente (simulação) | Timeout próprio da app (Toxiproxy) ou validação do mecanismo de injeção (simulação) |
 | `connection_refused` | Toxiproxy `limit_data bytes=0` / porta fechada | Circuit breaker |
 | `http_502` / `http_503` | Fault server Flask | Degradação graciosa |
 | `partial_response` | JSON malformado no fault server | Parsing defensivo |
@@ -398,7 +398,8 @@ def run(tc_id, title, fn):
         results.append({
             "id": tc_id, "title": title, "status": "error",
             "duration_ms": int((time.time() - start) * 1000),
-            "chaos_details": None, "error": str(e),
+            "chaos_details": None,
+            "error": str(e) if str(e) else f"{type(e).__name__} (sem mensagem)",
         })
 
 # ── Test Cases ────────────────────────────────────────────────────────────────
@@ -473,12 +474,31 @@ A partir dos steps de cada TC recebido, gere funções específicas para os padr
 
 ### Latência alta → timeout correto na aplicação
 
-- Ativa fault: `CURRENT_FAULT["type"] = "latency"` (fault server dorme 5 s) ou Toxiproxy `latency` com `latency=5000`
-- Chama o endpoint com `timeout=TIMEOUT_S` (max 15 s para o teste não travar)
-- Valida: a aplicação devolve resposta em até 15 s (não trava junto com o dependente)
+**Modo Toxiproxy (quando disponível):**
+- Ativa toxic: `toxi.add_toxic(PROXY_NAME, "latency-tc", "latency", {"latency": 5000, "jitter": 0})`
+- Chama o endpoint da aplicação que roteia pelo proxy Toxiproxy, com `timeout=TIMEOUT_S` (max 15 s)
 - Valida: `status_code in (200, 503, 504, 408)` — não trava indefinidamente
-- Se `requests.exceptions.Timeout` for levantado pelo requests (app não respondeu em 15 s): falha grave — `AssertionError("App travou junto com serviço dependente — sem timeout próprio")`
+- Se `requests.exceptions.Timeout`: falha grave — `AssertionError("App travou junto com serviço dependente — sem timeout próprio")`
+- Remove toxic no `finally`
 - Registra: `latency_injected_ms`, `app_response_code`, `app_responded_in_ms`
+
+**Modo http_simulation (sem Toxiproxy):**
+O fault server Flask local simula a latência. A aplicação sob teste **não roteia pelo fault server** em modo simulado — portanto o teste valida o **mecanismo de injeção**, não o comportamento da aplicação real.
+
+- Ativa fault: `CURRENT_FAULT["type"] = "latency"` (fault server dorme 5 s e responde 200)
+- **Obrigatório: chame `FAULT_SERVER` diretamente**, não `BASE_URL`:
+  ```python
+  t_start = time.time()
+  resp = requests.get(f"{FAULT_SERVER}/health", timeout=15)
+  elapsed_ms = int((time.time() - t_start) * 1000)
+  assert elapsed_ms >= 4500, f"Latência injetada insuficiente: {elapsed_ms}ms (esperado ≥4500ms)"
+  assert resp.status_code == 200, f"Fault server retornou {resp.status_code}"
+  ```
+- Valida: tempo de resposta ≥ 4500 ms (confirma que o sleep de 5 s foi executado)
+- Valida: fault server não crashou (status 200)
+- Remove fault no `finally`: `CURRENT_FAULT["type"] = None`
+- Adiciona nota no `chaos_details`: `"simulation_note": "Latência validada contra fault server. Teste end-to-end requer app configurada para rotear chamadas internas pelo fault server."`
+- Registra: `latency_injected_ms: 5000`, `fault_server_response_code`, `measured_latency_ms`
 
 ### Resposta inválida / JSON malformado → app não quebra
 

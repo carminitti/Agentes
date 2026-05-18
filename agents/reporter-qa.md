@@ -40,6 +40,7 @@ O **Total classificado** deve bater com `summary.environment_tests` do classifie
 // Schema de execution_metrics (passado pelo orquestrador-qa)
 {
   "suite_id": "suite_brw_api_20260515_140000",
+  "agent_version": "1.42.3",
   "suite_start_iso": "2026-05-15T14:00:00.000",
   "suite_end_iso": "2026-05-15T14:08:32.412",
   "total_duration_ms": 512412,
@@ -565,6 +566,7 @@ footer{text-align:center;padding:28px;color:var(--text-muted);font-size:13px;bor
   <span>📋 Suite: <code>[SUITE_ID]</code></span>
   <span>🕐 Início: <strong>[SUITE_START]</strong></span>
   <span>🏁 Fim: <strong>[SUITE_END]</strong></span>
+  <span style="margin-left:auto;opacity:.6">squad-qa v[AGENT_VERSION]</span>
 </div>
 
 <main>
@@ -576,6 +578,7 @@ Preencha os valores com dados reais de `execution_metrics`:
 - `[SUITE_ID]`: `suite_id`
 - `[SUITE_START]`: `suite_start_iso` formatado como `DD/MM/YYYY HH:mm:ss`
 - `[SUITE_END]`: `suite_end_iso` formatado como `DD/MM/YYYY HH:mm:ss`
+- `[AGENT_VERSION]`: `agent_version` de `execution_metrics`; se ausente, omita o `<span>` inteiro
 
 <main>
 

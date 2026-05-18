@@ -1703,6 +1703,7 @@ _t4_start = time.time()
 
 execution_metrics = {
     "suite_id": suite_dir,
+    "agent_version": "1.42.3",
     "suite_start_iso": datetime.datetime.fromtimestamp(_suite_start).isoformat(),
     "suite_end_iso": datetime.datetime.fromtimestamp(_t4_start).isoformat(),
     "total_duration_ms": int((_t4_start - _suite_start) * 1000),
@@ -1717,6 +1718,29 @@ execution_metrics = {
     "tcs_failed": sum(r.get("summary", {}).get("failed", 0) for r in executor_results.values()),
     "tcs_skipped": sum(r.get("summary", {}).get("skipped", 0) for r in executor_results.values()),
 }
+```
+
+**Formate a mensagem ao `reporter-qa` exatamente neste formato — nunca omita `execution_metrics`:**
+
+```
+## Contexto da suite
+{
+  "suite_id": "<valor de suite_dir>",
+  "base_url": "<valor de base_url, ou null se multi_url>",
+  "screenshot_all": <true|false>,
+  "lean_mode": false,
+  "total_tcs": <N tcs despachados>,
+  "execution_metrics": <JSON do objeto execution_metrics montado acima>
+}
+
+## Resultados dos executores
+<JSON completo de cada executor_result — um objeto por executor>
+
+## Tipos não executados
+<lista de tipos skipped com motivo, ex: "contrato: Pact Broker não configurado", "mobile: Appium não disponível">
+
+## Classificação original
+<JSON do classifier-testes com campos `steps` e `rationale` removidos de cada TC>
 ```
 
 O `reporter-qa` retornará o relatório HTML dual-mode completo. Após receber:

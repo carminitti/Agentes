@@ -192,6 +192,9 @@ python mcp_server/server.py
 
 | Version | Changes |
 |---|---|
+| v1.42.3 | `orquestrador-qa` — campo `agent_version: "1.42.3"` adicionado ao objeto `execution_metrics`. `reporter-qa` — `agent_version` adicionado ao schema de `execution_metrics`; info bar exibe `squad-qa vX.Y.Z` alinhado à direita (omitido se campo ausente). Melhorias 1 e 2 (health check e verificação de binários) já estavam implementadas desde versões anteriores na Etapa 2.9. |
+| v1.42.2 | `orquestrador-qa` — adicionado template explícito de invocação do `reporter-qa` com o campo `execution_metrics` obrigatório (formato `## Contexto da suite` + JSON). Antes, a instrução de passar `execution_metrics` estava em prosa e o LLM orquestrador omitiia o campo na chamada real ao reporter, fazendo a seção de métricas nunca aparecer no relatório. |
+| v1.42.1 | 2 bug fixes pós-análise de suite 20260518: `executor-visual` — `compare_screenshots()` substituiu placeholder `# ... lógica de comparação existente ...` por implementação real de pixel diff via Pillow+numpy (fallback MD5); status agora determinado exclusivamente por `diff_pct > threshold` (corrige `diff_percentage=0.0%` com `status=failed` contraditório); `run()` wrapper armazena `diff_percent` e usa fallback `"AssertionError sem mensagem"` / `f"{type(e).__name__} (sem mensagem)"` em ambos os `except`. `executor-chaos` — `except Exception` adiciona fallback para exceções sem texto (corrige `"error": ""`); cenário de latência em `http_simulation` instrui chamar `FAULT_SERVER` diretamente (não `BASE_URL`) com template concreto e validação de `elapsed_ms >= 4500` (corrige falha silenciosa do TC-CHAOS-004). |
 | v1.1.0 | Squad base criado |
 | v1.2–1.7 | Logs, POM, auth, SSL, classifier, etc. |
 | v1.8.0 | Acessibilidade e segurança corrigidos |

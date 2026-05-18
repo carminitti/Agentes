@@ -278,6 +278,26 @@ Baseline de print é **separado** do baseline padrão — use sufixo `-print.png
    class BaselineCreated(Exception):
        pass
 
+   def _pixel_diff_percent(path_a, path_b):
+       """Retorna % de pixels diferentes entre dois PNGs. Requer Pillow+numpy."""
+       try:
+           subprocess.run([sys.executable, "-m", "pip", "install", "-q",
+                           "Pillow", "numpy"], check=False)
+           from PIL import Image
+           import numpy as np
+           img_a = np.array(Image.open(path_a).convert("RGB"))
+           img_b = np.array(Image.open(path_b).convert("RGB"))
+           if img_a.shape != img_b.shape:
+               return 100.0  # dimensões distintas → regressão total
+           changed = np.any(np.abs(img_a.astype(int) - img_b.astype(int)) > 10, axis=2)
+           return round(float(changed.sum()) / changed.size * 100, 2)
+       except Exception:
+           # Fallback sem Pillow: comparação de hash MD5
+           import hashlib
+           ha = hashlib.md5(open(path_a, "rb").read()).hexdigest()
+           hb = hashlib.md5(open(path_b, "rb").read()).hexdigest()
+           return 0.0 if ha == hb else 100.0
+
    def compare_screenshots(tc_id, page, threshold_pct=0.2):
        baseline_path = os.path.join(BASELINE_DIR, f"{tc_id}.png")
        current_path  = os.path.join(CURRENT_DIR,  f"{tc_id}_current.png")
@@ -285,34 +305,51 @@ Baseline de print é **separado** do baseline padrão — use sufixo `-print.png
        if not os.path.exists(baseline_path):
            shutil.copy(current_path, baseline_path)
            raise BaselineCreated(f"Baseline criado: {baseline_path}")
-       # ... lógica de comparação existente ...
+       # Cálculo real de pixel diff — status determinado EXCLUSIVAMENTE por diff_pct > threshold.
+       # diff_pct=0.0 significa SEMPRE passed; nunca marcar regressão sem diff de pixels real.
+       diff_pct = _pixel_diff_percent(baseline_path, current_path)
+       if diff_pct > threshold_pct:
+           raise AssertionError(
+               f"Visual regression detected — diff_percentage={diff_pct}% "
+               f"(threshold: {threshold_pct}%). "
+               f"Baseline: {baseline_path}, Current: {current_path}"
+           )
+       return diff_pct
 
    def run(tc_id, title, fn):
        t0 = time.time()
        try:
-           fn()
+           diff_pct = fn()
            ms = int((time.time()-t0)*1000)
            results.append({"id": tc_id, "title": title,
                             "status": "passed", "baseline": "existing",
+                            "diff_percent": diff_pct if isinstance(diff_pct, float) else None,
                             "duration_ms": ms})
        except BaselineCreated as e:
            ms = int((time.time()-t0)*1000)
            results.append({"id": tc_id, "title": title,
                             "status": "baseline_created", "baseline": "created",
+                            "diff_percent": None,
                             "duration_ms": ms,
                             "note": "⚠️ Primeira execução — baseline gerado. "
                                     "Valide visualmente o screenshot antes de usar como referência."})
            print(f"  BASELINE  {tc_id} ({ms}ms) — {e}")
        except AssertionError as e:
            ms = int((time.time()-t0)*1000)
+           import re as _re
+           m = _re.search(r'diff_percentage=([0-9.]+)%', str(e))
            results.append({"id": tc_id, "title": title,
                             "status": "failed", "baseline": "existing",
-                            "duration_ms": ms, "error": str(e)})
+                            "diff_percent": float(m.group(1)) if m else None,
+                            "duration_ms": ms,
+                            "error": str(e) if str(e) else "AssertionError sem mensagem"})
        except Exception as e:
            ms = int((time.time()-t0)*1000)
            results.append({"id": tc_id, "title": title,
                             "status": "error", "baseline": "unknown",
-                            "duration_ms": ms, "error": str(e)})
+                            "diff_percent": None,
+                            "duration_ms": ms,
+                            "error": str(e) if str(e) else f"{type(e).__name__} (sem mensagem)"})
    ```
 
    O summary do resultado deve contar `baseline_created` separadamente de `passed`:
