@@ -459,6 +459,28 @@ hr.divider{border:none;border-top:1px solid var(--border);margin:40px 0}
 pre.code-content{background:rgba(0,0,0,.5);border:1px solid var(--border);border-radius:0 0 6px 6px;padding:16px;font-family:'Courier New',monospace;font-size:12px;color:#cdd6f4;overflow-x:auto;white-space:pre;max-height:500px;overflow-y:auto;line-height:1.7;margin:0}
 .code-null-notice{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px 18px;font-size:13px;color:var(--text-muted);display:flex;align-items:center;gap:10px}
 
+/* ── TAB: CÓDIGO + RESULTADO — anotações inline e painel ── */
+.code-line-pass{color:var(--green-light) !important;font-size:11.5px;display:block}
+.code-line-info{color:var(--orange-light) !important;font-size:11.5px;display:block;opacity:.8}
+.exec-result-panel{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:16px 18px;margin-top:20px}
+.exec-result-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.assert-list{display:flex;flex-direction:column;gap:0}
+.assert-row{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid rgba(46,52,80,.3);font-size:13px}
+.assert-row:last-child{border-bottom:none}
+.assert-icon{width:22px;flex-shrink:0;text-align:center;padding-top:1px;font-size:14px}
+.assert-desc{flex:1;color:var(--text-muted);line-height:1.5}
+.assert-desc strong{color:var(--text);font-weight:600}
+.assert-desc code{font-size:11.5px}
+.assert-value{font-family:'Courier New',monospace;font-size:12px;white-space:nowrap;flex-shrink:0;padding-top:2px}
+.ar-pass .assert-desc{color:var(--text)}
+.ar-pass .assert-value{color:var(--green-light)}
+.ar-fail .assert-desc{color:var(--red-light)}
+.ar-fail .assert-value{color:var(--red-light);font-weight:700}
+.ar-skip .assert-desc{color:var(--text-dim)}
+.ar-skip .assert-value{color:var(--text-dim)}
+.ar-info .assert-desc{color:var(--text-muted)}
+.ar-info .assert-value{color:var(--orange-light)}
+
 /* ── TAB: LOGS ── */
 .log-section{margin-bottom:16px}
 .log-section-lbl{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);margin-bottom:6px;display:flex;align-items:center;gap:6px}
@@ -1182,7 +1204,7 @@ Preencha os valores com dados reais de `execution_metrics`:
         <div class="tab-bar">
           <button class="tab-btn active" onclick="switchTab('[ID]','overview',this)">📋 Resumo</button>
           <button class="tab-btn" onclick="switchTab('[ID]','steps',this)">🔢 Steps</button>
-          <button class="tab-btn" onclick="switchTab('[ID]','code',this)">💻 Código</button>
+          <button class="tab-btn" onclick="switchTab('[ID]','code',this)">💻 Código + Resultado</button>
           <button class="tab-btn" onclick="switchTab('[ID]','logs',this)">📜 Logs</button>
           <!-- apenas se tem screenshot ou video: -->
           <!-- <button class="tab-btn" onclick="switchTab('[ID]','attach',this)">📎 Evidências</button> -->
@@ -1194,7 +1216,7 @@ Preencha os valores com dados reais de `execution_metrics`:
           <button class="tab-btn" onclick="switchTab('[ID]','overview',this)">📋 Resumo</button>
           <button class="tab-btn" onclick="switchTab('[ID]','steps',this)">🔢 Steps</button>
           <button class="tab-btn tab-fail active" onclick="switchTab('[ID]','error',this)">❌ O que Falhou</button>
-          <button class="tab-btn" onclick="switchTab('[ID]','code',this)">💻 Código</button>
+          <button class="tab-btn" onclick="switchTab('[ID]','code',this)">💻 Código + Resultado</button>
           <button class="tab-btn" onclick="switchTab('[ID]','logs',this)">📜 Logs</button>
           apenas se tem screenshot ou video:
           <button class="tab-btn" onclick="switchTab('[ID]','attach',this)">📎 Evidências</button>
@@ -1467,31 +1489,83 @@ Preencha os valores com dados reais de `execution_metrics`:
 
         </div>
 
-        <!-- ── TAB: CÓDIGO ──
-             INSTRUÇÃO GERAL: mostre o código que realmente rodou para este TC.
-             Prioridade: legibilidade e diagnóstico — não dump do arquivo inteiro.
+        <!-- ── TAB: CÓDIGO + RESULTADO ──
+             INSTRUÇÃO GERAL: mostre o código que rodou E o resultado real de cada passo.
+             Obrigatório para todos os status exceto "skipped". Prioridade: diagnóstico completo.
 
-             BLOCO 1 — FUNÇÃO/BLOCO DO TESTE (obrigatório se generated_files disponível):
-             - Extraia APENAS o bloco test() / def test_xxx() / função que corresponde
-               a este TC (pelo título ou ID). Não inclua o arquivo inteiro.
-             - Dentro do bloco, marque com comentário a linha exata da assertion que falhou:
-               TypeScript: // ← FALHOU: [mensagem curta do erro]
-               Python:     # ← FALHOU: [mensagem curta do erro]
-             - Use a classe CSS "code-fail-line" no <span> que envolve essa linha
-               (ou escreva o comentário inline se span não for possível).
-             - Marque o cabeçalho com tag "📌 Arquivo principal" + "⚠️ Falhou" se status=failed.
+             BLOCO 1 — FUNÇÃO/BLOCO DO TESTE com anotações de resultado:
+             - Extraia APENAS o bloco test() / def test_xxx() / função deste TC. Não inclua o arquivo inteiro.
+             - Anote CADA linha de asserção, requisição ou ação relevante com o resultado real obtido,
+               extraído de result.logs[]. Regras de anotação inline:
 
-             BLOCO 2 — ARQUIVOS DE SUPORTE (inclua apenas os relevantes para a falha):
+               → Asserção/check que PASSOU:
+                 Envolva a linha em <span class="code-line-pass"> e adicione comentário ao final:
+                 TypeScript: <span class="code-line-pass">  await expect(resp).toBe(200); // ✓ recebido: 200</span>
+                 Python:     <span class="code-line-pass">  assert resp.status_code == 200  # ✓ recebido: 200</span>
+
+               → Asserção/check que FALHOU:
+                 Envolva a linha em <span class="code-fail-line"> e adicione comentário ao final:
+                 TypeScript: <span class="code-fail-line">  await expect(page).toHaveURL('/dashboard'); // ← FALHOU: recebido "/login?error=1"</span>
+                 Python:     <span class="code-fail-line">  assert resp.status_code == 200  # ← FALHOU: recebido 404</span>
+
+               → Ação/requisição (sem asserção direta):
+                 Envolva em <span class="code-line-info"> e anote o que ocorreu:
+                 TypeScript: <span class="code-line-info">  await page.goto(BASE_URL + '/login'); // → navegou para /login (200)</span>
+                 Python:     <span class="code-line-info">  resp = requests.get(f"{BASE_URL}/api/users")  # → GET /api/users → 200 OK</span>
+
+               → Linhas sem impacto no resultado (imports, variáveis, configuração): sem anotação.
+
+             - Marque o cabeçalho com "📌 Arquivo principal" + "⚠️ Falhou" se status=failed.
+             - Escape obrigatório no HTML: &lt; para <  |  &gt; para >  |  &amp; para &
+
+             BLOCO 2 — ARQUIVOS DE SUPORTE (inclua apenas se relevante para a falha):
                executor-browser  → Page Object do elemento que falhou + globalSetup.ts
                executor-api      → schema Zod da rota + ApiClient.ts (apenas métodos usados)
-               executor-visual   → configuração de threshold (playwright.config.ts)
-               executor-perf     → script k6 completo (é arquivo único — pode incluir tudo)
-               executor-a11y     → nenhum arquivo extra necessário normalmente
-               executor-seguranca→ nenhum arquivo extra necessário normalmente
-               executor-banco    → nenhum arquivo extra necessário normalmente
+               executor-visual   → playwright.config.ts (configuração de threshold)
+               executor-perf     → script k6 completo (arquivo único — inclua tudo)
+               executor-a11y / executor-seguranca / executor-banco → nenhum arquivo extra normalmente
 
-             SE generated_files for null (sem falhas ou executor não retornou código):
-             Mostre apenas o aviso com o caminho em disco. Não invente código. -->
+             BLOCO 3 — PAINEL DE RESULTADO DA EXECUÇÃO (obrigatório para todos exceto skipped):
+             - Gere imediatamente após os blocos de código.
+             - Mostre cada asserção/check/requisição como uma linha `.assert-row`.
+             - Use classes ar-pass (✅), ar-fail (❌), ar-skip (⏭️), ar-info (ℹ️).
+             - A coluna `.assert-value` mostra o valor real obtido (ex: "200 OK", "12 registros", "4.7%").
+             - Conteúdo específico por executor:
+
+               executor-api:
+                 - Uma linha ar-info por requisição: "GET /api/users" → "200 OK — 12 items"
+                 - Uma linha ar-pass/ar-fail por assertion de status, schema ou campo específico
+                 - Valores reais extraídos de result.logs[] linhas [REQUEST], [ASSERT], [RESP-BODY]
+
+               executor-browser:
+                 - Uma linha ar-info por navegação: "goto /login" → "200"
+                 - Uma linha ar-pass/ar-fail por expect/assertion
+                 - URL final do teste (extraída de logs [NAV] e [ASSERT])
+
+               executor-performance:
+                 - Uma linha ar-pass/ar-fail por threshold: "p(95) < 200ms" → "178ms" (pass) ou "412ms" (fail)
+                 - Uma linha ar-info com throughput: "RPS médio" → "142 req/s"
+                 - Valores de result.logs[] linhas [THRESHOLD] e [K6-SUMMARY]
+
+               executor-visual:
+                 - Uma linha ar-pass/ar-fail: "Diff de pixels" → "0.00% (0 pixels)" ou "3.2% (4.820 pixels)"
+                 - Uma linha ar-info: "Baseline" → "existing | created"
+
+               executor-banco:
+                 - Uma linha ar-info/ar-pass/ar-fail por query: "SELECT users WHERE active=1" → "12 linhas"
+                 - Valores de result.logs[] linhas [QUERY-RESULT]
+
+               executor-acessibilidade:
+                 - Uma linha ar-fail por violação: "color-contrast (critical)" → "3 elementos afetados"
+                 - Uma linha ar-pass se nenhuma violação: "Nenhuma violação critical/serious" → "0"
+
+               executor-seguranca:
+                 - Uma linha ar-pass/ar-fail por header: "Content-Security-Policy" → "presente | AUSENTE"
+                 - Uma linha ar-pass/ar-fail por endpoint: "GET /admin" → "401 ✓ | 200 ✗"
+
+             SE generated_files for null:
+             Mostre apenas o aviso com o caminho em disco no BLOCO 1. Não invente código.
+             Gere o BLOCO 3 mesmo assim se result.logs[] contiver dados suficientes. -->
         <div class="tab-panel" data-tc="[ID]" data-tab="code">
 
           <!-- SE generated_files for null: -->
@@ -1500,7 +1574,7 @@ Preencha os valores com dados reais de `execution_metrics`:
             <code>[suite_dir]/[executor]/</code>
           </div> -->
 
-          <!-- BLOCO 1: FUNÇÃO DO TESTE — extraia apenas o bloco deste TC -->
+          <!-- BLOCO 1: FUNÇÃO DO TESTE com anotações de resultado inline -->
           <div class="code-file">
             <div class="code-file-hdr">
               📄 <span>[nome-do-arquivo.spec.ts | test_xxx.py | script.js]</span>
@@ -1508,33 +1582,67 @@ Preencha os valores com dados reais de `execution_metrics`:
               <!-- se status == failed: <span class="fail-tag">⚠️ Falhou</span> -->
             </div>
             <pre class="code-content"><!-- Conteúdo: APENAS o bloco test()/função deste TC.
-Marque a linha que falhou com o comentário ← FALHOU.
+Anote cada linha relevante com o resultado real obtido (ver instruções acima).
 Escape: &lt; para <  |  &gt; para >  |  &amp; para &
 
-Exemplo (TypeScript):
-test('TC-001 — Login válido', async ({ page }) => {
-  await page.goto(BASE_URL + '/login');
-  await page.fill('#email', USER_EMAIL);
-  await page.fill('#password', USER_PASSWORD);
-  await page.click('#btn-submit');
-  await expect(page).toHaveURL('/dashboard'); // ← FALHOU: received "/error"
+Exemplo (TypeScript — passed):
+test('TC-001 — Listar usuários', async () => {
+  <span class="code-line-info">  const resp = await request.get('/api/users');  // → GET /api/users → 200 OK</span>
+  <span class="code-line-pass">  expect(resp.status()).toBe(200);  // ✓ recebido: 200</span>
+  <span class="code-line-pass">  expect(resp.json().data.length).toBeGreaterThan(0);  // ✓ recebido: 12 items</span>
 });
 
-Exemplo (Python):
-def test_get_users():
-    resp = requests.get(f"{BASE_URL}/api/users", headers=headers)
-    assert resp.status_code == 200, f"Expected 200, got {resp.status_code}"  # ← FALHOU: got 404
-    data = resp.json()
-    assert "data" in data  --></pre>
+Exemplo (Python — failed):
+def test_get_user():
+  <span class="code-line-info">  resp = requests.get(f"{BASE_URL}/api/users/999")  # → GET /api/users/999 → 404 Not Found</span>
+  <span class="code-fail-line">  assert resp.status_code == 200  # ← FALHOU: recebido 404</span>
+  data = resp.json()
+  assert "data" in data  --></pre>
           </div>
 
-          <!-- BLOCO 2: ARQUIVOS DE SUPORTE — inclua apenas se relevante para a falha -->
+          <!-- BLOCO 2: ARQUIVOS DE SUPORTE — inclua apenas se relevante para o diagnóstico -->
           <!-- <div class="code-file">
             <div class="code-file-hdr">
               📄 <span>[arquivo-de-suporte.ts | schema.ts | config.ts]</span>
             </div>
             <pre class="code-content">[conteúdo do arquivo de suporte — apenas seções relevantes]</pre>
           </div> -->
+
+          <!-- BLOCO 3: PAINEL DE RESULTADO DA EXECUÇÃO
+               INSTRUÇÃO: gere para todos os status exceto "skipped".
+               Uma linha .assert-row por asserção/requisição/check.
+               Use ar-pass (✅ passou), ar-fail (❌ falhou), ar-info (ℹ️ info), ar-skip (⏭️ não verificado).
+               .assert-value = valor real obtido (ex: "200 OK", "12 rows", "3.2%"). -->
+          <div class="exec-result-panel">
+            <div class="exec-result-title">
+              📊 Resultado da execução
+              <!-- badge de resumo: <span class="badge b-green">N/N ✓</span> ou <span class="badge b-red">N falhas</span> -->
+            </div>
+            <div class="assert-list">
+
+              <!-- Repita .assert-row para cada asserção/check/requisição: -->
+              <div class="assert-row ar-pass">
+                <div class="assert-icon">✅</div>
+                <div class="assert-desc"><strong>[descrição da asserção ou ação]</strong> — <code>[trecho do código]</code></div>
+                <div class="assert-value">[valor real obtido]</div>
+              </div>
+
+              <!-- Exemplo de falha: -->
+              <!-- <div class="assert-row ar-fail">
+                <div class="assert-icon">❌</div>
+                <div class="assert-desc"><strong>[asserção que falhou]</strong> — esperado: <code>[X]</code></div>
+                <div class="assert-value">[obtido: Y]</div>
+              </div> -->
+
+              <!-- Exemplo de informação (sem asserção direta): -->
+              <!-- <div class="assert-row ar-info">
+                <div class="assert-icon">ℹ️</div>
+                <div class="assert-desc"><strong>[ação executada]</strong></div>
+                <div class="assert-value">[resultado da ação]</div>
+              </div> -->
+
+            </div>
+          </div>
 
         </div>
 
