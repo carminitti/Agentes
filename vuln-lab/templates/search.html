@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+{% block title %}— Busca{% endblock %}
+{% block content %}
+<div class="mb-4">
+  <h4 class="mb-3">Buscar transações</h4>
+  <form method="GET" class="d-flex gap-2">
+    <input name="q" class="form-control" value="{{ q }}" placeholder="Descrição da transação..." style="max-width:400px;" autofocus>
+    <button class="btn btn-primary"><i class="bi bi-search me-1"></i>Buscar</button>
+  </form>
+</div>
+
+{% if q %}
+<p class="text-muted small">Resultados para: <strong>{{ q|safe }}</strong></p>
+{% if error %}
+<div class="alert alert-danger">Erro na consulta: <code>{{ error }}</code></div>
+{% endif %}
+<div class="card">
+  <div class="card-body p-0">
+    {% if results %}
+    <table class="table table-hover mb-0">
+      <thead class="table-light">
+        <tr><th>#</th><th>Descrição</th><th>Destinatário</th><th class="text-end">Valor</th><th>Data</th></tr>
+      </thead>
+      <tbody>
+      {% for tx in results %}
+      <tr>
+        <td class="text-muted small">{{ tx['id'] }}</td>
+        <td><a href="/transaction/{{ tx['id'] }}" class="text-decoration-none">{{ tx['description'] }}</a></td>
+        <td>{{ tx['recipient'] }}</td>
+        <td class="text-end tx-amount-neg">R$ {{ "%.2f"|format(tx['amount']) }}</td>
+        <td class="text-muted small">{{ tx['created_at'] }}</td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="p-4 text-muted mb-0">Nenhum resultado encontrado.</p>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+{% endblock %}

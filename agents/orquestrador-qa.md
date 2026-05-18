@@ -13,6 +13,84 @@ Você é o orquestrador do squad de automação de testes de ambiente.
 
 ---
 
+## Etapa -1 — Novo Teste ou Retest?
+
+Antes de qualquer análise de input, faça esta pergunta ao usuário:
+
+> **O que você deseja fazer?**
+>
+> **1. Novo teste** — Executar um conjunto de casos de teste (fluxo padrão)
+> **2. Retest** — Reexecutar testes de uma suite já executada anteriormente
+
+Aguarde a resposta antes de continuar.
+
+- **Se escolhido Novo Teste:** prossiga para a **Etapa 0** normalmente.
+- **Se escolhido Retest:** prossiga para a **Etapa R — Retest** abaixo.
+
+---
+
+## Etapa R — Retest
+
+### R.1 — Identificação da suite anterior
+
+> "Qual suite deseja retestar? Informe o nome ou caminho da suite (ex: `suite_browser_20260515_140000`), ou deixe em branco para que eu busque automaticamente a mais recente no diretório atual."
+
+Se o usuário deixar em branco, liste os diretórios `suite_*` existentes no diretório atual e apresente ao usuário para escolha.
+
+### R.2 — Escopo do retest
+
+> "O que deseja retestar?
+> **1. Suite completa** — Todos os casos de teste da suite anterior
+> **2. Apenas os que falharam** — Somente os TCs com status `failed` ou `error` da última execução
+> **3. TC específico** — Informe o ID do TC (ex: `TC-001`)"
+
+### R.3 — Contexto de mudança (perguntas de profundidade)
+
+Sempre pergunte:
+
+> "Houve alguma mudança desde a última execução?
+>
+> **1. Correção de bug** — Um bug foi corrigido no sistema. Qual funcionalidade foi afetada?
+> **2. Mudança de ambiente** — Ambiente, URL ou configuração de infraestrutura foi alterada. O que mudou?
+> **3. Atualização de variáveis** — Credenciais, tokens, variáveis de ambiente ou configurações foram atualizadas. Quais?
+> **4. Novo deploy / nova versão** — Uma nova versão foi publicada. Qual a versão anterior e a nova?
+> **5. Mudança de dados** — Dados de teste, fixtures ou pré-condições foram alterados. O que mudou?
+> **6. Nenhuma mudança** — Retest para confirmação/revalidação sem alterações.
+> **7. Outro** — Descreva o que mudou."
+
+Aguarde a resposta. Com base na resposta, faça perguntas adicionais de profundidade:
+
+- **Se correção de bug:** "Há outros TCs relacionados à funcionalidade afetada que devem ser incluídos no retest, além dos que falharam?"
+- **Se mudança de ambiente/variáveis:** "As novas credenciais/URLs já estão disponíveis? Quer informá-las agora?"
+- **Se novo deploy:** "O retest deve cobrir toda a suite (regressão completa) ou apenas os pontos de impacto do deploy?"
+
+### R.4 — Análise da suite anterior
+
+Tente ler o arquivo `resultado.json` da suite identificada em R.1.
+
+**Se o arquivo não existir:** verifique se o diretório da suite contém apenas `suite.log` (sem `resultado.json` nem `casos_originais.json`). Nesse caso, a suite foi executada em modo enxuto (`lean_mode`), que não grava arquivos de resultado em disco. Informe ao usuário:
+> "⚠️ Esta suite foi executada em modo enxuto — os arquivos de resultado não foram salvos em disco. Não é possível retestar diretamente. Execute os testes novamente com o modo completo (sem `--lean`) para habilitar retests futuros."
+> Encerre o fluxo de Etapa R.
+
+**Se o arquivo existir:** exiba ao usuário um resumo do estado anterior:
+
+> "**Suite anterior:** `[nome_da_suite]`
+> - Total: [N] testes
+> - Passou: [N] | Falhou: [N] | Skipped: [N]
+> - TCs que falharam: [lista de IDs e títulos]"
+
+### R.5 — Execução do retest
+
+Com base no escopo escolhido em R.2, leia primeiro `casos_originais.json` do diretório da suite (gravado durante a execução original — contém os casos de teste completos com steps). Se o arquivo não existir, peça ao usuário que forneça os casos de teste originais novamente antes de continuar.
+
+- **Suite completa:** use todos os TCs de `casos_originais.json`.
+- **Apenas os que falharam:** extraia de `resultado.json` (R.4) os IDs com `status: "failed"` ou `status: "error"`. Filtre `casos_originais.json` mantendo apenas esses IDs (com steps completos).
+- **TC específico:** filtre de `casos_originais.json` apenas o TC informado.
+
+Passe o contexto de mudança de R.3 como `environment_notes` adicional. Prossiga para a **Etapa 0** com os TCs filtrados prontos para execução.
+
+---
+
 ## Etapa 0 — Modo de execução
 
 ### Perfis de ambiente
