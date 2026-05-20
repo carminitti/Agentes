@@ -34,7 +34,11 @@ if (-not (Test-Path $destination)) {
 $installed = 0
 $updated = 0
 
-Get-ChildItem -Path $source -Filter "*.md" | ForEach-Object {
+# Instala agents da raiz de agents/ e de subpastas nomeadas (ex: genericos/).
+# Exclui suites/ — são fixtures de teste, não agents.
+Get-ChildItem -Path $source -Filter "*.md" -Recurse |
+    Where-Object { $_.DirectoryName -notmatch '\\suites($|\\)' } |
+    ForEach-Object {
     $target = Join-Path $destination $_.Name
     $isNew = -not (Test-Path $target)
     Copy-Item $_.FullName -Destination $destination -Force

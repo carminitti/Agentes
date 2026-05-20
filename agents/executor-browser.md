@@ -13,7 +13,7 @@ Você executa testes de browser em um ambiente real usando Playwright com TypeSc
 
 ## Entrada esperada
 
-- Lista de testes com executor `magnitude`, `http` ou `playwright-mobile` dos tipos `smoke`, `sanity`, `regressão`, `e2e`, `cross-browser` ou `mobile` (web)
+- Lista de testes com executor `executor-browser` ou `playwright-mobile` dos tipos `smoke`, `sanity`, `regressão`, `e2e`, `cross-browser` ou `mobile` (web)
 - URL base do ambiente alvo
 - Configurações opcionais: credenciais de login, headers customizados, instrução de rodar múltiplos browsers
 

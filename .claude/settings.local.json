@@ -1,4 +1,17 @@
 {
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Bash|PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo \"%DATE% %TIME% [TOOL] $CLAUDE_TOOL_NAME\" >> C:\\Users\\gabriel.carminitti\\Documents\\claude\\agentes\\.qa-execution.log 2>nul"
+          }
+        ]
+      }
+    ]
+  },
   "permissions": {
     "allow": [
       "Bash(python *)",

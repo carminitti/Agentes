@@ -26,6 +26,19 @@ This directory contains custom agent definitions for Claude Code. Each `.md` fil
 
 The plugin is registered via `.claude-plugin/plugin.json` (name: `qa-agents`, version: `1.1.0`). The `agents` field points to `./agents/`, which is the only directory the plugin distributes.
 
+## Runtime Dependencies (External — not copied by install.ps1)
+
+The executor agents reference Python modules that live in the **project root** (one level above `agentes/`). These are **not** bundled into the plugin — they must be present on the machine at the paths below:
+
+| Module | Path from repo root | Used by |
+|--------|---------------------|---------|
+| `ProfileLoader` | `config/loader.py` | `classifier-testes`, `orquestrador-qa` |
+| `SessionManager` | `lib/session_manager.py` | `orquestrador-qa` |
+| `GherkinValidator` | `agents/gherkin_validator.py` | `gherkin-validator` |
+| `ExecutorPlugin` / `PluginRegistry` | `executors/plugin_base.py` | custom executor plugins |
+
+> **If you cloned only the `agentes/` subdirectory**, the squad will run but profile-based configuration, session persistence, Gherkin pre-validation and custom plugins will fall back to hardcoded defaults. Clone the full repository to get all features.
+
 ## Agent File Format
 
 Each agent is a Markdown file with YAML frontmatter:
@@ -64,8 +77,13 @@ There are two independent orchestration pipelines plus standalone agents.
 - **orquestrador-qa** (orchestrator) — single entry point; receives test cases, invokes `classifier-testes`, dispatches to executor subagents in parallel, and presents the consolidated report
 - **classifier-testes** (leaf) — classifies each test case by type (`smoke`, `sanity`, `regressão`, `e2e`, `integração`, `contrato`, `visual`, `acessibilidade`, `performance`, `carga`, `stress`, `soak`, `segurança`, `banco`, `cross-browser`, `mobile`, `data-driven`) and executor (`magnitude`, `http`, `k6`, `playwright-visual`, `axe-core`, `zap`, `db`, `pact`, `playwright-multibrowser`, `appium`, `parameterized`); excludes unit and manual tests
 - **executor-browser** — runs browser/UI tests (smoke, sanity, regression, E2E, cross-browser) using Playwright; also handles `http` tests of types `smoke`/`sanity`/`regressão`/`e2e`
+- **executor-browser-selenium** — variant: browser tests using Selenium WebDriver with Python POM; used when profile `browser.framework = "selenium"`
+- **executor-browser-cypress** — variant: browser tests using Cypress; used when profile `browser.framework = "cypress"`
 - **executor-api** — runs API/integration tests via real HTTP requests with Python `requests`; handles `http` tests of type `integração`
+- **executor-api-httpx** — variant: API tests using httpx with async support, HTTP/2 and Pydantic validation; used when profile `api.framework = "httpx"`
 - **executor-performance** — runs performance, load, stress and soak tests using k6
+- **executor-performance-jmeter** — variant: performance tests using Apache JMeter (JMX plans + JTL parse); used when profile `performance.framework = "jmeter"`
+- **executor-performance-gatling** — variant: performance tests using Gatling (Scala simulations); used when profile `performance.framework = "gatling"`
 - **executor-visual** — runs visual regression tests using Playwright screenshot comparison
 - **executor-acessibilidade** — runs WCAG accessibility tests using axe-core via Playwright
 - **executor-seguranca** — runs non-invasive security checks (auth, headers, CORS, exposed endpoints) using Python
@@ -96,8 +114,13 @@ The executor agents install lightweight Python/Node packages on demand, but some
 | Executor | Requires | Install hint |
 |---|---|---|
 | `executor-browser`, `executor-visual`, `executor-acessibilidade` | Node.js + `@playwright/test` + browser binaries | `npm install -D @playwright/test && npx playwright install chromium` |
+| `executor-browser-selenium` | Python + `selenium` + `webdriver-manager` | `pip install selenium webdriver-manager` |
+| `executor-browser-cypress` | Node.js + `cypress` | `npm install --save-dev cypress` |
 | `executor-performance` | k6 binary | `winget install k6` (Windows) — **not installable via npm** |
+| `executor-performance-jmeter` | JMeter binary (fallback Python) | `winget install apache-jmeter` \| `brew install jmeter`; fallback: `pip install requests` |
+| `executor-performance-gatling` | Gatling binary (fallback Python) | download em gatling.io \| `brew install gatling`; fallback: `pip install requests` |
 | `executor-api`, `executor-seguranca` | Python + `requests` | `pip install requests` |
+| `executor-api-httpx` | Python + `httpx` + `pydantic` | `pip install httpx[http2] pydantic` |
 | `executor-banco` | Python + DB driver (`psycopg2-binary`, `mysql-connector-python`, or `pyodbc`) | installed automatically at runtime via `pip install -q` |
 | `executor-websocket` | Python + `websockets` | installed automatically at runtime via `pip install -q websockets` |
 | `executor-grpc` | `grpcurl` binary + Python `grpcio` (fallback) | `winget install fullstorydev.grpcurl` (Windows) \| `brew install grpcurl` (macOS); `pip install grpcio grpcio-tools` |

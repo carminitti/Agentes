@@ -37,7 +37,7 @@ def _run_python(code: str, timeout: int = 60) -> str:
 
 
 def _run_k6(script: str, timeout: int = 180) -> str:
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".js", delete=False, dir=".", encoding="utf-8") as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".js", delete=False, encoding="utf-8") as f:
         f.write(script)
         path = f.name
     try:
@@ -137,7 +137,10 @@ for t in tests:
         if ok and t.get("expected_fields"):
             try:
                 body = resp.json()
-                ok = all(f in body for f in t["expected_fields"])
+                if isinstance(body, dict):
+                    ok = all(f in body for f in t["expected_fields"])
+                else:
+                    ok = False
             except Exception:
                 ok = False
 
@@ -247,7 +250,7 @@ export const options = {{
 }};
 
 export default function () {{
-  const res = http.get('{url}');
+  const res = http.get({json.dumps(url)});
   check(res, {{
     'status 200': (r) => r.status === 200,
     'dentro do threshold': (r) => r.timings.duration < {threshold_p95_ms},
@@ -278,10 +281,10 @@ def run_playwright_tests(
     import shutil
 
     with tempfile.NamedTemporaryFile(
-        mode="w", suffix=".spec.ts", delete=False, dir=".", encoding="utf-8"
+        mode="w", suffix=".spec.ts", delete=False, encoding="utf-8"
     ) as f:
-        f.write(script)
         spec_path = f.name
+        f.write(script)
 
     try:
         cmd = ["npx", "playwright", "test", spec_path, "--reporter=json"]
