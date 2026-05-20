@@ -203,14 +203,15 @@ max_workers = min(int(os.environ.get("MAX_PARALLEL_EXECUTORS", "1")), 5)
 
 if max_workers > 1 and not rate_limit:
     with ThreadPoolExecutor(max_workers=max_workers) as pool:
-        futures = {pool.submit(run_tc, tc): tc for tc in test_cases}
+        # asyncio.run() cria um event loop isolado por thread — necessário pois run_tc é async def
+        futures = {pool.submit(asyncio.run, run_tc(tc)): tc for tc in test_cases}
         for future in as_completed(futures):
             results.append(future.result())
 else:
     for tc in test_cases:
-        results.append(run_tc(tc))
+        results.append(asyncio.run(run_tc(tc)))
 ```
-Garanta que `run_tc` use apenas variáveis locais (não compartilhe estado mutável entre threads).
+Garanta que `run_tc` use apenas variáveis locais (não compartilhe estado mutável entre threads). Nunca use `asyncio.run()` dentro de um loop de eventos já ativo — o template acima pressupõe execução em contexto síncrono (script Python direto).
 ```
 
 **Derivação dos parâmetros a partir dos steps:**
