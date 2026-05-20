@@ -125,6 +125,9 @@ if auth_required and not token:
 ```
 
 No JSON de saída padrão (execução bem-sucedida), inclua sempre `"credentials_failed": false` na raiz e `"credentials_failed": false` dentro de `summary`.
+- `custom_headers` → se presente no contexto, injete em todas as requisições antes dos headers de autenticação.
+- `retry_count` → somente em timeout (padrão `0`); violação de segurança nunca é flaky — não aplique retry; registre `attempts` e `attempt_logs` quando retry ocorrer.
+- `warnings` → inclua `"warnings": []` no summary (adicione avisos de SSL, redirecionamentos suspeitos etc.).
 
 ---
 

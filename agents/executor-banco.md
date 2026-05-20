@@ -45,6 +45,9 @@ Se essa seção estiver presente e `db_connection` não for `null` → use como 
 Se `suite_dir` estiver presente → use `[suite_dir]/banco/` como diretório para artefatos (logs, resultado.json). Crie a subpasta automaticamente com `os.makedirs`.
 
 `environment_notes` não afeta conexões de banco — ignore para este executor.
+- `retry_count` → número de retries em `ConnectionError` e `DeadlockDetected` (padrão `1`); não aplique retry em `AssertionError`; registre `attempts`, `retry_diff_logs` e `attempt_logs` no resultado de cada TC.
+- `type` → inclua `"type": <tipo do TC>` em cada objeto de resultado.
+- `warnings` → inclua `"warnings": []` no summary (adicione strings descritivas para conexão lenta, schema inferido etc.).
 
 **Se a seção `## Contexto de execução` estiver presente com `db_connection` preenchido, ignore os passos abaixo e prossiga para a execução.**
 
