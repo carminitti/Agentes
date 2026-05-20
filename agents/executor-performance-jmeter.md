@@ -105,6 +105,19 @@ jmeter --version
 
 ## Geração do plano JMX
 
+**Antes de gerar o JMX**, extraia hostname, porta e protocolo da `base_url` com Python e passe como propriedades separadas para o JMeter — `HTTPSampler.domain` só aceita hostname, não URL completa:
+
+```python
+from urllib.parse import urlparse
+_parsed = urlparse(base_url)
+_host     = _parsed.hostname                      # "staging.app.com"
+_port     = _parsed.port or (443 if _parsed.scheme == "https" else 80)
+_protocol = _parsed.scheme                        # "https" ou "http"
+_base_path = _parsed.path.rstrip("/")             # "/api" ou ""
+```
+
+Use `_host`, `_port`, `_protocol` e `_base_path` como literais ao gerar o JMX (não injete `${BASE_URL}` no `domain`).
+
 Gere o plano de teste como XML JMX. Estrutura base:
 
 ```xml
@@ -115,9 +128,17 @@ Gere o plano de teste como XML JMX. Estrutura base:
       <boolProp name="TestPlan.serialize_threadgroups">false</boolProp>
       <elementProp name="TestPlan.user_defined_variables" elementType="Arguments">
         <collectionProp name="Arguments.arguments">
-          <elementProp name="BASE_URL" elementType="Argument">
-            <stringProp name="Argument.name">BASE_URL</stringProp>
-            <stringProp name="Argument.value">${__P(base_url,https://staging.app.com)}</stringProp>
+          <elementProp name="HOST" elementType="Argument">
+            <stringProp name="Argument.name">HOST</stringProp>
+            <stringProp name="Argument.value">${__P(host,staging.app.com)}</stringProp>
+          </elementProp>
+          <elementProp name="PORT" elementType="Argument">
+            <stringProp name="Argument.name">PORT</stringProp>
+            <stringProp name="Argument.value">${__P(port,443)}</stringProp>
+          </elementProp>
+          <elementProp name="PROTOCOL" elementType="Argument">
+            <stringProp name="Argument.name">PROTOCOL</stringProp>
+            <stringProp name="Argument.value">${__P(protocol,https)}</stringProp>
           </elementProp>
           <elementProp name="AUTH_TOKEN" elementType="Argument">
             <stringProp name="Argument.name">AUTH_TOKEN</stringProp>
@@ -153,9 +174,11 @@ Gere o plano de teste como XML JMX. Estrutura base:
         </HeaderManager>
         <hashTree/>
 
-        <!-- HTTP Sampler -->
+        <!-- HTTP Sampler — domain=hostname, protocol e port separados -->
         <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="GET /api/pedidos">
-          <stringProp name="HTTPSampler.domain">${BASE_URL}</stringProp>
+          <stringProp name="HTTPSampler.protocol">${PROTOCOL}</stringProp>
+          <stringProp name="HTTPSampler.domain">${HOST}</stringProp>
+          <stringProp name="HTTPSampler.port">${PORT}</stringProp>
           <stringProp name="HTTPSampler.path">/api/pedidos</stringProp>
           <stringProp name="HTTPSampler.method">GET</stringProp>
           <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
@@ -215,15 +238,28 @@ Gere o plano de teste como XML JMX. Estrutura base:
 
 ## Execução via CLI
 
+```python
+# Parse da URL antes de chamar o JMeter
+from urllib.parse import urlparse as _up
+_p = _up(base_url)
+_host = _p.hostname
+_port = _p.port or (443 if _p.scheme == "https" else 80)
+_protocol = _p.scheme
+```
+
 ```bash
 jmeter -n \
   -t plan.jmx \
   -l resultado.jtl \
   -e -o report/ \
-  -Jbase_url=https://staging.app.com \
+  -Jhost=staging.app.com \
+  -Jport=443 \
+  -Jprotocol=https \
   -Jauth_token=Bearer_eyJ... \
   2>&1 | tee jmeter_output.txt
 ```
+
+Substitua os literais `staging.app.com`, `443`, `https` pelos valores de `_host`, `_port` e `_protocol` extraídos do parse acima.
 
 Parse do arquivo JTL (CSV) após execução:
 

@@ -335,7 +335,9 @@ with sync_playwright() as pw:
         screenshot_dir = os.path.join(SUITE_DIR, "i18n", locale)
         os.makedirs(screenshot_dir, exist_ok=True)
 
-        def tc_homepage_translated():
+        # default argument capture evita closure bug (for locale in LOCALES: fn captura locale por referência)
+        def tc_homepage_translated(locale=locale, page=page, context=context,
+                                   screenshot_dir=screenshot_dir):
             url = build_locale_url(BASE_URL, "/", locale, METHOD, PARAM)
             if METHOD == "cookie":
                 context.add_cookies([{
@@ -357,7 +359,7 @@ with sync_playwright() as pw:
 
         # Cobertura de tradução (apenas se arquivo fornecido e não vazio)
         if translations:
-            def tc_translation_coverage():
+            def tc_translation_coverage(locale=locale, page=page, translations=translations):
                 url = build_locale_url(BASE_URL, "/", locale, METHOD, PARAM)
                 page.goto(url, wait_until="domcontentloaded")
                 body_text = page.locator("body").text_content() or ""

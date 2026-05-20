@@ -182,7 +182,7 @@ scn.inject(
 scn.inject(
   rampUsers(50).during(10.seconds),
   constantUsersPerSec(50).during(1.minute),
-  rampUsers(0).during(10.seconds)
+  nothingFor(10.seconds)   // rampUsers(0) é API inválida — use nothingFor para ramp-down
 )
 ```
 

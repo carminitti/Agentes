@@ -44,6 +44,9 @@ Se essa seção estiver presente:
   - Contém `certificado`, `SSL`, `autoassinado` ou `self-signed` → adicione `ignoreHTTPSErrors: true` no `playwright.config.ts`
   - Contém `VPN` ou `proxy` → adicione `[ENV] Ambiente pode exigir VPN/proxy` nos logs; se testes falharem com erro de conexão, inclua `"Possível causa: acesso via VPN/proxy necessário"` no campo `error`
 - `max_parallel_executors` → se presente e > 1 (e `rate_limit` for null), execute os TCs em paralelo usando `ThreadPoolExecutor(max_workers=min(max_parallel_executors, 5))`. Se `rate_limit` não for null, ignore `max_parallel_executors` e execute sequencialmente para respeitar o throttle. Padrão: sequencial (1 worker).
+- `ssl_verify` → **use diretamente** (não dependa só de heurística de texto): se `false` → `ignoreHTTPSErrors: true` no `playwright.config.ts`; se string (caminho de CA) → configure `ca` no `playwright.config.ts`; se `true` (padrão) → sem alteração.
+- `custom_headers` → se presente e não-null, injete **todos os pares** como headers extras em cada requisição, antes dos headers de autenticação. No `playwright.config.ts` adicione ao `extraHTTPHeaders`. No Python (`requests`), passe `headers={**custom_headers, **auth_headers}`.
+- `retry_count` → defina `RETRY_COUNT` no `.env` (padrão `1`). Para cada TC com falha, reexecute até `RETRY_COUNT` vezes. Inclua no resultado do TC: `"attempts": N`, `"retry_diff_logs": bool` (true se erros diferiram entre tentativas), `"attempt_logs": [{attempt, status, error, duration_ms}]` para cada tentativa.
 
 **Se a seção `## Contexto de execução` estiver presente, ignore os passos abaixo e prossiga para a execução.**
 
@@ -753,15 +756,16 @@ Isso evita que threads concorrentes sobrescrevam a URL base umas das outras.
   "credentials_failed": false,
   "generated_files": null,
   "results": [
-    { "id": "TC-010", "title": "Listar produtos retorna 200", "status": "passed", "duration_ms": 145 },
-    { "id": "TC-011", "title": "Criar produto retorna 201", "status": "failed", "duration_ms": 98, "error": "Esperado 201, obtido 422 — https://staging.app.com/api/products" }
+    { "id": "TC-010", "title": "Listar produtos retorna 200", "status": "passed", "duration_ms": 145, "type": "integração", "attempts": 1, "retry_diff_logs": false },
+    { "id": "TC-011", "title": "Criar produto retorna 201", "status": "failed", "duration_ms": 98, "error": "Esperado 201, obtido 422 — https://staging.app.com/api/products", "type": "integração", "attempts": 2, "retry_diff_logs": true, "attempt_logs": [{"attempt": 1, "status": "failed", "error": "Esperado 201, obtido 422", "duration_ms": 98}, {"attempt": 2, "status": "failed", "error": "Esperado 201, obtido 500", "duration_ms": 112}] }
   ],
   "summary": {
     "total": 2,
     "passed": 1,
     "failed": 1,
     "skipped": 0,
-    "credentials_failed": false
+    "credentials_failed": false,
+    "warnings": []
   }
 }
 ```
@@ -770,3 +774,6 @@ Isso evita que threads concorrentes sobrescrevam a URL base umas das outras.
 - O campo `error` só é incluído quando `status` for `"failed"` ou `"error"`.
 - `generated_files` é sempre `null` em lean_mode.
 - `credentials_failed` **deve** ser incluído no summary mesmo em lean_mode — é essencial para o retry loop do orquestrador.
+- `type` **sempre** incluso em cada TC result — use o tipo do TC recebido do classificador (`"integração"`, `"smoke"`, `"sanity"`).
+- `warnings` **sempre** incluso no summary como lista — `[]` quando não houver avisos; adicione strings descritivas para rate-limit, timeout alto, auth parcial etc.
+- `attempts`, `retry_diff_logs` e `attempt_logs` **sempre** inclusos em cada TC result; `attempts: 1` quando não houve retry, `attempt_logs: null` quando `attempts == 1`.
