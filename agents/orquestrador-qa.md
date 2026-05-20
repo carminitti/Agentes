@@ -1974,7 +1974,55 @@ Se após 2 tentativas o executor ainda retornar `credentials_failed: true`, regi
 
 > **Limpeza de `setup_status.json`:** em lean mode, após receber o resultado do executor-browser, verifique se `setup_status.json` existe no diretório corrente e delete-o se existir — ele é lixo do globalSetup que não será lido pelo pipeline lean.
 
-**O relatório deve sempre seguir o modelo padronizado do `reporter-qa`**, independentemente do modo de execução. Invoque o subagente `reporter-qa` normalmente, passando os resultados dos executores, o `suite_dir` e o objeto `execution_metrics` (montado da mesma forma que na Etapa 4B). O reporter gerará o HTML do relatório; salve-o em disco com o mesmo esquema de nomenclatura (`relatorio_[suite_dir].html`) no `code_output_dir`.
+**O relatório deve sempre seguir o modelo padronizado do `reporter-qa`**, independentemente do modo de execução. Antes de invocar o reporter, monte o objeto `execution_metrics` — **este campo é obrigatório e nunca deve ser omitido**:
+
+```python
+# Registre o início da fase do relatório ANTES de invocar o reporter
+_t4_start = time.time()
+
+execution_metrics = {
+    "suite_id": suite_dir,
+    "agent_version": "1.44.1",
+    "suite_start_iso": datetime.datetime.fromtimestamp(_suite_start).isoformat(),
+    "suite_end_iso": datetime.datetime.fromtimestamp(_t4_start).isoformat(),
+    "total_duration_ms": int((_t4_start - _suite_start) * 1000),
+    "total_tokens_estimated": sum(p["tokens_total_est"] for p in _phase_metrics),
+    "total_tokens_input_est": sum(p["tokens_input_est"] for p in _phase_metrics),
+    "total_tokens_output_est": sum(p["tokens_output_est"] for p in _phase_metrics),
+    "phases": _phase_metrics,
+    "environment": base_url if base_url else (list(url_map.values())[0] if url_map else "?"),
+    "executors_dispatched": list(executor_results.keys()),
+    "tcs_total": total_tcs,
+    "tcs_passed": sum(r.get("summary", {}).get("passed", 0) for r in executor_results.values()),
+    "tcs_failed": sum(r.get("summary", {}).get("failed", 0) for r in executor_results.values()),
+    "tcs_skipped": sum(r.get("summary", {}).get("skipped", 0) for r in executor_results.values()),
+}
+```
+
+Invoque o subagente `reporter-qa` com **exatamente este formato** — nunca omita `execution_metrics`:
+
+```
+## Contexto da suite
+{
+  "suite_id": "<valor de suite_dir>",
+  "base_url": "<valor de base_url, ou null se multi_url>",
+  "screenshot_all": false,
+  "lean_mode": true,
+  "total_tcs": <N tcs despachados>,
+  "execution_metrics": <JSON do objeto execution_metrics montado acima>
+}
+
+## Resultados dos executores
+<JSON completo de cada executor_result — um objeto por executor>
+
+## Tipos não executados
+<lista de tipos skipped com motivo>
+
+## Classificação original
+<JSON do classifier-testes com campos steps e rationale removidos de cada TC>
+```
+
+O reporter gerará o HTML do relatório; salve-o em disco com o mesmo esquema de nomenclatura (`relatorio_[suite_dir].html`) no `report_output_dir`.
 
 Grave também o `suite.log` e o `resultado.json` conforme descrito na Etapa 4B, para habilitar retests futuros.
 
