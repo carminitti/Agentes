@@ -652,7 +652,45 @@ Após exibir o plano, encerre. Não prossiga para Etapa 2.
 
 ## Etapa 2 — Coleta de informações obrigatórias
 
-Antes de despachar qualquer executor, analise o JSON classificado e colete **em uma única pergunta ao usuário** todas as informações que estiverem genuinamente ausentes ou ambíguas. **Se a informação estiver explícita nos steps ou na mensagem do usuário, use-a diretamente — não pergunte para confirmar o que já está claro.**
+Execute as perguntas abaixo **na ordem e sem exceção**. Nunca pule uma pergunta obrigatória, mesmo que a informação pareça implícita nos steps. Para perguntas onde o `PROJETO_ATUAL` já tiver um valor (coletado no Fast Mode, Custom Mode ou profile), apresente esse valor como **padrão pré-preenchido** e aguarde confirmação — nunca assuma sem confirmar.
+
+### CHECKLIST — Perguntas SEMPRE obrigatórias (toda sessão, toda suite)
+
+- [ ] **2a** — URL do ambiente (confirme ou extraia dos steps; se múltiplas, liste todas)
+- [ ] **2b** — Acesso ao ambiente (VPN, certificado TLS, proxy corporativo)
+- [ ] **2c** — Autenticação (mesmo que credenciais estejam explícitas nos steps — sempre confirme)
+- [ ] **2c.ext** — Headers customizados globais (inclua **sempre** ao final de 2c)
+- [ ] **2f.1** — Diretório de saída do código gerado (padrão: diretório atual)
+- [ ] **2f.2** — Diretório de saída do relatório HTML (padrão: diretório atual)
+- [ ] **2f.3** — Timeout HTTP por requisição (padrão: `30s`)
+- [ ] **2f.4** — Permissão geral de execução sem interrupção (`blanket_permission`)
+
+### CHECKLIST — Perguntas CONDICIONAIS (apenas se condição atendida)
+
+- [ ] **2f.5** — headed mode → SE `lean_mode: false` E houver testes browser/visual/acessibilidade
+- [ ] **2f.6** — `screenshot_all` → SE `lean_mode: false`
+- [ ] **2f.7** — timeout de browser → SE houver testes browser/visual/acessibilidade
+- [ ] **2f.8** — `retry_count` → SE `lean_mode: false`
+- [ ] **2f.9** — teardown → SE `lean_mode: false` E houver testes API/browser que criam dados
+- [ ] **2f.10** — `faker_locale` → SE `lean_mode: false` E houver testes que criam registros
+- [ ] **2f.11** — `history_enabled` → SE `lean_mode: false`
+- [ ] **2h** — `rate_limit` → SE houver executor `http` (integração), `k6`, `zap`, `magnitude`, `websocket`, `grpc` ou `graphql`
+- [ ] **2d** — `banco_mode` → SE houver executor `banco`
+- [ ] **2d.1** — Pact Broker → SE houver executor `contrato`
+- [ ] **2e** — ambiguidades e pré-condições → SE detectadas na varredura dos steps
+- [ ] **2g** — mobile device / Appium → SE houver executor `mobile`
+- [ ] **2i** — dataset → SE houver executor `data-driven`
+- [ ] **2j** — email provider → SE houver executor `email`
+- [ ] **2k** — webhook config → SE houver executor `webhook`
+- [ ] **2l** — queue / broker → SE houver executor `queue`
+- [ ] **2m** — locales i18n → SE houver executor `i18n`
+- [ ] **2n** — chaos / resiliência → SE houver executor `chaos`
+
+**Agrupamento:** reúna as perguntas obrigatórias + as condicionais aplicáveis em **no máximo 2 mensagens**:
+- **Mensagem 1** — todas as perguntas obrigatórias (2a, 2b, 2c + 2c.ext, 2f.1, 2f.2, 2f.3, 2f.4)
+- **Mensagem 2** (somente se houver condicionais aplicáveis) — todas as condicionais que se aplicam ao conjunto de testes recebido, agrupadas numa única mensagem
+
+---
 
 ### 2a — URL do ambiente
 
@@ -705,13 +743,15 @@ Atualize o schema do contexto adicionando os dois campos após `environment_note
 
 ### 2c — Autenticação (centralizada para todos os executores)
 
-Analise todos os testes classificados. Se **qualquer** teste envolver endpoints protegidos, login, token, Bearer, Authorization, API Key ou acesso autenticado:
+**Esta seção é sempre incluída na Mensagem 1.** Analise todos os testes classificados e detecte qualquer informação de autenticação presente nos steps (tokens, credenciais, API Keys, etc.).
 
-**Resolva na seguinte ordem de prioridade:**
+**Pré-preenchimento (antes de formular a pergunta):**
 
-1. **Token/credencial explícito nos steps** → use diretamente. Registre no campo correspondente abaixo conforme o tipo identificado.
-2. **Credenciais (usuário/senha ou email/senha) nos steps, sem token** → registre como `auth.credentials` e avise que o token será gerado automaticamente pelos executores.
-3. **Nenhuma informação de auth nos steps** → inclua na pergunta ao usuário:
+1. **Token/credencial encontrado nos steps** → pré-preencha a opção correspondente na pergunta com o valor detectado, apresentando-o como padrão. **Ainda assim, inclua a pergunta na Mensagem 1 e aguarde confirmação do usuário** antes de registrar.
+2. **Credenciais (usuário/senha ou email/senha) nos steps, sem token** → pré-preencha a opção `credentials` com os valores detectados, apresentando-os como padrão. **Ainda assim, inclua a pergunta na Mensagem 1 e aguarde confirmação**.
+3. **Nenhuma informação de auth detectada nos steps** → inclua a pergunta normalmente, sem pré-preenchimento.
+
+Inclua **sempre** na Mensagem 1:
    > "Um ou mais testes requerem autenticação ([IDs afetados]). Qual é o método de acesso ao ambiente?
    >
    > **1. Bearer token** — forneça o token JWT ou OAuth pronto para uso
@@ -747,7 +787,7 @@ Analise todos os testes classificados. Se **qualquer** teste envolver endpoints 
 
 **Repasse ao contexto dos executores** o campo `auth` completo com `type` preenchido. Os executores devem usar `auth.type` para selecionar a estratégia correta de autenticação no código gerado.
 
-**Headers customizados globais:** se o ambiente exigir headers adicionais em todas as requisições (além da autenticação), inclua na pergunta ao usuário:
+**Headers customizados globais (2c.ext):** inclua **sempre** ao final da pergunta de autenticação (Mensagem 1), independentemente do que estiver nos steps:
 
 > "O ambiente requer headers HTTP customizados em todas as requisições? (ex: `X-Tenant-ID: acme`, `Accept-Language: pt-BR`, `X-App-Version: 2.0`)
 > - Informe no formato `Nome-Header: valor` (um por linha), ou deixe em branco se não houver."
@@ -977,7 +1017,7 @@ Se o usuário responder **S** (ou não responder) para a permissão geral, armaz
 
 ### 2h — Rate limiting (quando houver testes de API ou performance)
 
-**Se houver testes com executor `http` (integração), `k6`, `zap`, `magnitude`, `websocket`, `grpc` ou `graphql` com muitos TCs** (mais de 10 TCs para API/WebSocket/gRPC/GraphQL, ou qualquer teste de performance/carga):
+**Se houver testes com executor `http` (integração), `k6`, `zap`, `magnitude`, `websocket`, `grpc` ou `graphql`:**
 
 Inclua na pergunta ao usuário:
 
@@ -1982,7 +2022,7 @@ _t4_start = time.time()
 
 execution_metrics = {
     "suite_id": suite_dir,
-    "agent_version": "1.44.1",
+    "agent_version": "1.44.2",
     "suite_start_iso": datetime.datetime.fromtimestamp(_suite_start).isoformat(),
     "suite_end_iso": datetime.datetime.fromtimestamp(_t4_start).isoformat(),
     "total_duration_ms": int((_t4_start - _suite_start) * 1000),
@@ -2124,7 +2164,7 @@ _t4_start = time.time()
 
 execution_metrics = {
     "suite_id": suite_dir,
-    "agent_version": "1.44.1",
+    "agent_version": "1.44.2",
     "suite_start_iso": datetime.datetime.fromtimestamp(_suite_start).isoformat(),
     "suite_end_iso": datetime.datetime.fromtimestamp(_t4_start).isoformat(),
     "total_duration_ms": int((_t4_start - _suite_start) * 1000),
