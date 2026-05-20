@@ -148,7 +148,10 @@ try:
     toxi.add_toxic(PROXY_NAME, "latency-tc001", "latency", {"latency": 5000, "jitter": 0})
     # ... assertions ...
 finally:
-    toxi.remove_toxic(PROXY_NAME, "latency-tc001")
+    try:
+        toxi.remove_toxic(PROXY_NAME, "latency-tc001")
+    except Exception:
+        pass
 ```
 
 ### Modo HTTP Simulation (fallback sem Toxiproxy)
@@ -353,12 +356,13 @@ def app_session():
     return s
 
 def wait_recovery(endpoint, timeout_s=RECOVERY_S):
-    deadline = time.time() + timeout_s
+    _start = time.time()
+    deadline = _start + timeout_s
     while time.time() < deadline:
         try:
             r = requests.get(f"{BASE_URL}{endpoint}", headers=auth_headers, timeout=5)
             if r.status_code == 200:
-                return int((deadline - time.time() + timeout_s - (deadline - time.time())) * 1000)
+                return int((time.time() - _start) * 1000)
         except Exception:
             pass
         time.sleep(1)

@@ -418,6 +418,9 @@ def tc_001():
         value_deserializer=lambda m: json.loads(m.decode("utf-8")),
         consumer_timeout_ms=2000,
     )
+    # Força registro do consumer group antes de disparar a ação — evita perda de mensagem
+    consumer.poll(timeout_ms=0)
+    time.sleep(0.5)
 
     # 1. Dispara ação na aplicação que deve gerar o evento
     session = app_session()

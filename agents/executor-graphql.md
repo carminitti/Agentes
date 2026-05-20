@@ -172,20 +172,26 @@ def run_graphql_tc(tc_id, query, variables=None, expected_fields=None, expect_er
 ```python
 import asyncio, websockets, json
 
-async def run_subscription(tc_id, subscription_query, expected_event_field, timeout=None):
+async def run_subscription(tc_id, subscription_query, expected_event_field, timeout=None, token=None):
     if timeout is None:
         timeout = TIMEOUT_MS / 1000  # TIMEOUT_MS definido no bloco de inicialização do script
     result = {"id": tc_id, "status": "failed", "duration_ms": 0, "error": None}
     start = time.time()
     ws_url = GRAPHQL_URL.replace("https://", "wss://").replace("http://", "ws://")
     try:
+        auth_headers = {"Authorization": token} if token else {}
         async with websockets.connect(ws_url, subprotocols=["graphql-ws"],
-                                       extra_headers={"Authorization": TOKEN}) as ws:
+                                       extra_headers=auth_headers) as ws:
             await ws.send(json.dumps({"type": "connection_init", "payload": {}}))
             await ws.recv()  # connection_ack
             await ws.send(json.dumps({"id": "1", "type": "start",
                                        "payload": {"query": subscription_query}}))
-            msg = json.loads(await asyncio.wait_for(ws.recv(), timeout=timeout))
+            # Ignora frames ka/next antes do frame data/error/complete
+            while True:
+                raw = await asyncio.wait_for(ws.recv(), timeout=timeout)
+                msg = json.loads(raw)
+                if msg.get("type") in ("data", "error", "complete"):
+                    break
             if msg.get("type") == "data" and expected_event_field in msg.get("payload", {}).get("data", {}):
                 result["status"] = "passed"
             else:

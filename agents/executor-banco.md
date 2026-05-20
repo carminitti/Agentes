@@ -377,11 +377,15 @@ A validação de segurança deve checar `EXPLAIN` antes das keywords destrutivas
     {
       "id": "TC-060",
       "title": "Pedido criado persiste no banco com status correto",
+      "type": "banco",
       "status": "passed",
       "simulated": false,
       "query": "SELECT status FROM pedidos WHERE referencia = 'PED-2026-001'",
       "expected": "processando",
       "actual": "processando",
+      "attempts": 1,
+      "retry_diff_logs": false,
+      "attempt_logs": [{"attempt": 1, "status": "passed", "error": null, "duration_ms": 45}],
       "logs": [
         "[CONNECT] Conectado ao banco (tipo: postgresql)",
         "[QUERY] SELECT status FROM pedidos WHERE referencia = 'PED-2026-001'",
@@ -396,6 +400,7 @@ A validação de segurança deve checar `EXPLAIN` antes das keywords destrutivas
     "passed": 1,
     "failed": 0,
     "skipped": 0,
+    "warnings": [],
     "credentials_failed": false
   }
 }
@@ -432,11 +437,15 @@ A validação de segurança deve checar `EXPLAIN` antes das keywords destrutivas
     {
       "id": "TC-060",
       "title": "Pedido criado persiste no banco com status correto",
+      "type": "banco",
       "status": "passed",
       "simulated": true,
       "query": "SELECT status FROM pedidos WHERE referencia = 'PED-2026-001'",
       "expected": "processando",
       "actual": "processando",
+      "attempts": 1,
+      "retry_diff_logs": false,
+      "attempt_logs": [{"attempt": 1, "status": "passed", "error": null, "duration_ms": 45}],
       "logs": [
         "[CONNECT] Conectado ao banco simulado (SQLite :memory:)",
         "[SETUP] Tabelas criadas: usuarios, pedidos",
@@ -452,7 +461,8 @@ A validação de segurança deve checar `EXPLAIN` antes das keywords destrutivas
     "total": 1,
     "passed": 1,
     "failed": 0,
-    "skipped": 0
+    "skipped": 0,
+    "warnings": []
   }
 }
 ```

@@ -136,7 +136,7 @@ with pact:
 pact_file = f"{PACT_DIR}/[consumer]-[provider].json"
 # O arquivo pact.json é gerado em PACT_DIR com nome [consumer]-[provider].json.
 # Se não houver Pact Broker, comite este arquivo no repositório para que o provedor o acesse em modo provedor.
-# Inclua o caminho real no campo "pact_file" do resultado para referência futura.
+result["pact_file"] = str(pact_file)  # inclui o caminho real no resultado para referência futura
 ```
 
 **Publicação no Pact Broker (se `pact_broker_url` configurado):**

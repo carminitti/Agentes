@@ -116,7 +116,7 @@ _protocol = _parsed.scheme                        # "https" ou "http"
 _base_path = _parsed.path.rstrip("/")             # "/api" ou ""
 ```
 
-Use `_host`, `_port`, `_protocol` e `_base_path` como literais ao gerar o JMX (não injete `${BASE_URL}` no `domain`).
+Use `_host`, `_port`, `_protocol` e `_base_path` como literais ao gerar o JMX (não injete `${BASE_URL}` no `domain`). Prefixe **obrigatoriamente** cada `HTTPSampler.path` com `_base_path` — ex: se `_base_path = "/v2/api"` e o endpoint é `/pedidos`, o path gerado no JMX deve ser `"/v2/api/pedidos"`; se `_base_path` for vazio, use o path do step diretamente.
 
 Gere o plano de teste como XML JMX. Estrutura base:
 
@@ -179,7 +179,7 @@ Gere o plano de teste como XML JMX. Estrutura base:
           <stringProp name="HTTPSampler.protocol">${PROTOCOL}</stringProp>
           <stringProp name="HTTPSampler.domain">${HOST}</stringProp>
           <stringProp name="HTTPSampler.port">${PORT}</stringProp>
-          <stringProp name="HTTPSampler.path">/api/pedidos</stringProp>
+          <stringProp name="HTTPSampler.path">[_base_path]/pedidos</stringProp><!-- _base_path substituído como literal; ex: /api/v2 → /api/v2/pedidos -->
           <stringProp name="HTTPSampler.method">GET</stringProp>
           <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
           <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
@@ -508,9 +508,17 @@ Se o `## Contexto de execução` contiver `"lean_mode": true`:
 ```json
 {
   "results": [
-    { "id": "TC-020", "title": "Carga 10 threads por 30s", "status": "passed", "duration_ms": 31000 }
+    {
+      "id": "TC-020",
+      "title": "Carga 10 threads por 30s",
+      "status": "passed",
+      "duration_ms": 31000,
+      "attempts": 1,
+      "retry_diff_logs": false,
+      "attempt_logs": [{"attempt": 1, "status": "passed", "error": null, "duration_ms": 31000}]
+    }
   ],
-  "summary": { "total": 1, "passed": 1, "failed": 0, "skipped": 0 }
+  "summary": { "total": 1, "passed": 1, "failed": 0, "skipped": 0, "warnings": [] }
 }
 ```
 

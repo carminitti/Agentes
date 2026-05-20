@@ -409,6 +409,8 @@ expect(announcement).toContain(EXPECTED_ANNOUNCEMENT);
     "passed": 1,
     "failed": 1,
     "warning": 1,
+    "skipped": 0,
+    "warnings": [],
     "known_environment_failures": 1,
     "total_violations": 3,
     "by_impact": {

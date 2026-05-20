@@ -150,7 +150,7 @@ def validate_capabilities(platform, app_package, app_path, app_activity):
         if app_package and not app_activity:
             raise ValueError("Android com app_package requer 'app_activity'. Ex: 'com.app.MainActivity'.")
     elif platform.lower() == "ios":
-        if not app_path and not app_package:
+        if not app_path and not BUNDLE_ID:
             raise ValueError("iOS requer 'app' (caminho do .app/.ipa) ou 'bundleId'. Nenhum fornecido.")
 
 

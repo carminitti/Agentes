@@ -403,24 +403,36 @@ export default function () {
 
 **Thresholds obrigatórios para WS:** `ws_msg_latency p(95)` (latência de round-trip de mensagem) e `ws_session_duration`. Reporta `failed` se ultrapassados.
 
-Antes de executar, valide que o script foi gerado:
+**Gere e execute um script k6 por TC** — um script único agregado impossibilita mapear thresholds individuais por TC. Para cada TC, siga o loop:
+
 ```python
-if not os.path.exists("script.js"):
-    return [{"id": tc["id"], "status": "error", "error": "script.js não foi gerado — verifique os steps do TC"} for tc in tcs]
+for tc in tcs:
+    tc_id = tc["id"]
+    script_file  = f"script_{tc_id}.js"
+    output_file  = f"resultado_{tc_id}.json"
+    stdout_file  = f"k6_output_{tc_id}.txt"
+
+    # 1. Valide que o script foi gerado
+    if not os.path.exists(script_file):
+        results.append({"id": tc_id, "status": "error",
+                        "error": f"{script_file} não foi gerado — verifique os steps do TC"})
+        continue
+
+    # 2. Execute e capture stdout
+    os.system(f"k6 run --summary-export={output_file} {script_file} 2>&1 | tee {stdout_file}")
+
+    # 3. Extraia linhas relevantes do stdout
+    with open(stdout_file, 'r', encoding='utf-8', errors='replace') as f:
+        k6_lines = f.readlines()
+    k6_failed_checks = [l.strip() for l in k6_lines if l.strip().startswith('✗')]
+    k6_summary_lines = [l.rstrip() for l in k6_lines[-15:] if l.strip()]
+
+    # 4. Leia o resultado individual e mapeie ao TC
+    with open(output_file, 'r', encoding='utf-8') as f:
+        tc_summary = json.load(f)
+    # ... determine status via thresholds do tc_summary e monte o resultado ...
 ```
 
-Execute e capture o stdout completo:
-```
-k6 run --summary-export=resultado.json script.js 2>&1 | tee k6_output.txt
-```
-
-Após a execução, extraia as linhas relevantes do stdout para os logs:
-```python
-with open('k6_output.txt', 'r', encoding='utf-8', errors='replace') as f:
-    k6_lines = f.readlines()
-k6_failed_checks = [l.strip() for l in k6_lines if l.strip().startswith('✗')]
-k6_summary_lines = [l.rstrip() for l in k6_lines[-15:] if l.strip()]
-```
 Inclua `k6_failed_checks` como `[K6-OUT]` e `k6_summary_lines` como `[K6-SUMMARY]` nos logs do resultado (veja "Log de execução").
 
 ### Modo fallback Python (quando k6 não está disponível)

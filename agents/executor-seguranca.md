@@ -586,12 +586,16 @@ Para paths que retornam 200:
     {
       "id": "TC-050",
       "title": "Endpoint /api/admin requer autenticação",
+      "type": "segurança",
       "status": "passed",
       "checks": [
         { "check": "GET /api/admin sem token retorna 401", "result": "passed", "actual": 401 }
       ],
       "severity": null,
       "note": null,
+      "attempts": 1,
+      "retry_diff_logs": false,
+      "attempt_logs": [{"attempt": 1, "status": "passed", "error": null, "duration_ms": 120}],
       "logs": [
         "[CHECK] GET /api/admin sem token → esperado 401, recebido 401 ✓"
       ],
@@ -600,6 +604,7 @@ Para paths que retornam 200:
     {
       "id": "TC-051",
       "title": "Headers de segurança presentes",
+      "type": "segurança",
       "status": "failed",
       "checks": [
         { "check": "Strict-Transport-Security presente", "result": "passed" },
@@ -608,6 +613,9 @@ Para paths que retornam 200:
       ],
       "severity": "medium",
       "note": null,
+      "attempts": 1,
+      "retry_diff_logs": false,
+      "attempt_logs": [{"attempt": 1, "status": "failed", "error": "Header Content-Security-Policy ausente", "duration_ms": 95}],
       "logs": [
         "[CHECK] Header Strict-Transport-Security presente ✓",
         "[CHECK] Header X-Content-Type-Options: nosniff ✓",
@@ -623,6 +631,7 @@ Para paths que retornam 200:
     "failed": 1,
     "warning": 0,
     "skipped": 0,
+    "warnings": [],
     "by_severity": {
       "high": 0,
       "medium": 1,

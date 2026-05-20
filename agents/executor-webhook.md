@@ -114,7 +114,15 @@ def start_webhook_receiver(port):
         daemon=True
     )
     thread.start()
-    time.sleep(0.8)  # aguarda servidor subir
+    # Aguarda o servidor estar pronto via health check (evita race condition em CI lento)
+    for _ in range(20):
+        try:
+            r = requests.get(f"http://localhost:{port}/webhook", timeout=0.5)
+            if r.status_code in (200, 404, 405):
+                break
+        except Exception:
+            pass
+        time.sleep(0.1)
     return f"http://localhost:{port}/webhook"
 ```
 

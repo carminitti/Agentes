@@ -244,7 +244,7 @@ subprocess.run(
 
 BASE_URL  = "{{base_url}}"
 TOKEN     = "{{auth_token}}"   # ou None se não autenticado
-TIMEOUT_S = int(os.environ.get("REQUEST_TIMEOUT_MS", "30000")) // 1000
+TIMEOUT_S = 30  # agente: substitua pelo valor literal de context.request_timeout_ms // 1000 (padrão: 30)
 RATE_LIMIT_SLEEP = 0  # segundos entre iterações; preenchido se rate_limit configurado
 
 HEADERS = {}

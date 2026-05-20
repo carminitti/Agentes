@@ -286,8 +286,12 @@ Baseline de print é **separado** do baseline padrão — use sufixo `-print.png
                            "Pillow", "numpy"], check=False)
            from PIL import Image
            import numpy as np
-           img_a = np.array(Image.open(path_a).convert("RGB"))
-           img_b = np.array(Image.open(path_b).convert("RGB"))
+           raw_a = Image.open(path_a)
+           raw_b = Image.open(path_b)
+           if raw_a.mode != raw_b.mode:
+               return 100.0  # modos distintos (ex: RGB vs RGBA) → regressão total
+           img_a = np.array(raw_a.convert("RGB"))
+           img_b = np.array(raw_b.convert("RGB"))
            if img_a.shape != img_b.shape:
                return 100.0  # dimensões distintas → regressão total
            changed = np.any(np.abs(img_a.astype(int) - img_b.astype(int)) > 10, axis=2)

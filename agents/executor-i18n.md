@@ -154,18 +154,27 @@ def check_text_translated(page, selector, expected_text, locale):
 def check_translation_coverage(page, translations, locale):
     """
     Compara chaves do dicionário de tradução com o texto visível da página.
-    Retorna (coverage_ratio, untranslated_keys).
+    Retorna (coverage_ratio, untranslated_keys). Suporta JSON aninhado via flatten recursivo.
     """
     if not translations:
         return None, []
-    body_text = page.locator("body").text_content() or ""
-    total = len(translations)
+
+    def _flatten(d, prefix=""):
+        items = {}
+        for k, v in d.items():
+            full_key = f"{prefix}.{k}" if prefix else k
+            if isinstance(v, dict):
+                items.update(_flatten(v, full_key))
+            elif isinstance(v, str):
+                items[full_key] = v
+        return items
+
+    flat = _flatten(translations)
+    total = len(flat)
     if total == 0:
         return 1.0, []
-    missing = []
-    for key, value in translations.items():
-        if isinstance(value, str) and value and value not in body_text:
-            missing.append(key)
+    body_text = page.locator("body").text_content() or ""
+    missing = [key for key, value in flat.items() if value and value not in body_text]
     found = total - len(missing)
     coverage = found / total
     return round(coverage, 4), missing

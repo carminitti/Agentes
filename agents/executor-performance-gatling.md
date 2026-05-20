@@ -182,7 +182,7 @@ scn.inject(
 scn.inject(
   rampUsers(50).during(10.seconds),
   constantUsersPerSec(50).during(1.minute),
-  nothingFor(10.seconds)   // rampUsers(0) é API inválida — use nothingFor para ramp-down
+  rampUsersPerSec(50).to(0).during(10.seconds)   // nothingFor() apenas pausa injeção sem ramp-down real
 )
 ```
 
@@ -441,9 +441,17 @@ Se o `## Contexto de execução` contiver `"lean_mode": true`:
 ```json
 {
   "results": [
-    { "id": "TC-020", "title": "Carga 10 usuários por 30s", "status": "passed", "duration_ms": 31000 }
+    {
+      "id": "TC-020",
+      "title": "Carga 10 usuários por 30s",
+      "status": "passed",
+      "duration_ms": 31000,
+      "attempts": 1,
+      "retry_diff_logs": false,
+      "attempt_logs": [{"attempt": 1, "status": "passed", "error": null, "duration_ms": 31000}]
+    }
   ],
-  "summary": { "total": 1, "passed": 1, "failed": 0, "skipped": 0 }
+  "summary": { "total": 1, "passed": 1, "failed": 0, "skipped": 0, "warnings": [] }
 }
 ```
 
