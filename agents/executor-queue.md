@@ -71,6 +71,7 @@ Mapeamento dos campos:
 - `ssl_verify` → se `false`, desabilite verificação SSL nas chamadas HTTP à aplicação.
 - `rate_limit` → adicione pausa entre TCs consecutivos para evitar sobrecarga.
 - `request_timeout_ms` → substitui `queue_config.timeout_s` se presente (converta: `request_timeout_ms / 1000`).
+- `retry_count` → retry em timeout de polling de mensagem com intervalo fixo de 2 s (máx 2 retries); nunca retente em erro de schema de mensagem; registre `attempts`, `retry_diff_logs` e `attempt_logs` no resultado de cada TC.
 
 **Se a seção `## Contexto de execução` estiver presente, prossiga diretamente para a execução.**
 
@@ -606,6 +607,7 @@ Retorne JSON no formato:
     {
       "id": "TC-QUEUE-001",
       "title": "Evento order.created publicado na fila após criação de pedido",
+      "type": "queue",
       "status": "passed",
       "duration_ms": 2800,
       "message_details": {
@@ -620,13 +622,21 @@ Retorne JSON no formato:
           "quantity": 2
         }
       },
-      "error": null
+      "error": null,
+      "attempts": 1,
+      "retry_diff_logs": false,
+      "attempt_logs": [{"attempt": 1, "status": "passed", "error": null, "duration_ms": 2800}]
     }
   ],
   "summary": {
-    "total": 1, "passed": 1, "failed": 0, "error": 0, "skipped": 0
+    "total": 1, "passed": 1, "failed": 0, "error": 0, "skipped": 0, "warnings": []
   }
 }
 ```
+
+**Regras de output:**
+- `type` sempre incluso em cada TC result — use o tipo do TC recebido.
+- `warnings: []` sempre incluso no summary — lista vazia quando não houver avisos.
+- `attempts`, `retry_diff_logs` e `attempt_logs` sempre inclusos por TC.
 
 O orquestrador só considera o resultado desta execução se `resultado.json` existir e for legível em `[suite_dir]/queue/resultado.json`.

@@ -27,6 +27,7 @@ Procure no input `## Contexto de execução`. Se presente:
 - `suite_dir` → salve em `[suite_dir]/graphql/`.
 - `request_timeout_ms` → timeout em segundos; defina `TIMEOUT_MS = context.get("request_timeout_ms", 30000)` e use `TIMEOUT_MS / 1000` em todas as chamadas (requests e websockets).
 - `max_parallel_executors` → se presente e > 1 (e `rate_limit` for null), execute os TCs em paralelo usando `ThreadPoolExecutor(max_workers=min(max_parallel_executors, 5))`. Se `rate_limit` não for null, execute sequencialmente. Padrão: sequencial (1 worker).
+- `retry_count` → retry em timeout e erros de rede com back-off exponencial 0,5 s → 1 s (máx 2 retries); nunca retente em erros de schema; registre `attempts`, `retry_diff_logs` e `attempt_logs` no resultado de cada TC.
 
 **Se `## Contexto de execução` presente, prossiga para execução.**
 
@@ -220,9 +221,14 @@ Garanta que `run_tc` use apenas variáveis locais (não compartilhe estado mutá
 ```json
 {
   "executor": "executor-graphql",
-  "summary": { "passed": 3, "failed": 1, "skipped": 0, "duration_ms": 1450 },
+  "summary": { "passed": 3, "failed": 1, "skipped": 0, "duration_ms": 1450, "warnings": [] },
   "results": [
-    { "id": "TC-GQL-01", "title": "...", "status": "passed", "duration_ms": 280, "error": null }
+    { "id": "TC-GQL-01", "title": "...", "type": "graphql", "status": "passed", "duration_ms": 280, "error": null, "attempts": 1, "retry_diff_logs": false, "attempt_logs": [{"attempt": 1, "status": "passed", "error": null, "duration_ms": 280}] }
   ]
 }
 ```
+
+**Regras de output:**
+- `type` sempre incluso em cada TC result — use o tipo do TC recebido.
+- `warnings: []` sempre incluso no summary — lista vazia quando não houver avisos.
+- `attempts`, `retry_diff_logs` e `attempt_logs` sempre inclusos por TC.

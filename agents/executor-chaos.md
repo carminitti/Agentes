@@ -76,6 +76,7 @@ Mapeamento dos campos:
 - `environment_type` → se `"production"`, aborte com todos TCs `skipped` e `reason: "chaos_not_allowed_in_production"`. Se `"demo"`, aplique as mesmas restrições de produção.
 - `ssl_verify` → se `false`, desabilite verificação SSL nas chamadas HTTP à aplicação (`verify=False`).
 - `rate_limit` → adicione pausa entre TCs consecutivos para evitar sobrecarga.
+- `retry_count` → **sempre 0** — retry mascara resultados reais de resiliência; registre `attempts: 1`, `retry_diff_logs: false` e `attempt_logs: [{...}]` por TC.
 
 **Se a seção `## Contexto de execução` estiver presente, prossiga diretamente para a execução.**
 
@@ -564,6 +565,7 @@ Retorne JSON no formato:
     {
       "id": "TC-CHAOS-001",
       "title": "App responde graciosamente quando serviço dependente retorna 503",
+      "type": "chaos",
       "status": "passed",
       "duration_ms": 1200,
       "chaos_details": {
@@ -573,13 +575,21 @@ Retorne JSON no formato:
         "app_has_error_message": true,
         "recovery_time_ms": null
       },
-      "error": null
+      "error": null,
+      "attempts": 1,
+      "retry_diff_logs": false,
+      "attempt_logs": [{"attempt": 1, "status": "passed", "error": null, "duration_ms": 1200}]
     }
   ],
   "summary": {
-    "total": 1, "passed": 1, "failed": 0, "error": 0, "skipped": 0
+    "total": 1, "passed": 1, "failed": 0, "error": 0, "skipped": 0, "warnings": []
   }
 }
 ```
+
+**Regras de output:**
+- `type` sempre incluso em cada TC result — use o tipo do TC recebido.
+- `warnings: []` sempre incluso no summary — lista vazia quando não houver avisos.
+- `attempts`, `retry_diff_logs` e `attempt_logs` sempre inclusos por TC.
 
 O orquestrador só considera o resultado desta execução se `resultado.json` existir e for legível em `[suite_dir]/chaos/resultado.json`.

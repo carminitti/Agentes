@@ -42,6 +42,7 @@ Se essa seção estiver presente:
 - `environment_notes` → aplique as regras abaixo conforme palavras-chave:
   - Contém `certificado`, `SSL`, `autoassinado` ou `self-signed` → adicione `ignoreHTTPSErrors: true` no `playwright.config.ts`
   - Contém `VPN` ou `proxy` → adicione `[ENV] Ambiente pode exigir VPN/proxy` nos logs; se testes falharem com erro de conexão, inclua `"Possível causa: acesso via VPN/proxy necessário"` no campo `error`
+- `retry_count` → retry se página não carregou (TimeoutError, ERR_CONNECTION); nunca retente em violações WCAG; intervalo fixo de 1 s (máx 2 retries); registre `attempts`, `retry_diff_logs` e `attempt_logs` no resultado de cada TC.
 
 **Se a seção `## Contexto de execução` estiver presente, ignore os passos abaixo e prossiga para a execução.**
 
@@ -506,14 +507,17 @@ Se o `## Contexto de execução` contiver `"lean_mode": true`, aplique todas as 
 ```json
 {
   "results": [
-    { "id": "TC-070", "title": "Página inicial — WCAG 2.1 AA", "status": "passed", "duration_ms": 1200 },
-    { "id": "TC-071", "title": "Formulário de login — WCAG 2.1 AA", "status": "failed", "duration_ms": 980, "error": "2 violações críticas: button-name, label" }
+    { "id": "TC-070", "title": "Página inicial — WCAG 2.1 AA", "status": "passed", "duration_ms": 1200, "attempts": 1, "retry_diff_logs": false, "attempt_logs": [{"attempt": 1, "status": "passed", "error": null, "duration_ms": 1200}] },
+    { "id": "TC-071", "title": "Formulário de login — WCAG 2.1 AA", "status": "failed", "duration_ms": 980, "error": "2 violações críticas: button-name, label", "attempts": 1, "retry_diff_logs": false, "attempt_logs": [{"attempt": 1, "status": "failed", "error": "2 violações críticas: button-name, label", "duration_ms": 980}] }
   ],
   "summary": { "total": 2, "passed": 1, "failed": 1, "warning": 0, "skipped": 0 }
 }
 ```
 Omita completamente: `logs`, `violations`, `screenshot_path`, `generated_files`.
 O campo `error` só é obrigatório quando `status` for `"failed"` ou `"error"` — omita-o nos demais casos.
+
+**Regras de output:**
+- `attempts`, `retry_diff_logs` e `attempt_logs` sempre inclusos por TC.
 
 ### Sem exibição de código
 Não exiba o código gerado no chat, independentemente de haver falhas.

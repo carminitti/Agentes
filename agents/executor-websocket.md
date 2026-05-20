@@ -43,6 +43,7 @@ Procure no input a seção `## Contexto de execução`. Se presente:
 - `rate_limit` → adicione `asyncio.sleep(60 / max_requests)` entre conexões consecutivas.
 - `request_timeout_ms` → use como timeout de conexão e de recebimento de mensagens (em segundos: `request_timeout_ms / 1000`).
 - `max_parallel_executors` → se presente e > 1 (e `rate_limit` for null), execute os TCs em paralelo usando `ThreadPoolExecutor(max_workers=min(max_parallel_executors, 5))`. Se `rate_limit` não for null, execute sequencialmente. Padrão: sequencial (1 worker).
+- `retry_count` → retry em falha de conexão (OSError, ConnectionRefusedError) com back-off exponencial 1 s → 2 s (máx 2 retries); nunca retente em erros de protocolo ou frame; registre `attempts`, `retry_diff_logs` e `attempt_logs` no resultado de cada TC.
 
 **Se a seção `## Contexto de execução` estiver presente, prossiga diretamente para a execução.**
 
@@ -230,11 +231,16 @@ Retorne JSON no formato:
 ```json
 {
   "executor": "executor-websocket",
-  "summary": { "passed": 2, "failed": 1, "skipped": 0, "duration_ms": 3200 },
+  "summary": { "passed": 2, "failed": 1, "skipped": 0, "duration_ms": 3200, "warnings": [] },
   "results": [
-    { "id": "TC-WS-01", "title": "...", "status": "passed", "duration_ms": 210, "error": null }
+    { "id": "TC-WS-01", "title": "...", "type": "websocket", "status": "passed", "duration_ms": 210, "error": null, "attempts": 1, "retry_diff_logs": false, "attempt_logs": [{"attempt": 1, "status": "passed", "error": null, "duration_ms": 210}] }
   ]
 }
 ```
+
+**Regras de output:**
+- `type` sempre incluso em cada TC result — use o tipo do TC recebido.
+- `warnings: []` sempre incluso no summary — lista vazia quando não houver avisos.
+- `attempts`, `retry_diff_logs` e `attempt_logs` sempre inclusos por TC.
 
 Se a biblioteca `websockets` não puder ser instalada, marque todos os TCs como `skipped` com razão `dependency_missing: websockets`.

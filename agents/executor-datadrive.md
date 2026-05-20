@@ -43,6 +43,7 @@ Procure no input a seção `## Contexto de execução`. Se presente:
 - `request_timeout_ms` → use como timeout das requisições HTTP (em segundos: `request_timeout_ms / 1000`). Padrão: `30`.
 - `faker_locale` → se configurado e nenhum dataset explícito for detectado, gere N linhas com Faker (veja seção **Dataset via Faker**).
 - `rate_limit` → se presente como `{"max_requests": N, "period": "minute"}`, adicione `time.sleep(60 / N)` entre cada iteração para não exceder a taxa.
+- `retry_count` → **sempre 0** — dados determinísticos não devem ser retentados; registre `attempts: 1`, `retry_diff_logs: false` e `attempt_logs: [{...}]` por TC.
 
 **Se a seção `## Contexto de execução` estiver presente, prossiga diretamente para a execução sem fazer perguntas.**
 
@@ -459,7 +460,10 @@ print(json.dumps(output))
       "duration_ms": 145,
       "iteration_index": 0,
       "row_data": {"email": "admin@test.com", "role": "admin"},
-      "error": null
+      "error": null,
+      "attempts": 1,
+      "retry_diff_logs": false,
+      "attempt_logs": [{"attempt": 1, "status": "passed", "error": null, "duration_ms": 145}]
     },
     {
       "id": "TC-DD-001[1]",
@@ -468,7 +472,10 @@ print(json.dumps(output))
       "duration_ms": 132,
       "iteration_index": 1,
       "row_data": {"email": "user@test.com", "role": "user"},
-      "error": "Login falhou para user@test.com: esperado 200, obtido 403 — Forbidden"
+      "error": "Login falhou para user@test.com: esperado 200, obtido 403 — Forbidden",
+      "attempts": 1,
+      "retry_diff_logs": false,
+      "attempt_logs": [{"attempt": 1, "status": "failed", "error": "Login falhou para user@test.com: esperado 200, obtido 403 — Forbidden", "duration_ms": 132}]
     },
     {
       "id": "TC-DD-001[2]",
@@ -477,7 +484,10 @@ print(json.dumps(output))
       "duration_ms": 118,
       "iteration_index": 2,
       "row_data": {"email": "blocked@test.com", "role": "viewer"},
-      "error": null
+      "error": null,
+      "attempts": 1,
+      "retry_diff_logs": false,
+      "attempt_logs": [{"attempt": 1, "status": "passed", "error": null, "duration_ms": 118}]
     }
   ],
   "summary": {
@@ -488,10 +498,16 @@ print(json.dumps(output))
     "skipped": 0,
     "dataset_rows": 3,
     "all_iterations_failed": false,
-    "credentials_failed": false
+    "credentials_failed": false,
+    "warnings": []
   }
 }
 ```
+
+**Regras de output:**
+- `type` sempre incluso em cada TC result — use o tipo do TC recebido.
+- `warnings: []` sempre incluso no summary — lista vazia quando não houver avisos.
+- `attempts`, `retry_diff_logs` e `attempt_logs` sempre inclusos por TC.
 
 ### Casos especiais no output
 

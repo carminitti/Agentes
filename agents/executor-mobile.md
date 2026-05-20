@@ -50,6 +50,9 @@ Campos obrigatórios por plataforma:
 - **Android:** `app_package` + `app_activity` **ou** `app` (caminho do APK)
 - **iOS:** `bundle_id` **ou** `app` (caminho do IPA); `udid` para device real
 - `appium.url` → padrão `http://localhost:4723` (opcional)
+- `ssl_verify` → se `false`, desabilite verificação SSL nas chamadas HTTP auxiliares (`verify=False` no requests); não afeta a conexão Appium.
+- `custom_headers` → se presente no contexto, injete em todas as chamadas HTTP auxiliares antes dos headers de autenticação.
+- `retry_count` → retry em cold start do device (SessionNotCreatedException, timeout de inicialização) com intervalo fixo de 3 s (máx 2 retries); registre `attempts`, `retry_diff_logs` e `attempt_logs` no resultado de cada TC.
 
 Se algum campo obrigatório estiver ausente e a seção `## Contexto de execução` estiver presente, pergunte ao usuário apenas os campos faltantes antes de prosseguir.
 
@@ -516,6 +519,7 @@ Se o contexto contiver `"lean_mode": true`:
     {
       "id": "TC-001",
       "title": "Login com credenciais válidas",
+      "type": "mobile",
       "status": "passed",
       "duration_ms": 3240,
       "platform": "Android",
@@ -529,7 +533,10 @@ Se o contexto contiver `"lean_mode": true`:
         "[ASSERT] Dashboard visível ✓",
         "[TEARDOWN] Driver encerrado"
       ],
-      "error": null
+      "error": null,
+      "attempts": 1,
+      "retry_diff_logs": false,
+      "attempt_logs": [{"attempt": 1, "status": "passed", "error": null, "duration_ms": 3240}]
     },
     {
       "id": "TC-002",
@@ -554,7 +561,13 @@ Se o contexto contiver `"lean_mode": true`:
     "total": 2,
     "passed": 1,
     "failed": 1,
-    "skipped": 0
+    "skipped": 0,
+    "warnings": []
   }
 }
 ```
+
+**Regras de output:**
+- `type` sempre incluso em cada TC result — use o tipo do TC recebido.
+- `warnings: []` sempre incluso no summary — lista vazia quando não houver avisos.
+- `attempts`, `retry_diff_logs` e `attempt_logs` sempre inclusos por TC.

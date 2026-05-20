@@ -22,6 +22,8 @@ Procure no input `## Contexto de execução`. Se presente:
 - `pact_mode` → se presente (`"consumer"` ou `"provider"`), use este valor diretamente em vez de inferir pelo conteúdo dos steps. Isso evita ambiguidade quando os steps não mencionam explicitamente consumidor ou provedor.
 - `suite_dir` → salve pacts em `[suite_dir]/contratos/`.
 - `ssl_verify` → repasse para chamadas HTTP ao provider.
+- `custom_headers` → se presente no contexto, injete em todas as requisições HTTP ao provider antes dos headers de autenticação.
+- `retry_count` → retry apenas em falha de conexão ao Pact Broker; 0 retries em todos os outros erros; registre `attempts`, `retry_diff_logs` e `attempt_logs` no resultado de cada TC.
 
 **Se `## Contexto de execução` presente, prossiga para execução.**
 
@@ -182,16 +184,25 @@ verifier.verify_pacts(source=pact_file_path)
 ```json
 {
   "executor": "executor-contrato",
-  "summary": { "passed": 2, "failed": 0, "skipped": 0, "duration_ms": 1200 },
+  "summary": { "passed": 2, "failed": 0, "skipped": 0, "duration_ms": 1200, "warnings": [] },
   "results": [
     {
       "id": "TC-PACT-01",
       "title": "Consumidor orders-service espera que payments-api retorne status do pagamento",
+      "type": "contrato",
       "status": "passed",
       "duration_ms": 540,
       "pact_file": "suite_xxx/contratos/orders-service-payments-api.json",
-      "error": null
+      "error": null,
+      "attempts": 1,
+      "retry_diff_logs": false,
+      "attempt_logs": [{"attempt": 1, "status": "passed", "error": null, "duration_ms": 540}]
     }
   ]
 }
 ```
+
+**Regras de output:**
+- `type` sempre incluso em cada TC result — use o tipo do TC recebido.
+- `warnings: []` sempre incluso no summary — lista vazia quando não houver avisos.
+- `attempts`, `retry_diff_logs` e `attempt_logs` sempre inclusos por TC.

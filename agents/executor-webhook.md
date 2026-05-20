@@ -67,6 +67,7 @@ Mapeamento dos campos:
 - `ssl_verify` → se `false`, desabilite verificação SSL nas chamadas HTTP à aplicação (`verify=False`).
 - `rate_limit` → adicione pausa entre TCs consecutivos para evitar sobrecarga.
 - `request_timeout_ms` → substitui `webhook_config.timeout_s` se presente (converta: `request_timeout_ms / 1000`).
+- `retry_count` → retry 2× com back-off exponencial 2 s → 4 s → 8 s; registre `attempts`, `retry_diff_logs` e `attempt_logs` no resultado de cada TC.
 
 **Se a seção `## Contexto de execução` estiver presente, prossiga diretamente para a execução.**
 
@@ -491,6 +492,7 @@ Retorne JSON no formato:
     {
       "id": "TC-WH-001",
       "title": "Webhook payment.confirmed entregue após simulação de pagamento",
+      "type": "webhook",
       "status": "passed",
       "duration_ms": 3400,
       "webhook_details": {
@@ -501,11 +503,19 @@ Retorne JSON no formato:
         "hmac_detail": "OK",
         "payload_received": {"event": "payment.confirmed", "order_id": "PED-001", "amount": 99.90}
       },
-      "error": null
+      "error": null,
+      "attempts": 1,
+      "retry_diff_logs": false,
+      "attempt_logs": [{"attempt": 1, "status": "passed", "error": null, "duration_ms": 3400}]
     }
   ],
   "summary": {
-    "total": 1, "passed": 1, "failed": 0, "error": 0, "skipped": 0
+    "total": 1, "passed": 1, "failed": 0, "error": 0, "skipped": 0, "warnings": []
   }
 }
 ```
+
+**Regras de output:**
+- `type` sempre incluso em cada TC result — use o tipo do TC recebido.
+- `warnings: []` sempre incluso no summary — lista vazia quando não houver avisos.
+- `attempts`, `retry_diff_logs` e `attempt_logs` sempre inclusos por TC.

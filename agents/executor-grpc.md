@@ -22,6 +22,7 @@ Procure no input `## Contexto de execução`. Se presente:
 - `suite_dir` → salve artefatos em `[suite_dir]/grpc/`.
 - `request_timeout_ms` → use `-max-time` (grpcurl) ou timeout no stub (grpcio).
 - `max_parallel_executors` → se presente e > 1 (e `rate_limit` for null), execute os TCs em paralelo usando `ThreadPoolExecutor(max_workers=min(max_parallel_executors, 5))`. Se `rate_limit` não for null, execute sequencialmente. Padrão: sequencial (1 worker).
+- `retry_count` → retry em UNAVAILABLE e DEADLINE_EXCEEDED com back-off exponencial 0,5 s → 1 s (máx 2 retries); nunca retente em INVALID_ARGUMENT; registre `attempts`, `retry_diff_logs` e `attempt_logs` no resultado de cada TC.
 
 **Se `## Contexto de execução` presente, prossiga para execução.**
 
@@ -156,9 +157,14 @@ for line in proc.stdout.splitlines():
 ```json
 {
   "executor": "executor-grpc",
-  "summary": { "passed": 2, "failed": 0, "skipped": 1, "duration_ms": 890 },
+  "summary": { "passed": 2, "failed": 0, "skipped": 1, "duration_ms": 890, "warnings": [] },
   "results": [
-    { "id": "TC-GRPC-01", "title": "...", "status": "passed", "duration_ms": 340, "error": null }
+    { "id": "TC-GRPC-01", "title": "...", "type": "grpc", "status": "passed", "duration_ms": 340, "error": null, "attempts": 1, "retry_diff_logs": false, "attempt_logs": [{"attempt": 1, "status": "passed", "error": null, "duration_ms": 340}] }
   ]
 }
 ```
+
+**Regras de output:**
+- `type` sempre incluso em cada TC result — use o tipo do TC recebido.
+- `warnings: []` sempre incluso no summary — lista vazia quando não houver avisos.
+- `attempts`, `retry_diff_logs` e `attempt_logs` sempre inclusos por TC.

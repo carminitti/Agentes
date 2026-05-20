@@ -41,6 +41,7 @@ Mapeamento dos campos:
   - `"gmail_api"` → `credentials_json_path`, `token_path`
 - `suite_dir` → salve artefatos em `[suite_dir]/email/`. Se ausente, use `tmp_email_[timestamp]/`.
 - `request_timeout_ms` → timeout máximo de polling para chegada do email (default 30 000 ms = 30 s). Poll a cada 2 s.
+- `retry_count` → retry 2× com back-off exponencial 5 s → 10 s → 20 s (emails podem demorar); registre `attempts`, `retry_diff_logs` e `attempt_logs` no resultado de cada TC.
 
 **Se a seção `## Contexto de execução` estiver presente, prossiga diretamente para a execução.**
 
@@ -479,6 +480,7 @@ Retorne JSON no formato:
     {
       "id": "TC-EMAIL-001",
       "title": "Email de boas-vindas enviado após cadastro",
+      "type": "email",
       "status": "passed",
       "duration_ms": 4200,
       "email_details": {
@@ -489,7 +491,10 @@ Retorne JSON no formato:
         "links_valid": true,
         "links_checked": ["https://app.com/confirm/abc123"]
       },
-      "error": null
+      "error": null,
+      "attempts": 1,
+      "retry_diff_logs": false,
+      "attempt_logs": [{"attempt": 1, "status": "passed", "error": null, "duration_ms": 4200}]
     }
   ],
   "summary": {
@@ -498,9 +503,15 @@ Retorne JSON no formato:
     "failed": 0,
     "error": 0,
     "skipped": 0,
-    "credentials_failed": false
+    "credentials_failed": false,
+    "warnings": []
   }
 }
 ```
+
+**Regras de output:**
+- `type` sempre incluso em cada TC result — use o tipo do TC recebido.
+- `warnings: []` sempre incluso no summary — lista vazia quando não houver avisos.
+- `attempts`, `retry_diff_logs` e `attempt_logs` sempre inclusos por TC.
 
 O orquestrador só considera o resultado desta execução se `resultado.json` existir e for legível em `[suite_dir]/email/resultado.json`.

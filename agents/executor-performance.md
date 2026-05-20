@@ -43,6 +43,7 @@ Se essa seção estiver presente:
   - Contém `certificado`, `SSL`, `autoassinado` ou `self-signed` → adicione `insecureSkipTLSVerify: true` nas options do k6; no fallback Python use `verify=False`
   - Contém `VPN` ou `proxy` → adicione `[ENV] Ambiente pode exigir VPN/proxy` nos logs; se testes falharem com erro de conexão, inclua `"Possível causa: acesso via VPN/proxy necessário"` no campo `error`
 - `request_timeout_ms` → defina `TIMEOUT_S = request_timeout_ms / 1000` (default: 10) no início do script fallback Python e use-o em todas as chamadas `requests.get/request` em vez de `timeout=10`.
+- `retry_count` → k6 não oferece retry por TC; não aplique loop de retry. Para falhas intermitentes, ajuste os thresholds. Registre `attempts: 1`, `retry_diff_logs: false` e `attempt_logs: [{...}]` por TC.
 
 **Se a seção `## Contexto de execução` estiver presente, ignore os passos abaixo e prossiga para a execução.**
 
@@ -650,14 +651,18 @@ Se o `## Contexto de execução` contiver `"lean_mode": true`, aplique todas as 
 ```json
 {
   "results": [
-    { "id": "TC-030", "title": "Carga 50 VUs por 60s", "status": "passed", "duration_ms": 62000 },
-    { "id": "TC-031", "title": "Stress 200 VUs", "status": "failed", "duration_ms": 30000, "error": "p95=4200ms — limite 3000ms excedido" }
+    { "id": "TC-030", "title": "Carga 50 VUs por 60s", "status": "passed", "duration_ms": 62000, "attempts": 1, "retry_diff_logs": false, "attempt_logs": [{"attempt": 1, "status": "passed", "error": null, "duration_ms": 62000}] },
+    { "id": "TC-031", "title": "Stress 200 VUs", "status": "failed", "duration_ms": 30000, "error": "p95=4200ms — limite 3000ms excedido", "attempts": 1, "retry_diff_logs": false, "attempt_logs": [{"attempt": 1, "status": "failed", "error": "p95=4200ms — limite 3000ms excedido", "duration_ms": 30000}] }
   ],
-  "summary": { "total": 2, "passed": 1, "failed": 1, "skipped": 0 }
+  "summary": { "total": 2, "passed": 1, "failed": 1, "skipped": 0, "warnings": [] }
 }
 ```
 Omita completamente: `logs`, `metrics`, `thresholds_detail`, `generated_files`.
 O campo `error` só é obrigatório quando `status` for `"failed"` ou `"error"` — omita-o nos demais casos.
+
+**Regras de output:**
+- `warnings: []` sempre incluso no summary — lista vazia quando não houver avisos.
+- `attempts`, `retry_diff_logs` e `attempt_logs` sempre inclusos por TC.
 
 ### Sem exibição de código
 Não exiba o código gerado no chat, independentemente de haver falhas.

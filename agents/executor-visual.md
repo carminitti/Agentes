@@ -42,6 +42,7 @@ Se essa seção estiver presente:
 - `environment_notes` → aplique as regras abaixo conforme palavras-chave:
   - Contém `certificado`, `SSL`, `autoassinado` ou `self-signed` → adicione `ignoreHTTPSErrors: true` no `playwright.config.ts`
   - Contém `VPN` ou `proxy` → adicione `[ENV] Ambiente pode exigir VPN/proxy` nos logs; se testes falharem com erro de conexão, inclua `"Possível causa: acesso via VPN/proxy necessário"` no campo `error`
+- `retry_count` → retry apenas se diff > threshold por suspeita de flake visual (render inconsistente); nunca retente em baseline criada; intervalo fixo de 2 s (máx 2 retries); registre `attempts`, `retry_diff_logs` e `attempt_logs` no resultado de cada TC.
 
 **Se a seção `## Contexto de execução` estiver presente, ignore os passos abaixo e prossiga para a execução.**
 
@@ -584,14 +585,18 @@ test('TC-040 — Homepage — regressão visual', async ({ page }) => {
 ```json
 {
   "results": [
-    { "id": "TC-040", "title": "Homepage — regressão visual", "status": "passed", "duration_ms": 890 },
-    { "id": "TC-041", "title": "Checkout — regressão visual", "status": "failed", "duration_ms": 1100, "error": "Diferença visual detectada: 3.2% dos pixels alterados" }
+    { "id": "TC-040", "title": "Homepage — regressão visual", "status": "passed", "duration_ms": 890, "attempts": 1, "retry_diff_logs": false, "attempt_logs": [{"attempt": 1, "status": "passed", "error": null, "duration_ms": 890}] },
+    { "id": "TC-041", "title": "Checkout — regressão visual", "status": "failed", "duration_ms": 1100, "error": "Diferença visual detectada: 3.2% dos pixels alterados", "attempts": 1, "retry_diff_logs": false, "attempt_logs": [{"attempt": 1, "status": "failed", "error": "Diferença visual detectada: 3.2% dos pixels alterados", "duration_ms": 1100}] }
   ],
-  "summary": { "total": 2, "passed": 1, "failed": 1, "skipped": 0, "baseline_created": 0 }
+  "summary": { "total": 2, "passed": 1, "failed": 1, "skipped": 0, "baseline_created": 0, "warnings": [] }
 }
 ```
 Omita completamente: `logs`, `screenshot_path`, `diff_path`, `generated_files`.
 O campo `error` só é obrigatório quando `status` for `"failed"` ou `"error"` — omita-o nos demais casos.
+
+**Regras de output:**
+- `warnings: []` sempre incluso no summary — lista vazia quando não houver avisos.
+- `attempts`, `retry_diff_logs` e `attempt_logs` sempre inclusos por TC.
 
 ### Sem exibição de código
 Não exiba o código gerado no chat, independentemente de haver falhas.
