@@ -131,9 +131,11 @@ def consume_kafka(consumer, match_fn=None, timeout_s=30):
     """Polling no consumer Kafka até encontrar mensagem que satisfaça match_fn."""
     deadline = time.time() + timeout_s
     while time.time() < deadline:
-        for msg in consumer:
-            if match_fn is None or match_fn(msg.value):
-                return msg.value
+        batch = consumer.poll(timeout_ms=500)
+        for tp, records in batch.items():
+            for msg in records:
+                if match_fn is None or match_fn(msg.value):
+                    return msg.value
     return None
 
 
@@ -349,11 +351,11 @@ subprocess.run([sys.executable, "-m", "pip", "install", "-q",
 import requests, json, time, os, pathlib
 
 # ── Configuração ──────────────────────────────────────────────────────────────
-BASE_URL   = "{{base_url}}"
-TOKEN      = os.environ.get("AUTH_TOKEN", "{{auth_token}}")
+BASE_URL   = os.environ.get("BASE_URL", "")
+TOKEN      = os.environ.get("AUTH_TOKEN", "")
 QUEUE_TYPE = "kafka"                        # kafka | rabbitmq | sqs | servicebus
-TOPIC      = "{{topic_or_queue}}"
-BROKERS    = ["{{bootstrap_servers}}"]
+TOPIC      = os.environ.get("TOPIC", "")
+BROKERS    = os.environ.get("KAFKA_BROKERS", "localhost:9092").split(",")
 TIMEOUT_S  = 30
 SUITE_DIR  = os.environ.get("SUITE_DIR", "")
 GROUP_ID   = f"qa-test-{int(time.time())}"  # isolamento: nunca conflita com produção
@@ -385,23 +387,30 @@ def run(tc_id, title, fn):
     start = time.time()
     try:
         details = fn()
+        dur = int((time.time() - start) * 1000)
         results.append({
-            "id": tc_id, "title": title, "status": "passed",
-            "duration_ms": int((time.time() - start) * 1000),
-            "message_details": details, "error": None,
+            "id": tc_id, "title": title, "type": "queue", "status": "passed",
+            "duration_ms": dur, "message_details": details, "error": None,
+            "attempts": 1, "retry_diff_logs": False,
+            "attempt_logs": [{"attempt": 1, "status": "passed", "error": None, "duration_ms": dur}],
         })
     except AssertionError as e:
+        dur = int((time.time() - start) * 1000)
+        msg = str(e) if str(e) else "AssertionError sem mensagem"
         results.append({
-            "id": tc_id, "title": title, "status": "failed",
-            "duration_ms": int((time.time() - start) * 1000),
-            "message_details": None,
-            "error": str(e) if str(e) else "AssertionError sem mensagem",
+            "id": tc_id, "title": title, "type": "queue", "status": "failed",
+            "duration_ms": dur, "message_details": None, "error": msg,
+            "attempts": 1, "retry_diff_logs": False,
+            "attempt_logs": [{"attempt": 1, "status": "failed", "error": msg, "duration_ms": dur}],
         })
     except Exception as e:
+        dur = int((time.time() - start) * 1000)
+        msg = str(e)
         results.append({
-            "id": tc_id, "title": title, "status": "error",
-            "duration_ms": int((time.time() - start) * 1000),
-            "message_details": None, "error": str(e),
+            "id": tc_id, "title": title, "type": "queue", "status": "error",
+            "duration_ms": dur, "message_details": None, "error": msg,
+            "attempts": 1, "retry_diff_logs": False,
+            "attempt_logs": [{"attempt": 1, "status": "error", "error": msg, "duration_ms": dur}],
         })
 
 # ── Test Cases ────────────────────────────────────────────────────────────────
@@ -416,7 +425,7 @@ def tc_001():
         group_id=GROUP_ID,
         auto_offset_reset="latest",        # só mensagens novas — jamais re-consome antigas
         value_deserializer=lambda m: json.loads(m.decode("utf-8")),
-        consumer_timeout_ms=2000,
+        # Sem consumer_timeout_ms — usar poll() explícito para não exaurir o iterador
     )
     # Força registro do consumer group antes de disparar a ação — evita perda de mensagem
     consumer.poll(timeout_ms=0)
@@ -432,16 +441,19 @@ def tc_001():
         f"Criação de pedido falhou: {r.status_code} — {r.text[:300]}"
     order_id = r.json().get("id")
 
-    # 2. Aguarda evento chegar na fila
+    # 2. Aguarda evento chegar na fila usando poll() — não for-in-consumer (exaure o iterador)
     msg      = None
     deadline = time.time() + TIMEOUT_S
     while time.time() < deadline and msg is None:
-        for m in consumer:
-            if (m.value.get("event") == "order.created"
-                    and m.value.get("order_id") == order_id):
-                msg = m.value
+        batch = consumer.poll(timeout_ms=500)
+        for tp, records in batch.items():
+            for m in records:
+                if (m.value.get("event") == "order.created"
+                        and m.value.get("order_id") == order_id):
+                    msg = m.value
+                    break
+            if msg:
                 break
-        time.sleep(0.5)
     consumer.close()
 
     delivery_latency_ms = int((time.time() - t0) * 1000)
@@ -477,6 +489,7 @@ summary = {
     "failed":  sum(1 for r in results if r["status"] == "failed"),
     "error":   sum(1 for r in results if r["status"] == "error"),
     "skipped": sum(1 for r in results if r["status"] == "skipped"),
+    "warnings": [],
 }
 
 output = {

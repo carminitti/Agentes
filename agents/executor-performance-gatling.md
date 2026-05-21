@@ -71,18 +71,21 @@ def should_skip(tc):
     tc_type = tc.get("type", "")
     steps_text = " ".join(tc.get("steps", [])).lower()
     stage_duration_s = sum(
-        int(s.split("m")[0]) * 60 if "m" in s else int(s.replace("s", ""))
-        for s in re.findall(r"\d+[ms]", steps_text)
+        int(val) * 60 if unit == "m" else int(val)
+        for val, unit in re.findall(r"(\d+)(ms|m|s)", steps_text)
+        if unit != "ms"
     ) or 0
     if tc_type == "soak":
         return True, "pipeline_lento", "Tipo 'soak' reservado para --pipeline=full."
     if tc_type == "stress" and stage_duration_s > 180:
         return True, "pipeline_lento", f"Stress com {stage_duration_s}s > 3min."
-    users = int(re.search(r"(\d+)\s*users?", steps_text).group(1)) \
-            if re.search(r"(\d+)\s*users?", steps_text) else 0
+    users = max((int(m.group(1)) for m in re.finditer(r"(\d+)\s*users?", steps_text)), default=0)
     duration_s = stage_duration_s or 30
     if tc_type in ("performance", "carga") and users > 50 and duration_s > 60:
         return True, "pipeline_lento", f"Users={users} e duration={duration_s}s acima do limite."
+    users_peak = max((int(m.group(1)) for m in re.finditer(r"(\d+)\s*users?", steps_text)), default=users)
+    if tc_type == "spike" and users_peak > 50 and duration_s > 120:
+        return True, "pipeline_lento", f"Spike com {users_peak} users e {duration_s}s > 2min."
     return False, None, None
 ```
 
@@ -90,13 +93,12 @@ def should_skip(tc):
 
 ## Pré-requisito — Gatling
 
-```bash
-gatling.sh --version
-# ou no Windows:
-gatling.bat --version
+```python
+import shutil
+_gatling = shutil.which("gatling.sh") or shutil.which("gatling.bat") or shutil.which("gatling")
 ```
 
-**Se não estiver instalado**, vá direto ao **fallback Python** abaixo — sem interromper o fluxo.
+**Se `_gatling` for `None`**, vá direto ao **fallback Python** abaixo — sem interromper o fluxo.
 
 > Gatling pode ser instalado via:
 > - Download do bundle em https://gatling.io/open-source/ (ZIP com `bin/gatling.sh`)
@@ -121,9 +123,9 @@ class QASimulation extends Simulation {
 
   val baseUrl = System.getProperty("base_url", "https://staging.app.com")
   val authToken = System.getProperty("auth_token", "")
-  val users = Integer.getInteger("users", 10)
-  val rampSeconds = Integer.getInteger("ramp_seconds", 5)
-  val durationSeconds = Integer.getInteger("duration_seconds", 30)
+  val users = System.getProperty("users", "10").toInt
+  val rampSeconds = System.getProperty("ramp_seconds", "5").toInt
+  val durationSeconds = System.getProperty("duration_seconds", "30").toInt
 
   val httpProtocol = http
     .baseUrl(baseUrl)
@@ -182,7 +184,7 @@ scn.inject(
 scn.inject(
   rampUsers(50).during(10.seconds),
   constantUsersPerSec(50).during(1.minute),
-  rampUsersPerSec(50).to(0).during(10.seconds)   // nothingFor() apenas pausa injeção sem ramp-down real
+  rampUsersPerSec(50).to(0).during(10.seconds)   // ramp-down real: reduz taxa de 50/s até 0/s em 10s
 )
 ```
 
@@ -224,34 +226,36 @@ import re, statistics, os
 
 def parse_gatling_log(log_path: str, duration_s: int) -> dict:
     latencies = []
+    total_count = 0
     errors = []
     with open(log_path, encoding='utf-8', errors='replace') as f:
         for line in f:
             parts = line.strip().split('\t')
-            if len(parts) < 8:
+            if len(parts) < 6:
                 continue
             record_type = parts[0]
             if record_type == 'REQUEST':
-                start_ms = int(parts[3]) if parts[3].isdigit() else 0
-                end_ms   = int(parts[4]) if parts[4].isdigit() else 0
-                status   = parts[5]
+                start_ms = int(parts[4]) if len(parts) > 4 and parts[4].isdigit() else 0
+                end_ms   = int(parts[5]) if len(parts) > 5 and parts[5].isdigit() else 0
+                status   = parts[6] if len(parts) > 6 else ""
                 elapsed  = end_ms - start_ms
                 if elapsed > 0:
                     latencies.append(elapsed)
                 if status != 'OK':
-                    errors.append(parts[6] if len(parts) > 6 else 'error')
+                    errors.append(parts[7] if len(parts) > 7 else 'error')
+                total_count += 1
 
     if not latencies:
         return {}
 
     sorted_l = sorted(latencies)
     n = len(sorted_l)
-    total = len(latencies) + len(errors)
+    total = total_count or len(latencies)
 
     return {
-        "p50_ms":  sorted_l[int(n * 0.50)],
-        "p95_ms":  sorted_l[int(n * 0.95)],
-        "p99_ms":  sorted_l[min(int(n * 0.99), n - 1)],
+        "p50_ms":  sorted_l[max(int(n * 0.50) - 1, 0)],
+        "p95_ms":  sorted_l[max(int(n * 0.95) - 1, 0)],
+        "p99_ms":  sorted_l[max(min(int(n * 0.99), n - 1) - 1, 0)],
         "min_ms":  sorted_l[0],
         "max_ms":  sorted_l[-1],
         "avg_ms":  round(statistics.mean(latencies), 2),
@@ -310,9 +314,9 @@ def run_load_test(url, users, duration_s, headers=None, method='GET', payload=No
     n = len(sorted_r)
     total = len(results) + len(errors)
     return {
-        "p50_ms": round(sorted_r[int(n * 0.50)], 2),
-        "p95_ms": round(sorted_r[int(n * 0.95)], 2),
-        "p99_ms": round(sorted_r[min(int(n * 0.99), n - 1)], 2),
+        "p50_ms": round(sorted_r[max(int(n * 0.50) - 1, 0)], 2),
+        "p95_ms": round(sorted_r[max(int(n * 0.95) - 1, 0)], 2),
+        "p99_ms": round(sorted_r[min(max(int(n * 0.99) - 1, 0), n - 1)], 2),
         "min_ms": round(sorted_r[0], 2),
         "max_ms": round(sorted_r[-1], 2),
         "error_rate_pct": round(len(errors) / total * 100, 2) if total > 0 else 0,
@@ -362,7 +366,11 @@ def run_load_test(url, users, duration_s, headers=None, method='GET', payload=No
         "[THRESHOLD] p(95) < 200ms ✓ (atual: 190ms)",
         "[THRESHOLD] error rate < 1% ✓ (atual: 0.0%)"
       ],
-      "error": null
+      "error": null,
+      "type": "performance",
+      "attempts": 1,
+      "retry_diff_logs": false,
+      "attempt_logs": [{"attempt": 1, "status": "passed", "error": null, "duration_ms": 30000}]
     }
   ],
   "summary": {
@@ -370,7 +378,8 @@ def run_load_test(url, users, duration_s, headers=None, method='GET', payload=No
     "passed": 1,
     "failed": 0,
     "skipped": 0,
-    "mode": "gatling"
+    "mode": "gatling",
+    "warnings": []
   }
 }
 ```
@@ -402,6 +411,13 @@ timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 output_dir = f"{suite_dir}/performance-gatling" if suite_dir else f"tmp_gatling_{timestamp}"
 os.makedirs(output_dir, exist_ok=True)
 
+output_json = {
+    "executor": "performance-gatling",
+    "mode": "gatling",
+    "environment": os.environ.get("BASE_URL", ""),
+    "results": results,
+    "summary": summary
+}
 with open(os.path.join(output_dir, "resultado.json"), "w", encoding="utf-8") as f:
     json.dump(output_json, f, ensure_ascii=False, indent=2)
 

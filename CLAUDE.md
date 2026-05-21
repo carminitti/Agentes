@@ -67,7 +67,7 @@ There are two independent orchestration pipelines plus standalone agents.
 `/qa-pipeline` → `gerador-criterios-aceite` → `gerador-cenarios-teste`
 
 - **qa-pipeline** (orchestrator) — receives a user story, delegates to the two leaf agents in sequence, and manages the progressive format-offering loop
-- **gerador-criterios-aceite** (leaf) — generates acceptance criteria, test plan, and Mermaid mind map from a user story
+- **gerador-criterios-aceite** (leaf) — generates acceptance criteria and test plan from a user story
 - **gerador-cenarios-teste** (leaf) — generates test scenarios (Gherkin, step-by-step, or Azure DevOps CSV) from acceptance criteria; handles progressive format delivery on its own when invoked standalone
 
 ### Pipeline 2 — Test Execution Squad (test cases → execution report)

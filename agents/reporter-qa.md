@@ -7,7 +7,7 @@ tools: ""
 
 Você recebe os resultados de execução de múltiplos executores de teste e gera um relatório HTML completo, autocontido e dual-mode.
 
-> **⚠️ Lean mode:** se a mensagem recebida indicar `lean_mode: true` — **não gere nada**. O orquestrador produz o resumo inline diretamente a partir dos JSONs dos executores. Retorne apenas: `{ "lean_mode": true, "skipped": "reporter não invocado em modo enxuto" }`.
+> **⚠️ Lean mode:** se a mensagem recebida indicar `lean_mode: true`, gere o relatório HTML normalmente — o orquestrador sempre invoca o reporter independentemente do modo. As seções condicionais marcadas com `lean_mode: false` (trends, JUnit XML, screenshots) devem ser omitidas; todas as demais seções obrigatórias devem estar presentes.
 
 ## Regras de integridade dos dados
 
@@ -105,7 +105,7 @@ Ao consolidar os resultados, separe os testes em três grupos distintos:
 - Sempre gere o `relatorio.html` principal.
 - Gere `relatorio-performance.html` somente se houver testes de performance — use o mesmo template HTML dual-mode, com o título "QA Report — Performance" e seção de métricas k6 destacada.
 - Gere `relatorio-seguranca.html` somente se houver testes de segurança — use o mesmo template HTML dual-mode, com o título "QA Report — Segurança" e seção de OWASP Top 10 destacada.
-- Ao final de sua resposta, informe ao orquestrador quais reports foram gerados: `{ "reports_generated": ["relatorio.html", "relatorio-performance.html"] }`.
+- Inclua `reports_generated` no bloco `<!-- SUMMARY_TEXT -->` (dentro do HTML, antes de `</body>`) — nunca após `</html>`, pois sua resposta deve ser HTML puro.
 
 **No relatório principal**, onde seriam exibidos os testes de performance e segurança, exiba apenas um card de referência:
 > "🔗 Testes de performance em report separado: `relatorio-performance.html`"
@@ -116,6 +116,26 @@ Ao consolidar os resultados, separe os testes em três grupos distintos:
 ## Formato de saída por modo
 
 O reporter sempre produz **HTML dual-mode completo** (modo relatório + modo técnico).
+
+## ESTRUTURA FIXA — seções sempre obrigatórias
+
+**Todo relatório, independentemente dos dados recebidos, deve conter exatamente estas seções na ordem abaixo.** Nunca omita seções — use `style="display:none"` para ocultar conteúdo vazio em vez de remover o bloco.
+
+| # | Seção | Condição de visibilidade |
+|---|---|---|
+| 1 | `<nav>` com logo, links e botão modo | sempre visível |
+| 2 | Barra de métricas (entre nav e main) | sempre visível (usa valores padrão se sem dados) |
+| 3 | `<main>` com `.metrics-panel` | sempre visível (usa valores padrão se sem dados) |
+| 4 | `<details class="audit-section">` | sempre presente, colapsado por padrão |
+| 5 | `.view-report` → hero + donut + stat cards | sempre visível |
+| 6 | `.view-report` → `#suites` | sempre visível; se vazio, exibe "Nenhum executor rodou" |
+| 7 | `.view-report` → `#failures` | `display:none` se N_failed == 0; visível se N_failed > 0 |
+| 8 | `.view-report` → `#not-executed` | `display:none` se nenhum skipped; visível se houver skipped |
+| 9 | `.view-technical` → `#tech-env` + `#tc-list` | controlado pelo toggle JS |
+| 10 | `<footer>` | sempre visível |
+| 11 | `<script>` com toggleMode, filtros e donut JS | sempre presente |
+
+**Regra de não-truncagem:** gere o HTML completo. Nunca abrevie, resuma ou substitua blocos por comentários como `<!-- ... restante dos testes ... -->`. Se o output for muito longo, priorize os dados reais sobre comentários explicativos.
 
 ---
 
@@ -129,6 +149,19 @@ O reporter sempre produz **HTML dual-mode completo** (modo relatório + modo té
 - **Suite reprovada** → qualquer falha de smoke/sanity/segurança (severity high/medium) ou `deploy_blocked: true`
 - **Severidade:** campo `severity` presente → use; senão por tipo: smoke/sanity/segurança = Alta; regressão/e2e/performance = Média; visual/acessibilidade/banco = Baixa
 
+**Cálculo de `deploy_blocked`** (calcule antes de determinar o veredicto da suite):
+```python
+# Calcule deploy_blocked como:
+deploy_blocked = (
+    any(tc.get("status") == "failed" and tc.get("type") in ("smoke", "sanity") for tc in all_results)
+    or any(
+        tc.get("status") == "failed"
+        and any(kw in (tc.get("title") or "").lower() for kw in ("segurança", "security", "auth", "autenticação"))
+        for tc in all_results
+    )
+)
+```
+
 
 
 **Sua resposta COMPLETA deve ser o HTML — nada antes de `<!DOCTYPE html>`, nada depois de `</html>`.**
@@ -140,6 +173,7 @@ Suite: [suite_dir]
 Ambiente: [URL]
 Resultado: [✅ Aprovada | ❌ Reprovada — N falha(s) crítica(s)]
 Passed: N | Failed: N | Warnings: N | Skipped: N
+Reports: relatorio.html[, relatorio-performance.html][, relatorio-seguranca.html]
 -->
 ```
 
@@ -686,7 +720,7 @@ Preencha os valores com dados reais de `execution_metrics`:
 - `[pct_tokens]`: `round(fase.tokens_total_est / execution_metrics.total_tokens_estimated * 100, 1)` — se `total_tokens_estimated` for 0, use `0` para evitar divisão por zero
 - Badge: use `metrics-badge-executor` para fases que começam com "Executor —", e `metrics-badge-phase` para as demais
 - Duração: se `duration_ms < 1000` → `"Xms"`, se `< 60000` → `"X.Xs"`, caso contrário → `"Xm Ys"`
-- Se `execution_metrics` não for passado (campo ausente), omita completamente esta seção sem erro
+- Se `execution_metrics` não for passado ou for null, **nunca omita esta seção** — use o objeto padrão mínimo: `{ "suite_id": "suite_sem_metricas", "agent_version": "—", "suite_start_iso": "—", "suite_end_iso": "—", "total_duration_ms": 0, "total_tokens_estimated": 0, "total_tokens_input_est": 0, "total_tokens_output_est": 0, "phases": [], "environment": "—", "executors_dispatched": [], "tcs_total": 0, "tcs_passed": 0, "tcs_failed": 0, "tcs_skipped": 0 }`. Exiba campos indisponíveis com traço (`—`).
 - **Nota sobre Etapa 4:** a fase "Etapa 4 — Geração do relatório" é registrada após a geração deste HTML, portanto não constará na tabela de fases. A soma dos tokens da tabela será menor que `total_tokens_estimated` do KPI — isso é esperado. Adicione abaixo dos KPIs, em fonte pequena: `* Tokens da Etapa 4 (geração do relatório) não incluídos na tabela — registrados após esta geração.`
 
 **Seção de auditoria — gere logo após o painel de métricas:**
@@ -755,7 +789,7 @@ Preencha os valores com dados reais de `execution_metrics`:
 **Regras de geração da auditoria:**
 - Use `<details>`/`<summary>` para manter o log colapsado por padrão (não polui a tela)
 - Para cada TC com logs, exiba no máximo 50 linhas do array `logs`; se houver mais, termine com `… e mais [N] linhas`
-- Se `execution_metrics` não estiver disponível, omita completamente a seção sem erro
+- Se `execution_metrics` não estiver disponível, **nunca omita esta seção** — gere-a com o objeto padrão mínimo (mesmo objeto descrito acima para o painel de métricas) e exiba a mensagem no `audit-detail` da entrada de início: `"Métricas de execução não disponíveis para esta suite."`
 - Ícones por tipo de fase: `🔍` para classificação, `⚙️` para coleta, `▶️` para executores, `📝` para relatório, `🔄` para retry
 
 <!-- ════════════════════════════════════════════════ -->
@@ -1948,6 +1982,12 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
 ---
 
 
+## Regra de construção de `all_results`
+
+> `all_results` deve ser construída como lista flat de todos os TCs: itere sobre cada executor em `## Resultados dos executores`, colete o campo `results` (ou `tests`) de cada um e concatene. Não use um campo `"results"` do objeto raiz do contexto (ele não existe).
+
+---
+
 ## Comparação histórica (delta vs. última execução)
 
 **Apenas quando `lean_mode: false`.**
@@ -1958,21 +1998,37 @@ Ao gerar o relatório, antes de finalizar o HTML, execute a lógica de delta his
 import json, os
 from datetime import datetime
 
+# Construa input_data a partir das seções recebidas no contexto:
+# input_data = {
+#   "results": [lista flat de todos os TCs de todos os executores — extraia de "## Resultados dos executores"],
+#   "summary": objeto summary consolidado,
+#   "suite_dir": suite_dir,
+# }
+
 # Extrai do JSON de entrada do reporter:
-# - 'all_results': lista de todos os TCs com {id, status, executor, ...}
+# - 'all_results': lista flat de todos os TCs de todos os executores
+#   ATENÇÃO: all_results deve ser construída iterando sobre cada executor em
+#   "## Resultados dos executores", coletando o campo results (ou tests) de cada um
+#   e concatenando. Não use um campo "results" do objeto raiz do contexto (ele não existe).
 # - 'suite_summary': objeto com {total, passed, failed, skipped, ...}
 # Use os nomes reais presentes no JSON recebido — adapte se necessário.
-all_results   = input_data.get("results") or input_data.get("all_results") or []
+all_results   = []
+for _exec_result in _executor_results_list:   # itere sobre cada executor em "## Resultados dos executores"
+    all_results.extend(_exec_result.get("results") or _exec_result.get("tests") or [])
 suite_summary = input_data.get("summary") or {}
 
 suite_dir = input_data.get("suite_dir") or ""
-history_path = os.path.join(suite_dir, ".qa_history.json") if suite_dir else ".qa_history.json"
+# Caminho estável no cwd — não usa suite_dir (muda a cada run, nunca seria encontrado)
+history_path = os.path.join(os.getcwd(), ".qa_history.json")
 
 previous_run = None
 if os.path.exists(history_path):
     try:
         with open(history_path) as f:
             history = json.load(f)
+        # Suporta formato lista (padrão) e formato legado {"runs": [...]}
+        if isinstance(history, dict):
+            history = history.get("runs", [])
         if isinstance(history, list) and len(history) > 0:
             previous_run = history[-1]
     except Exception:

@@ -103,7 +103,10 @@ def create_driver(browser: str = "chrome", headless: bool = True) -> webdriver.R
         opts = FirefoxOptions()
         if headless:
             opts.add_argument("--headless")
-        service = FirefoxService(GeckoDriverManager().install())
+        try:
+            service = FirefoxService(GeckoDriverManager().install())
+        except Exception as e:
+            raise RuntimeError(f"[DEPENDENCY ERROR] Download do geckodriver falhou (requer internet): {e}") from e
         return webdriver.Firefox(service=service, options=opts)
 
     opts = ChromeOptions()
@@ -113,7 +116,10 @@ def create_driver(browser: str = "chrome", headless: bool = True) -> webdriver.R
     opts.add_argument("--disable-dev-shm-usage")
     opts.add_argument("--ignore-certificate-errors")
     opts.add_argument("--window-size=1280,720")
-    service = ChromeService(ChromeDriverManager().install())
+    try:
+        service = ChromeService(ChromeDriverManager().install())
+    except Exception as e:
+        raise RuntimeError(f"[DEPENDENCY ERROR] Download do chromedriver falhou (requer internet): {e}") from e
     return webdriver.Chrome(service=service, options=opts)
 ```
 
@@ -365,6 +371,23 @@ timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 output_dir = f"{suite_dir}/browser-selenium" if suite_dir else f"tmp_selenium_{timestamp}"
 os.makedirs(output_dir, exist_ok=True)
 
+# Monte summary e output_json a partir de `results` (lista acumulada pelo runner)
+passed  = sum(1 for r in results if r["status"] == "passed")
+failed  = sum(1 for r in results if r["status"] == "failed")
+error   = sum(1 for r in results if r["status"] == "error")
+skipped = sum(1 for r in results if r["status"] == "skipped")
+summary = {
+    "total": len(results), "passed": passed, "failed": failed,
+    "error": error, "skipped": skipped, "warnings": [],
+}
+output_json = {
+    "executor": "executor-browser-selenium",
+    "environment": os.environ.get("BASE_URL", ""),
+    "credentials_failed": False,
+    "results": results,
+    "summary": summary,
+}
+
 with open(os.path.join(output_dir, "resultado.json"), "w", encoding="utf-8") as f:
     json.dump(output_json, f, ensure_ascii=False, indent=2)
 
@@ -426,7 +449,11 @@ O campo `generated_files` no JSON é **sempre preenchido** com todos os arquivos
         "[ASSERT] URL contém '/dashboard' ✓",
         "[SCREENSHOT] screenshots/TC-001_assert_100001.png"
       ],
-      "error": null
+      "error": null,
+      "type": "smoke",
+      "attempts": 1,
+      "retry_diff_logs": false,
+      "attempt_logs": [{"attempt": 1, "status": "passed", "error": null, "duration_ms": 2140}]
     }
   ],
   "summary": {
@@ -434,6 +461,7 @@ O campo `generated_files` no JSON é **sempre preenchido** com todos os arquivos
     "passed": 1,
     "failed": 0,
     "skipped": 0,
+    "warnings": [],
     "credentials_failed": false
   }
 }

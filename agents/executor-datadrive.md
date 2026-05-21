@@ -212,6 +212,10 @@ Para `base_type: api`, o executor executa as chamadas HTTP diretamente.
 Antes de cada iteração, percorra os steps do TC e substitua placeholders `{{coluna}}` pelos valores da linha:
 
 ```python
+def normalize_gherkin_placeholders(step: str) -> str:
+    import re as _re
+    return _re.sub(r'<(\w+)>', r'{{\1}}', step)
+
 def render_step(template: str, row: dict) -> str:
     """Substitui {{chave}} pelo valor correspondente em row."""
     result = template
@@ -221,7 +225,7 @@ def render_step(template: str, row: dict) -> str:
 
 # Exemplo:
 step = "POST /api/login com email={{email}} e senha={{password}}"
-rendered = render_step(step, {"email": "admin@test.com", "password": "admin123"})
+rendered = render_step(normalize_gherkin_placeholders(step), {"email": "admin@test.com", "password": "admin123"})
 # → "POST /api/login com email=admin@test.com e senha=admin123"
 ```
 
@@ -243,7 +247,7 @@ subprocess.run(
 )
 
 BASE_URL  = "{{base_url}}"
-TOKEN     = "{{auth_token}}"   # ou None se não autenticado
+TOKEN     = os.environ.get("AUTH_TOKEN", "")
 TIMEOUT_S = 30  # agente: substitua pelo valor literal de context.request_timeout_ms // 1000 (padrão: 30)
 RATE_LIMIT_SLEEP = 0  # segundos entre iterações; preenchido se rate_limit configurado
 
@@ -257,6 +261,8 @@ DATASET = [
     {"email": "user@test.com",  "role": "user"},
 ]
 DATASET_SOURCE = "scenario_outline"  # scenario_outline | csv | json | file | faker
+BASE_TYPE = "api"  # "api" | "browser" | "banco" — derivado dos steps (seção "Identificação do executor base")
+credentials_failed = False  # atualizado para True se auto_get_token falhar
 
 results = []
 
@@ -266,40 +272,60 @@ def render_step(template: str, row: dict) -> str:
         result = result.replace(f"{{{{{key}}}}}", str(value))
     return result
 
-def run_iteration(tc_id, title, row, iteration_index, fn):
+def run_iteration(tc_id, title, tc_type, row, iteration_index, fn):
     """Executa fn(row) e registra o resultado individual."""
     start = time.time()
     try:
         fn(row)
+        duration_ms = int((time.time() - start) * 1000)
+        status = "passed"
+        error_msg = None
         results.append({
             "id":              f"{tc_id}[{iteration_index}]",
             "title":           f"{title} — linha {iteration_index + 1}: {row}",
-            "status":          "passed",
-            "duration_ms":     int((time.time() - start) * 1000),
+            "status":          status,
+            "duration_ms":     duration_ms,
             "iteration_index": iteration_index,
             "row_data":        row,
-            "error":           None,
+            "error":           error_msg,
+            "type":            tc_type,
+            "attempts":        1,
+            "retry_diff_logs": False,
+            "attempt_logs":    [{"attempt": 1, "status": status, "error": error_msg, "duration_ms": duration_ms}],
         })
     except AssertionError as e:
-        msg = str(e) if str(e) else f"AssertionError sem mensagem — verifique asserção na linha {iteration_index + 1}"
+        duration_ms = int((time.time() - start) * 1000)
+        status = "failed"
+        error_msg = str(e) if str(e) else f"AssertionError sem mensagem — verifique asserção na linha {iteration_index + 1}"
         results.append({
             "id":              f"{tc_id}[{iteration_index}]",
             "title":           f"{title} — linha {iteration_index + 1}: {row}",
-            "status":          "failed",
-            "duration_ms":     int((time.time() - start) * 1000),
+            "status":          status,
+            "duration_ms":     duration_ms,
             "iteration_index": iteration_index,
             "row_data":        row,
-            "error":           msg,
+            "error":           error_msg,
+            "type":            tc_type,
+            "attempts":        1,
+            "retry_diff_logs": False,
+            "attempt_logs":    [{"attempt": 1, "status": status, "error": error_msg, "duration_ms": duration_ms}],
         })
     except Exception as e:
+        duration_ms = int((time.time() - start) * 1000)
+        status = "error"
+        error_msg = str(e)
         results.append({
             "id":              f"{tc_id}[{iteration_index}]",
             "title":           f"{title} — linha {iteration_index + 1}: {row}",
-            "status":          "error",
-            "duration_ms":     int((time.time() - start) * 1000),
+            "status":          status,
+            "duration_ms":     duration_ms,
             "iteration_index": iteration_index,
             "row_data":        row,
-            "error":           str(e),
+            "error":           error_msg,
+            "type":            tc_type,
+            "attempts":        1,
+            "retry_diff_logs": False,
+            "attempt_logs":    [{"attempt": 1, "status": status, "error": error_msg, "duration_ms": duration_ms}],
         })
     if RATE_LIMIT_SLEEP > 0:
         time.sleep(RATE_LIMIT_SLEEP)
@@ -332,7 +358,35 @@ TC_TITLE = "Login com múltiplos usuários"
 for i, row in enumerate(DATASET):
     run_iteration(TC_ID, TC_TITLE, row, i, tc_body)
 
-print(json.dumps(results))
+total   = len(results)
+passed  = sum(1 for r in results if r["status"] == "passed")
+failed  = sum(1 for r in results if r["status"] == "failed")
+error   = sum(1 for r in results if r["status"] == "error")
+skipped = sum(1 for r in results if r["status"] == "skipped")
+_executed = [r for r in results if r.get("status") not in ("skipped",)]
+_failed_errors = [r.get("error", "") or "" for r in _executed if r.get("status") in ("failed", "error")]
+all_iterations_failed = (
+    len(_executed) > 0
+    and len(_failed_errors) == len(_executed)
+    and len(set(e[:60] for e in _failed_errors)) == 1
+)
+
+summary = {
+    "total": total, "passed": passed, "failed": failed, "error": error, "skipped": skipped,
+    "dataset_rows": len(DATASET), "all_iterations_failed": all_iterations_failed,
+    "credentials_failed": credentials_failed, "warnings": [],
+}
+output = {
+    "executor":          "executor-datadrive",
+    "base_type":         BASE_TYPE,
+    "dataset_source":    DATASET_SOURCE,
+    "dataset_rows":      len(DATASET),
+    "environment":       BASE_URL,
+    "credentials_failed": credentials_failed,
+    "results":           results,
+    "summary":           summary,
+}
+print(json.dumps(output))
 ```
 
 ---
@@ -363,14 +417,13 @@ Adicione `time.sleep(RATE_LIMIT_SLEEP)` ao final de `run_iteration()`, após reg
 Após o loop, verifique se todas as iterações falharam com o mesmo padrão de erro:
 
 ```python
-failed_errors = [r["error"] for r in results if r["status"] in ("failed", "error") and r["error"]]
-all_failed = len(failed_errors) == len(results) and len(results) > 0
-
-all_iterations_failed = False
-if all_failed:
-    # Verifica se todos os erros são similares (mesmo prefixo de 60 chars)
-    first_prefix = failed_errors[0][:60] if failed_errors else ""
-    all_iterations_failed = all(e[:60] == first_prefix for e in failed_errors)
+_executed = [r for r in results if r.get("status") not in ("skipped",)]
+_failed_errors = [r.get("error", "") or "" for r in _executed if r.get("status") in ("failed", "error")]
+all_iterations_failed = (
+    len(_executed) > 0
+    and len(_failed_errors) == len(_executed)
+    and len(set(e[:60] for e in _failed_errors)) == 1
+)
 ```
 
 Se `all_iterations_failed` for `true`, inclua no summary e adicione sugestão de investigação de infraestrutura (ex.: serviço indisponível, credenciais globais inválidas, base_url incorreta).
@@ -427,6 +480,7 @@ summary = {
     "dataset_rows":         len(DATASET),
     "all_iterations_failed": all_iterations_failed,
     "credentials_failed":   credentials_failed,  # True se auto_get_token falhou
+    "warnings":             [],
 }
 
 output = {
@@ -531,6 +585,10 @@ Se `suite_dir` estiver configurado, salve em `[suite_dir]/datadrive/`:
 
 ```python
 import os, json
+import datetime as _ddt
+SUITE_DIR      = os.environ.get("SUITE_DIR", "")
+TIMESTAMP      = _ddt.datetime.now().strftime("%Y%m%d_%H%M%S")
+SCRIPT_CONTENT = ""  # conteúdo do script gerado — preenchido pelo LLM
 
 suite_subdir = os.path.join(SUITE_DIR, "datadrive")
 os.makedirs(suite_subdir, exist_ok=True)

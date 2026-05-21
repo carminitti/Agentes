@@ -220,6 +220,8 @@ def run_zap_scan(target_url, tc_ids, url_map=None):
                                for a in tc_relevant_high[:3]))
         results.append({
             "id": tc_id,
+            "title": tc.get("title", tc_id),
+            "type": tc.get("type", "segurança"),
             "status": status,
             "duration_ms": 0,
             "zap_alerts": {
@@ -230,7 +232,10 @@ def run_zap_scan(target_url, tc_ids, url_map=None):
                 "high_details": [{"alert": a["alert"], "url": a["url"]}
                                  for a in tc_relevant_high[:5]]
             },
-            "error": error
+            "error": error,
+            "attempts": 1,
+            "retry_diff_logs": False,
+            "attempt_logs": [{"attempt": 1, "status": status, "error": error, "duration_ms": 0}]
         })
     return results
 ```
@@ -242,6 +247,7 @@ def run_zap_scan(target_url, tc_ids, url_map=None):
 {
   "executor": "executor-seguranca",
   "mode": "dast-zap",
+  "credentials_failed": false,
   "zap_report": {
     "total_alerts": 12,
     "high": 1,
@@ -249,7 +255,7 @@ def run_zap_scan(target_url, tc_ids, url_map=None):
     "low": 7,
     "spider_urls_found": 34
   },
-  "summary": { "passed": 0, "failed": 1, "skipped": 0, "duration_ms": 45000 },
+  "summary": { "passed": 0, "failed": 1, "skipped": 0, "duration_ms": 45000, "warnings": [] },
   "results": [...]
 }
 ```
@@ -261,6 +267,7 @@ import requests
 from requests.exceptions import SSLError
 
 ssl_warning = None  # preenchido se certificado inválido for detectado
+_ssl_bypass = False  # True quando environment_notes indica certificado autoassinado/SSL
 
 # Aviso informativo quando environment_notes menciona SSL mas URL é http://
 if environment_notes and any(kw in environment_notes.lower()
@@ -271,8 +278,6 @@ if environment_notes and any(kw in environment_notes.lower()
             "As verificações foram executadas normalmente. "
             "Considere migrar para HTTPS antes do deploy em produção."
         )
-
-_ssl_bypass = False  # True quando environment_notes indica certificado autoassinado/SSL
 
 def safe_request(method, url, **kwargs):
     """Realiza requisição com tratamento automático de SSL.
@@ -327,6 +332,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import os
 
 max_workers = min(int(os.environ.get("MAX_PARALLEL_EXECUTORS", "1")), 5)
+rate_limit   = os.environ.get("RATE_LIMIT")  # None se não configurado
 
 if max_workers > 1 and not rate_limit:
     with ThreadPoolExecutor(max_workers=max_workers) as pool:
@@ -351,7 +357,7 @@ Antes de executar os checks, classifique o ambiente. Inclua `environment_type` n
 from urllib.parse import urlparse
 
 PUBLIC_TEST_API_DOMAINS = [
-    'jsonplaceholder.typicode.com', 'reqres.in', 'swapi.dev', 'swapi.tech',
+    'jsonplaceholder.typicode.com', 'swapi.dev', 'swapi.tech',
     'httpbin.org', 'pokeapi.co', 'fakestoreapi.com', 'dummyjson.com',
     'gorest.co.in', 'mockapi.io', 'api.restful-api.dev',
 ]
@@ -498,7 +504,8 @@ assert response.status_code == 403
 
 **3. Headers de segurança (verifique presença e valores mínimos):**
 ```python
-response = safe_request("GET", "https://staging.app.com", timeout=10)
+# allow_redirects=False: verifica headers da resposta direta, não do redirect final
+response = safe_request("GET", "https://staging.app.com", timeout=10, allow_redirects=False)
 resp_headers = response.headers
 checks = {
     "Strict-Transport-Security": "max-age=" in resp_headers.get("Strict-Transport-Security", ""),
@@ -656,6 +663,8 @@ Ao final de cada execução, grave os artefatos no diretório correto:
 ```python
 import os, json, datetime
 
+suite_dir = os.environ.get("SUITE_DIR", "")
+timestamp = __import__('datetime').datetime.now().strftime("%Y%m%d_%H%M%S")
 output_dir = f"{suite_dir}/seguranca" if suite_dir else f"tmp_sec_{timestamp}"
 os.makedirs(output_dir, exist_ok=True)
 

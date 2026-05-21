@@ -51,6 +51,25 @@ def retry_with_backoff(func, max_retries: int, base_delay_s: float = 1.0, max_de
     raise last_error
 ```
 
+## Multiplicador de backoff por ambiente
+
+Quando o profile contiver `retry_backoff_multiplier` (ex: `0.1` para staging rápido), aplique o multiplicador sobre todos os delays:
+
+```python
+effective_delay = min(
+    base_delay_s * (2 ** attempt) * retry_backoff_multiplier,
+    max_delay_s
+)
+```
+
+| Executor | Delays padrão | Com `retry_backoff_multiplier: 0.1` |
+|---|---|---|
+| executor-email | 5s → 10s → 20s | 0.5s → 1s → 2s |
+| executor-webhook | 2s → 4s → 8s | 0.2s → 0.4s → 0.8s |
+| executor-browser | 1s → 2s → 4s | 0.1s → 0.2s → 0.4s |
+
+Ausente ou igual a `1.0`: comportamento padrão inalterado. O multiplicador aplica-se apenas a backoffs exponenciais e fixos — nunca reduz o delay abaixo de `50ms`.
+
 ## Classificação: flaky vs falha real
 
 **Flaky (instável)** — TC é marcado como `flaky_suspected: true` quando:

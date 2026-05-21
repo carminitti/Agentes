@@ -18,7 +18,10 @@ Procure no input `## Contexto de execução`. Se presente:
 - `auth.token` → injete como metadata: `-H 'Authorization: Bearer <token>'` (grpcurl) ou `metadata=[('authorization', 'Bearer <token>')]` (grpcio).
 - `auth.api_key` → injete como metadata com o nome do header configurado.
 - `auth_map` → mapa de autenticação por domínio; use a entrada correspondente ao host:porta do serviço gRPC testado em vez do `auth` global.
-- `ssl_verify` → se `false`, use `-insecure` (grpcurl) ou `grpc.insecure_channel()` (grpcio). Se caminho de CA, use `--cacert` (grpcurl) ou `grpc.ssl_channel_credentials(root_certificates=...)` (grpcio).
+- `ssl_verify` → se `false`:
+  - **(grpcurl)** use `-insecure` para desabilitar verificação de certificado.
+  - **(grpcio)** `grpc.ssl_channel_credentials()` sem parâmetros usa a CA do sistema e **não desabilita verificação** — certs auto-assinados continuarão falhando. Para ignorar verificação, obtenha o cert do servidor e use-o como CA: `subprocess.run(["openssl","s_client","-connect",f"{host}:{port}","-showcerts"], input=b"", capture_output=True)` → salve o PEM em `/tmp/srv.crt` e passe `grpc.ssl_channel_credentials(root_certificates=open('/tmp/srv.crt','rb').read())`. Se obtenção do cert não for viável, prefira grpcurl com `-insecure`. **Nunca use `grpc.insecure_channel()` para endpoints TLS** — isso cria canal plaintext e a conexão será recusada.
+  - Se caminho de CA fornecido: `--cacert ca.crt` (grpcurl) ou `grpc.ssl_channel_credentials(root_certificates=open(ca_path,'rb').read())` (grpcio).
 - `suite_dir` → salve artefatos em `[suite_dir]/grpc/`.
 - `request_timeout_ms` → use `-max-time` (grpcurl) ou timeout no stub (grpcio).
 - `max_parallel_executors` → se presente e > 1 (e `rate_limit` for null), execute os TCs em paralelo usando `ThreadPoolExecutor(max_workers=min(max_parallel_executors, 5))`. Se `rate_limit` não for null, execute sequencialmente. Padrão: sequencial (1 worker).
@@ -30,17 +33,15 @@ Procure no input `## Contexto de execução`. Se presente:
 
 ## Verificação de dependências
 
-```bash
-# Verificar grpcurl
-grpcurl --version 2>/dev/null || echo "GRPCURL_MISSING"
-```
-
-Se `GRPCURL_MISSING`, instale grpcio:
 ```python
-subprocess.run([sys.executable, "-m", "pip", "install", "-q", "grpcio", "grpcio-tools", "grpcio-reflection"], check=False)
+import shutil, subprocess, sys
+_grpcurl = shutil.which("grpcurl")
+if not _grpcurl:
+    _r = subprocess.run([sys.executable, "-m", "pip", "install", "-q",
+                         "grpcio", "grpcio-tools", "grpcio-reflection"], capture_output=True)
+    if _r.returncode != 0:
+        raise SystemExit("[DEPENDENCY ERROR] grpcurl não encontrado e grpcio não pôde ser instalado — marque todos os TCs como skipped com razão dependency_missing: grpcurl_and_grpcio")
 ```
-
-Se ambos falharem, marque todos os TCs como `skipped` com razão `dependency_missing: grpcurl_and_grpcio`.
 
 ---
 
@@ -83,8 +84,8 @@ with open(auth["mtls"]["cert_path"], "rb") as f:
     client_cert = f.read()
 with open(auth["mtls"]["key_path"], "rb") as f:
     client_key = f.read()
-with open(auth["mtls"].get("ca_path", ""), "rb") as f:
-    ca_cert = f.read() if auth["mtls"].get("ca_path") else None
+_ca_path = auth["mtls"].get("ca_path")
+ca_cert = open(_ca_path, "rb").read() if _ca_path else None
 
 credentials = grpc.ssl_channel_credentials(
     root_certificates=ca_cert,
@@ -108,10 +109,10 @@ Para cada TC, derive a chamada a partir dos steps:
 
 **Exemplo de chamada grpcurl:**
 ```bash
+# Remova -plaintext para endpoints TLS (porta 443). Use -insecure para ignorar certificado.
 grpcurl \
   -H 'Authorization: Bearer eyJ...' \
   -d '{"user_id": "123"}' \
-  -plaintext \
   grpc.staging.com:443 \
   users.UserService/GetUser
 ```
@@ -124,6 +125,8 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import os
 
 max_workers = min(int(os.environ.get("MAX_PARALLEL_EXECUTORS", "1")), 5)
+rate_limit = os.environ.get("RATE_LIMIT")
+results = []
 
 if max_workers > 1 and not rate_limit:
     with ThreadPoolExecutor(max_workers=max_workers) as pool:

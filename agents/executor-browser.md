@@ -784,6 +784,7 @@ Para cada conjunto de testes:
    $cache = "$HOME\.claude-qa-cache\browser"
    if (-not (Test-Path "$cache\node_modules")) {
      npm install --prefix $cache
+     if ($LASTEXITCODE -ne 0) { throw "[DEPENDENCY ERROR] npm install falhou — verifique conexão de rede e permissões" }
      npx playwright install chromium --with-deps
    }
    # mklink /J (junction) pode falhar sem privilégios de admin ou em sistemas de arquivo sem suporte
@@ -795,15 +796,17 @@ Para cada conjunto de testes:
    if (-not $linked) {
      Write-Host "[CACHE] Junction falhou — executando npm install normal"
      npm install
+     if ($LASTEXITCODE -ne 0) { throw "[DEPENDENCY ERROR] npm install falhou — verifique conexão de rede e permissões" }
    }
    ```
    ```bash
    # Linux/macOS
    cache="$HOME/.claude-qa-cache/browser"
-   [ ! -d "$cache/node_modules" ] && npm install --prefix "$cache"
-   ln -sfn "$cache/node_modules" node_modules || npm install
+   if [ ! -d "$cache/node_modules" ]; then
+     npm install --prefix "$cache" || { echo "[DEPENDENCY ERROR] npm install falhou"; exit 1; }
+   fi
+   ln -sfn "$cache/node_modules" node_modules 2>/dev/null || npm install || { echo "[DEPENDENCY ERROR] npm install falhou"; exit 1; }
    ```
-   Se o cache falhar por qualquer motivo, caia em `npm install` normal sem interromper.
 
    ```
    npx playwright test --reporter=json > resultado.json
@@ -921,12 +924,15 @@ Durante a execução, colete um log de cada ação relevante realizada por cada 
 
 ## Persistência obrigatória em disco
 
-**Inclua `SUITE_DIR` no `.env` gerado** (quando presente no contexto). Quando o contexto contiver `retry_count`, inclua também `RETRY_COUNT`. Inclua sempre `EVIDENCE_MODE` conforme a política determinada no passo 5:
+**Inclua `BASE_URL`, `AUTH_TOKEN`, `SUITE_DIR`, `RETRY_COUNT` e `EVIDENCE_MODE` no `.env` gerado:**
 ```
+BASE_URL=<base_url do contexto>
+AUTH_TOKEN=<auth.token do contexto, ou deixar em branco>
 SUITE_DIR=suite_browser_20260511_100000
 RETRY_COUNT=<valor_do_retry_count>
 EVIDENCE_MODE=<failure-only | full>
 ```
+Omita `AUTH_TOKEN` da linha apenas se o contexto não fornecer token.
 
 Ao final de cada execução, grave os artefatos no diretório correto:
 
@@ -935,6 +941,8 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 const suiteDir: string | null = process.env.SUITE_DIR || null;
+const timestamp = new Date().toISOString().replace(/[:.]/g, '').slice(0, 15);
+const baseUrl = process.env.BASE_URL || '';
 const outputDir = suiteDir ? path.join(suiteDir, 'browser') : `tmp_browser_${timestamp}`;
 fs.mkdirSync(outputDir, { recursive: true });
 
@@ -1093,6 +1101,7 @@ pronto antes do conteúdo dinâmico ser renderizado.
     {
       "id": "TC-001",
       "title": "Login com credenciais válidas",
+      "type": "smoke",
       "status": "passed",
       "duration_ms": 1240,
       "browser": "chromium",
@@ -1130,6 +1139,7 @@ pronto antes do conteúdo dinâmico ser renderizado.
     {
       "id": "TC-002",
       "title": "Checkout com cartão inválido exibe erro",
+      "type": "smoke",
       "status": "failed",
       "duration_ms": 890,
       "browser": "chromium",
@@ -1152,6 +1162,10 @@ pronto antes do conteúdo dinâmico ser renderizado.
       "network_logs": [
         "[NETWORK] POST /api/payment → 500"
       ],
+      "attempts": 1,
+      "flaky": false,
+      "retry_diff_logs": false,
+      "attempt_logs": [{"attempt": 1, "status": "failed", "error": "Esperado: elemento 'Cartão inválido' visível. Encontrado: elemento não localizado após 5000ms.", "duration_ms": 890}],
       "error": "Esperado: elemento 'Cartão inválido' visível. Encontrado: elemento não localizado após 5000ms."
     }
   ],
@@ -1160,10 +1174,15 @@ pronto antes do conteúdo dinâmico ser renderizado.
     "passed": 1,
     "failed": 1,
     "skipped": 0,
-    "credentials_failed": false
+    "credentials_failed": false,
+    "warnings": []
   }
 }
 ```
+
+**Regras de output:**
+- `type`, `attempts`, `retry_diff_logs`, `attempt_logs` sempre inclusos em cada TC result.
+- `warnings: []` sempre incluso no summary.
 
 **Como detectar `credentials_failed` após a execução:**
 Após `npx playwright test` terminar, verifique se `setup_status.json` foi criado pelo globalSetup:

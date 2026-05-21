@@ -82,6 +82,7 @@ export default defineConfig({
 
 Após execução, colete vídeos de `reports/test-results/` usando correspondência pelo título do teste:
 ```typescript
+const outputDir = process.env.SUITE_DIR ? require('path').join(process.env.SUITE_DIR, 'acessibilidade') : `tmp_acc_${Date.now()}`;
 const testResultsDir = path.join('reports', 'test-results');
 const videosDir = path.join(outputDir, 'videos');
 fs.mkdirSync(videosDir, { recursive: true });
@@ -163,18 +164,23 @@ Para cada teste:
      await page.screenshot({ path: screenshotPath, fullPage: true });
      console.log(`[SCREENSHOT] Capturado: ${screenshotPath}`);
 
-     const results = await new AxeBuilder({ page })
+     const axeResults = await new AxeBuilder({ page })
        .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
        .analyze();
 
-     // Não usa expect aqui — captura tudo para relatório detalhado
-     console.log(JSON.stringify(results.violations));
+     // Persiste violations em arquivo — console.log sozinho não é lido pelo executor
+     const tcSanitized = testInfo.title.replace(/[^a-z0-9]/gi, '_');
+     const violationsPath = path.join(outputDir, `violations_${tcSanitized}.json`);
+     fs.writeFileSync(violationsPath, JSON.stringify(axeResults.violations, null, 2));
+     console.log(`[VIOLATIONS_FILE] ${violationsPath}`);
    });
    ```
 
 > **Multi-URL:** quando o contexto contiver `multi_url: true`, cada TC pode ter uma URL de destino diferente. Ao gerar o código Playwright de cada TC, use `tc.resolved_base_url` como URL base do `page.goto()` daquele TC em vez da variável global `base_url`. Quando `multi_url: false` ou ausente, mantenha o comportamento atual.
 
 3. **Execute** e capture as violações completas (id, impact, description, nodes, helpUrl).
+
+   Após a execução do Playwright, para cada TC leia o arquivo `violations_<tc_title_sanitized>.json` do `outputDir` para obter as violações detectadas pelo axe-core (onde `tc_title_sanitized` é o título do TC com `[^a-z0-9]` substituído por `_`). Se o arquivo não existir, use `violations: []`. O arquivo é criado pelo código gerado acima — nunca use apenas o console output para determinar violações.
 
 4. **Determine o status final** usando o campo `impact` retornado pelo axe-core diretamente, sem nenhuma reclassificação:
    - Existe ao menos uma violação com `impact: "critical"` ou `impact: "serious"` → `status: "failed"`
@@ -337,6 +343,8 @@ expect(announcement).toContain(EXPECTED_ANNOUNCEMENT);
       "passes_count": 38,
       "flaky": false,
       "attempts": 1,
+      "retry_diff_logs": false,
+      "attempt_logs": [{"attempt": 1, "status": "failed", "error": null, "duration_ms": 1200}],
       "logs": [
         "[NAV] Acessando https://staging.app.com/login",
         "[SCREENSHOT] Capturado: [outputDir]/screenshots/[nome_do_teste].png",
@@ -373,6 +381,8 @@ expect(announcement).toContain(EXPECTED_ANNOUNCEMENT);
       "passes_count": 41,
       "flaky": false,
       "attempts": 1,
+      "retry_diff_logs": false,
+      "attempt_logs": [{"attempt": 1, "status": "warning", "error": null, "duration_ms": 1200}],
       "logs": [
         "[NAV] Acessando https://staging.app.com/cadastro",
         "[SCREENSHOT] Capturado: [outputDir]/screenshots/[nome_do_teste].png",
@@ -394,6 +404,8 @@ expect(announcement).toContain(EXPECTED_ANNOUNCEMENT);
       "passes_count": 45,
       "flaky": false,
       "attempts": 1,
+      "retry_diff_logs": false,
+      "attempt_logs": [{"attempt": 1, "status": "passed", "error": null, "duration_ms": 1200}],
       "logs": [
         "[NAV] Acessando https://staging.app.com",
         "[SCREENSHOT] Capturado: [outputDir]/screenshots/[nome_do_teste].png",
@@ -451,7 +463,11 @@ Ao final de cada execução, **antes de encerrar**, grave os artefatos no diret�
 import * as fs from 'fs';
 import * as path from 'path';
 
-const outputDir = suiteDir ? path.join(suiteDir, 'acessibilidade') : `tmp_a11y_${timestamp}`;
+const suiteDir = process.env.SUITE_DIR || null;
+const timestamp = new Date().toISOString().replace(/[:.]/g, '').slice(0, 15);
+const baseUrl = process.env.BASE_URL || '';
+const wcagLevel = process.env.WCAG_LEVEL || 'wcag2aa';
+const outputDir = suiteDir ? require('path').join(suiteDir, 'acessibilidade') : `tmp_acc_${timestamp}`;
 fs.mkdirSync(outputDir, { recursive: true });
 
 // resultado.json

@@ -180,24 +180,54 @@ db_type = raw_type.split("+")[0]
 
 if db_type in ("postgresql", "postgres"):
     if not install_driver("psycopg2-binary"):
-        results = [{"id": t["id"], "title": t["title"], "status": "skipped",
-                    "error": "driver não instalado — execute pip install psycopg2-binary"} for t in tests]
-        # Retorne JSON de saída com todos skipped e encerre
+        import json as _json_drv, sys as _sys_drv
+        print(_json_drv.dumps({
+            "executor": "executor-banco",
+            "credentials_failed": False,
+            "results": [{"id": t["id"], "title": t["title"], "status": "skipped",
+                         "type": "banco", "attempts": 1, "retry_diff_logs": False,
+                         "attempt_logs": [{"attempt": 1, "status": "skipped", "error": "Driver não instalado", "duration_ms": 0}],
+                         "duration_ms": 0, "error": "Driver não instalado"} for t in tests],
+            "summary": {"total": len(tests), "passed": 0, "failed": 0,
+                        "skipped": len(tests), "error": 0,
+                        "credentials_failed": False, "warnings": []}
+        }))
+        _sys_drv.exit(0)
 
 elif db_type == "mysql":
     if not install_driver("mysql-connector-python"):
-        results = [{"id": t["id"], "title": t["title"], "status": "skipped",
-                    "error": "driver não instalado — execute pip install mysql-connector-python"} for t in tests]
-        # Retorne JSON de saída com todos skipped e encerre
+        import json as _json_drv, sys as _sys_drv
+        print(_json_drv.dumps({
+            "executor": "executor-banco",
+            "credentials_failed": False,
+            "results": [{"id": t["id"], "title": t["title"], "status": "skipped",
+                         "type": "banco", "attempts": 1, "retry_diff_logs": False,
+                         "attempt_logs": [{"attempt": 1, "status": "skipped", "error": "Driver não instalado", "duration_ms": 0}],
+                         "duration_ms": 0, "error": "Driver não instalado"} for t in tests],
+            "summary": {"total": len(tests), "passed": 0, "failed": 0,
+                        "skipped": len(tests), "error": 0,
+                        "credentials_failed": False, "warnings": []}
+        }))
+        _sys_drv.exit(0)
 
 elif db_type == "sqlite":
     pass  # built-in, sem instalação necessária
 
 elif db_type in ("mssql", "sqlserver"):
     if not install_driver("pyodbc"):
-        results = [{"id": t["id"], "title": t["title"], "status": "skipped",
-                    "error": "driver não instalado — execute pip install pyodbc"} for t in tests]
-        # Retorne JSON de saída com todos skipped e encerre
+        import json as _json_drv, sys as _sys_drv
+        print(_json_drv.dumps({
+            "executor": "executor-banco",
+            "credentials_failed": False,
+            "results": [{"id": t["id"], "title": t["title"], "status": "skipped",
+                         "type": "banco", "attempts": 1, "retry_diff_logs": False,
+                         "attempt_logs": [{"attempt": 1, "status": "skipped", "error": "Driver não instalado", "duration_ms": 0}],
+                         "duration_ms": 0, "error": "Driver não instalado"} for t in tests],
+            "summary": {"total": len(tests), "passed": 0, "failed": 0,
+                        "skipped": len(tests), "error": 0,
+                        "credentials_failed": False, "warnings": []}
+        }))
+        _sys_drv.exit(0)
 ```
 
 **Passo 2 — Verifique a conexão** (o driver já está instalado):
@@ -263,9 +293,15 @@ if not ok:
     is_auth_error = any(kw.lower() in err.lower() for kw in AUTH_ERROR_KEYWORDS)
 
     if is_auth_error:
+        import json
         results = [{"id": t["id"], "title": t["title"], "status": "skipped",
                     "error": f"Falha de autenticação no banco: {err}"} for t in tests]
-        # Retorne JSON com credentials_failed: true → orquestrador solicita novas credenciais
+        print(json.dumps({"executor": "executor-banco", "credentials_failed": True,
+                          "results": results,
+                          "summary": {"total": len(results), "passed": 0, "failed": 0,
+                                      "skipped": len(results), "error": 0,
+                                      "credentials_failed": True, "warnings": []}}))
+        sys.exit(0)
     else:
         pass  # Falha de rede/infraestrutura → ativa fallback automático (seção abaixo)
 ```
@@ -484,10 +520,16 @@ Durante a execução, colete um log de cada ação relevante para incluir no res
 
 Ao final de cada execução, **antes de encerrar**, grave os artefatos em disco.
 
-Determine o diretório de saída:
+Determine o diretório de saída e garanta que `simulated` e `suite_dir` estão definidos:
 ```python
 import os, datetime
 
+# suite_dir e simulated DEVEM ser definidos antes deste bloco
+# suite_dir: extraído do contexto (os.environ.get("SUITE_DIR", "")) ou inferido
+# simulated: True se banco_mode == "simulated" ou se conexão falhou (fallback)
+suite_dir  = suite_dir  if 'suite_dir'  in locals() else os.environ.get("SUITE_DIR", "")
+simulated  = simulated  if 'simulated'  in locals() else False
+timestamp  = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 output_dir = f"{suite_dir}/banco" if suite_dir else f"tmp_db_{timestamp}"
 os.makedirs(output_dir, exist_ok=True)
 ```

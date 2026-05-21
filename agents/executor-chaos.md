@@ -290,14 +290,15 @@ import requests
 from flask import Flask, request as flask_req
 
 # ── Configuração ──────────────────────────────────────────────────────────────
-BASE_URL         = "{{base_url}}"
-TOKEN            = os.environ.get("AUTH_TOKEN", "{{auth_token}}")
-ENVIRONMENT_TYPE = os.environ.get("ENVIRONMENT_TYPE", "{{environment_type}}")
+BASE_URL         = os.environ.get("BASE_URL", "")
+TOKEN            = os.environ.get("AUTH_TOKEN", "")
+_raw_env_type    = os.environ.get("ENVIRONMENT_TYPE", "")
+ENVIRONMENT_TYPE = _raw_env_type if _raw_env_type and not _raw_env_type.startswith("{{") else ""
 FAULT_PORT       = random.randint(9100, 9199)
 TIMEOUT_S        = int(os.environ.get("REQUEST_TIMEOUT_MS", "10000")) // 1000
 RECOVERY_S       = int(os.environ.get("RECOVERY_TIMEOUT_S", "10"))
 SUITE_DIR        = os.environ.get("SUITE_DIR", "")
-CHAOS_MODE       = "{{chaos_mode}}"  # "toxiproxy" ou "http_simulation"
+CHAOS_MODE       = os.environ.get("CHAOS_MODE", "http_simulation")
 
 # ── Bloqueio em produção ──────────────────────────────────────────────────────
 if ENVIRONMENT_TYPE in ("production", "demo"):
@@ -308,13 +309,21 @@ if ENVIRONMENT_TYPE in ("production", "demo"):
         "duration_ms": 0, "error": None, "chaos_details": None,
     }
     _results = [_skip("TC-CHAOS-001", "Bloqueado — ambiente de produção")]
-    print(_json.dumps({
+    _output = {
         "executor": "executor-chaos",
         "mode": CHAOS_MODE,
         "environment": BASE_URL,
         "results": _results,
         "summary": {"total": 1, "passed": 0, "failed": 0, "error": 0, "skipped": 1},
-    }, ensure_ascii=False))
+    }
+    print(_json.dumps(_output, ensure_ascii=False))
+    if SUITE_DIR:
+        import pathlib as _pl
+        _out_dir = _pl.Path(SUITE_DIR) / "chaos"
+        _out_dir.mkdir(parents=True, exist_ok=True)
+        (_out_dir / "resultado.json").write_text(
+            _json.dumps(_output, indent=2, ensure_ascii=False), encoding="utf-8"
+        )
     raise SystemExit(0)
 
 auth_headers = {"Authorization": f"Bearer {TOKEN}"} if TOKEN else {}
@@ -387,24 +396,30 @@ def run(tc_id, title, fn):
     start = time.time()
     try:
         details = fn()
+        dur = int((time.time() - start) * 1000)
         results.append({
-            "id": tc_id, "title": title, "status": "passed",
-            "duration_ms": int((time.time() - start) * 1000),
-            "chaos_details": details, "error": None,
+            "id": tc_id, "title": title, "type": "chaos", "status": "passed",
+            "duration_ms": dur, "chaos_details": details, "error": None,
+            "attempts": 1, "retry_diff_logs": False,
+            "attempt_logs": [{"attempt": 1, "status": "passed", "error": None, "duration_ms": dur}],
         })
     except AssertionError as e:
+        dur = int((time.time() - start) * 1000)
+        msg = str(e) if str(e) else "AssertionError sem mensagem"
         results.append({
-            "id": tc_id, "title": title, "status": "failed",
-            "duration_ms": int((time.time() - start) * 1000),
-            "chaos_details": None,
-            "error": str(e) if str(e) else "AssertionError sem mensagem",
+            "id": tc_id, "title": title, "type": "chaos", "status": "failed",
+            "duration_ms": dur, "chaos_details": None, "error": msg,
+            "attempts": 1, "retry_diff_logs": False,
+            "attempt_logs": [{"attempt": 1, "status": "failed", "error": msg, "duration_ms": dur}],
         })
     except Exception as e:
+        dur = int((time.time() - start) * 1000)
+        msg = str(e) if str(e) else f"{type(e).__name__} (sem mensagem)"
         results.append({
-            "id": tc_id, "title": title, "status": "error",
-            "duration_ms": int((time.time() - start) * 1000),
-            "chaos_details": None,
-            "error": str(e) if str(e) else f"{type(e).__name__} (sem mensagem)",
+            "id": tc_id, "title": title, "type": "chaos", "status": "error",
+            "duration_ms": dur, "chaos_details": None, "error": msg,
+            "attempts": 1, "retry_diff_logs": False,
+            "attempt_logs": [{"attempt": 1, "status": "error", "error": msg, "duration_ms": dur}],
         })
 
 # ── Test Cases ────────────────────────────────────────────────────────────────
@@ -442,14 +457,16 @@ summary = {
     "failed":  sum(1 for r in results if r["status"] == "failed"),
     "error":   sum(1 for r in results if r["status"] == "error"),
     "skipped": sum(1 for r in results if r["status"] == "skipped"),
+    "warnings": [],
 }
 
 output = {
-    "executor":    "executor-chaos",
-    "mode":        CHAOS_MODE,
-    "environment": BASE_URL,
-    "results":     results,
-    "summary":     summary,
+    "executor":           "executor-chaos",
+    "mode":               CHAOS_MODE,
+    "environment":        BASE_URL,
+    "credentials_failed": False,
+    "results":            results,
+    "summary":            summary,
 }
 
 if SUITE_DIR:

@@ -33,16 +33,13 @@ Procure no input `## Contexto de execução`. Se presente:
 
 ```python
 import subprocess, sys
-subprocess.run([sys.executable, "-m", "pip", "install", "-q",
-               "pact-python", "requests"], check=False)
+_r1 = subprocess.run([sys.executable, "-m", "pip", "install", "-q",
+               "pact-python", "requests"], capture_output=True)
+if _r1.returncode != 0:
+    _r2 = subprocess.run([sys.executable, "-m", "pip", "install", "-q", "pactman", "requests"], capture_output=True)
+    if _r2.returncode != 0:
+        raise SystemExit("[DEPENDENCY ERROR] pact-python e pactman indisponíveis — marque todos os TCs como skipped com razão dependency_missing: pact-python")
 ```
-
-Se `pact-python` não puder ser instalado (ex: sem compilador C), tente `pactman` como alternativa:
-```python
-subprocess.run([sys.executable, "-m", "pip", "install", "-q", "pactman", "requests"], check=False)
-```
-
-Se ambos falharem, marque todos os TCs como `skipped` com razão `dependency_missing: pact-python`.
 
 ---
 
@@ -103,10 +100,14 @@ Se `pact_mode` não estiver configurado mas `openapi_spec_url` estiver, use Sche
 Gere e execute o teste Pact do lado consumidor:
 
 ```python
-from pact import Consumer, Provider
+from pact import Consumer, Provider, Like, Term
 import requests, json, os
 
-PACT_DIR = "[suite_dir]/contratos"
+SUITE_DIR         = os.environ.get("SUITE_DIR", "")
+PACT_DIR          = os.path.join(SUITE_DIR, "contratos") if SUITE_DIR else "contratos"
+BASE_URL          = os.environ.get("BASE_URL", "")
+PACT_BROKER_URL   = os.environ.get("PACT_BROKER_URL", "")
+PACT_BROKER_TOKEN = os.environ.get("PACT_BROKER_TOKEN", "")
 os.makedirs(PACT_DIR, exist_ok=True)
 
 pact = Consumer("[consumer_name]").has_pact_with(
@@ -124,19 +125,29 @@ with pact:
                    headers={"Authorization": "Bearer token"})
      .will_respond_with(status=200, body={
          "id": 1,
-         "name": pact.Like("John"),
-         "email": pact.Term(r".+@.+", "john@example.com"),
+         "name": Like("John"),
+         "email": Term(r".+@.+", "john@example.com"),
      }))
 
     # Chame o consumidor apontando para o mock server
-    result = requests.get(f"{pact.mock_service.uri}/users/1",
-                          headers={"Authorization": "Bearer token"})
-    assert result.status_code == 200
+    resp = requests.get(f"{pact.uri}/users/1",
+                        headers={"Authorization": "Bearer token"})
+    assert resp.status_code == 200
 
 pact_file = f"{PACT_DIR}/[consumer]-[provider].json"
 # O arquivo pact.json é gerado em PACT_DIR com nome [consumer]-[provider].json.
 # Se não houver Pact Broker, comite este arquivo no repositório para que o provedor o acesse em modo provedor.
-result["pact_file"] = str(pact_file)  # inclui o caminho real no resultado para referência futura
+tc_result = {
+    "id": tc_id,
+    "title": title,
+    "type": "contrato",
+    "status": "passed",
+    "pact_file": str(pact_file),
+    "error": None,
+    "attempts": 1,
+    "retry_diff_logs": False,
+    "attempt_logs": [{"attempt": 1, "status": "passed", "error": None, "duration_ms": elapsed_ms}],
+}
 ```
 
 **Publicação no Pact Broker (se `pact_broker_url` configurado):**
@@ -184,7 +195,7 @@ verifier.verify_pacts(source=pact_file_path)
 ```json
 {
   "executor": "executor-contrato",
-  "summary": { "passed": 2, "failed": 0, "skipped": 0, "duration_ms": 1200, "warnings": [] },
+  "summary": { "total": 2, "passed": 2, "failed": 0, "skipped": 0, "duration_ms": 1200, "warnings": [] },
   "results": [
     {
       "id": "TC-PACT-01",

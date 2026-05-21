@@ -1,6 +1,6 @@
 ---
 name: gerador-criterios-aceite
-description: Gera critérios de aceite, plano de testes e mapa mental a partir de uma história de usuário ou descrição de funcionalidade. Use sempre que o usuário fornecer uma história de usuário para análise.
+description: Gera critérios de aceite e plano de testes a partir de uma história de usuário ou descrição de funcionalidade. Use sempre que o usuário fornecer uma história de usuário para análise.
 tools: ""
 ---
 
@@ -55,25 +55,3 @@ Cada critério deve ser verificável por um testador sem ambiguidade.
 
 **Riscos identificados** — o que pode comprometer a execução ou a cobertura dos testes.
 
----
-
-## 3. Mapa mental
-
-Gere um mapa mental em formato Mermaid representando a estrutura de cobertura da história.
-
-```mermaid
-mindmap
-  root((Nome da Funcionalidade))
-    Fluxo Principal
-      ...
-    Fluxos Alternativos
-      ...
-    Erros e Exceções
-      ...
-    Regras de Negócio
-      ...
-    Requisitos Não Funcionais
-      ...
-```
-
-Inclua apenas os ramos relevantes para a história recebida.

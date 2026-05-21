@@ -58,7 +58,7 @@ Mapeamento dos campos:
   Se `TOKEN` for `None`, não prossiga: retorne imediatamente todos os TCs com `{"status": "error", "credentials_failed": True, "error": "Falha ao obter token — verifique credenciais e endpoint de login"}`.
 - `auth.api_key` → injete conforme `auth.api_key.in`: se `"header"`, adicione ao header; se `"query"`, anexe à URL da chamada que dispara o webhook.
 - `auth_map` → mapa de autenticação por domínio; para cada chamada à aplicação, extraia o host e use a entrada correspondente em vez do `auth` global.
-- `webhook_config.receiver_port` → porta local para o servidor Flask (default: aleatória entre 9000–9999 com `random.randint(9000, 9999)`).
+- `webhook_config.receiver_port` → porta local para o servidor Flask (default: aleatória entre 9200–9999 com `random.randint(9200, 9999)`).
 - `webhook_config.use_ngrok` → se `true`, exponha o receptor via ngrok para internet. Requer ngrok instalado e acessível no PATH. Se `use_ngrok: true` mas ngrok não estiver disponível, marque todos os TCs como `status: "skipped"` com `reason: "ngrok_not_available"` e `error: "ngrok não encontrado no PATH — instale em https://ngrok.com/download e configure ngrok authtoken <token>"`.
 - `webhook_config.ngrok_auth_token` → se presente, execute `ngrok authtoken <token>` antes de abrir o túnel.
 - `webhook_config.hmac_secret` → se presente, valide a assinatura `X-Hub-Signature-256` (GitHub-style: `sha256=<hex>`) ou `X-Webhook-Signature` em cada webhook recebido. Se o header de assinatura estiver ausente ou inválido, registre `hmac_valid: false` no resultado.
@@ -98,9 +98,9 @@ def start_webhook_receiver(port):
 
     @app.route("/webhook", methods=["POST"])
     def receive():
-        payload = flask_request.get_json(force=True) or {}
-        headers = dict(flask_request.headers)
         raw_body = flask_request.get_data()
+        payload  = __import__('json').loads(raw_body) if raw_body else {}
+        headers  = dict(flask_request.headers)
         received_webhooks.append({
             "payload": payload,
             "headers": headers,
@@ -244,10 +244,10 @@ import requests
 from flask import Flask, request as flask_req
 
 # ── Configuração ──────────────────────────────────────────────────────────────
-BASE_URL       = "{{base_url}}"
-TOKEN          = os.environ.get("AUTH_TOKEN", "{{auth_token}}")
-HMAC_SECRET    = "{{hmac_secret}}"       # None ou "" se não configurado
-WEBHOOK_PORT   = random.randint(9000, 9999)
+BASE_URL       = os.environ.get("BASE_URL", "")
+TOKEN          = os.environ.get("AUTH_TOKEN", "")
+HMAC_SECRET    = os.environ.get("HMAC_SECRET", "")  # "" se não configurado
+WEBHOOK_PORT   = random.randint(9200, 9999)
 TIMEOUT_S      = 30
 SUITE_DIR      = os.environ.get("SUITE_DIR", "")
 
@@ -324,23 +324,33 @@ def run(tc_id, title, fn):
     start = time.time()
     try:
         details = fn()
+        dur = int((time.time() - start) * 1000)
         results.append({
-            "id": tc_id, "title": title, "status": "passed",
-            "duration_ms": int((time.time() - start) * 1000),
+            "id": tc_id, "title": title, "type": tc_id.split("-")[1].lower() if "-" in tc_id else "webhook",
+            "status": "passed", "duration_ms": dur,
             "webhook_details": details, "error": None,
+            "attempts": 1, "retry_diff_logs": False,
+            "attempt_logs": [{"attempt": 1, "status": "passed", "error": None, "duration_ms": dur}],
         })
     except AssertionError as e:
+        dur = int((time.time() - start) * 1000)
+        msg = str(e) if str(e) else "AssertionError sem mensagem"
         results.append({
-            "id": tc_id, "title": title, "status": "failed",
-            "duration_ms": int((time.time() - start) * 1000),
-            "webhook_details": None,
-            "error": str(e) if str(e) else "AssertionError sem mensagem",
+            "id": tc_id, "title": title, "type": tc_id.split("-")[1].lower() if "-" in tc_id else "webhook",
+            "status": "failed", "duration_ms": dur,
+            "webhook_details": None, "error": msg,
+            "attempts": 1, "retry_diff_logs": False,
+            "attempt_logs": [{"attempt": 1, "status": "failed", "error": msg, "duration_ms": dur}],
         })
     except Exception as e:
+        dur = int((time.time() - start) * 1000)
+        msg = str(e) if str(e) else f"{type(e).__name__} (sem mensagem)"
         results.append({
-            "id": tc_id, "title": title, "status": "error",
-            "duration_ms": int((time.time() - start) * 1000),
-            "webhook_details": None, "error": str(e),
+            "id": tc_id, "title": title, "type": tc_id.split("-")[1].lower() if "-" in tc_id else "webhook",
+            "status": "error", "duration_ms": dur,
+            "webhook_details": None, "error": msg,
+            "attempts": 1, "retry_diff_logs": False,
+            "attempt_logs": [{"attempt": 1, "status": "error", "error": msg, "duration_ms": dur}],
         })
 
 # ── Test Cases ────────────────────────────────────────────────────────────────
@@ -404,6 +414,7 @@ summary = {
     "failed":  sum(1 for r in results if r["status"] == "failed"),
     "error":   sum(1 for r in results if r["status"] == "error"),
     "skipped": sum(1 for r in results if r["status"] == "skipped"),
+    "warnings": [],
 }
 
 output = {
@@ -467,7 +478,7 @@ A partir dos steps de cada TC recebido, gere funções específicas para os padr
 
 ## Regras de execução
 
-- **Porta do receptor:** aleatória entre 9000–9999 com `random.randint(9000, 9999)` para evitar conflito com a aplicação em portas comuns (3000, 8000, 8080).
+- **Porta do receptor:** aleatória entre 9200–9999 com `random.randint(9200, 9999)` para evitar conflito com a aplicação em portas comuns (3000, 8000, 8080) e com o executor-chaos (9100–9199).
 - **ngrok indisponível com `use_ngrok: true`:** marque todos os TCs como `status: "skipped"` com `reason: "ngrok_not_available"` e `error: "ngrok não encontrado no PATH — instale em https://ngrok.com/download e configure: ngrok authtoken <seu-token>"`. Não prossiga com a execução.
 - **Webhook não chega no timeout:** registre `status: "failed"` com `error: "Webhook '<evento>' não chegou em <N>s — verifique se a aplicação envia para <WEBHOOK_URL> e se o registro foi aceito"`.
 - **Limpeza entre TCs:** sempre chame `received_webhooks.clear()` no início de cada TC para evitar que webhooks de execuções anteriores contaminem o resultado.
@@ -486,7 +497,7 @@ Execute o script com `python tmp_wh_[timestamp].py` via Bash. Colete os resultad
 
 Se a instalação de `flask` ou `requests` falhar (ambiente restrito, sem pip), marque todos os TCs como `skipped` com `reason: "dependency_install_failed"`.
 
-Se a porta escolhida aleatoriamente já estiver em uso (erro `Address already in use`), tente uma nova porta com `random.randint(9000, 9999)` — faça até 3 tentativas antes de marcar como `error`.
+Se a porta escolhida aleatoriamente já estiver em uso (erro `Address already in use`), tente uma nova porta com `random.randint(9200, 9999)` — faça até 3 tentativas antes de marcar como `error`.
 
 Retorne JSON no formato:
 

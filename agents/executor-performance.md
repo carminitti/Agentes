@@ -228,20 +228,23 @@ Para cada TC recebido, verifique o tipo classificado:
 **Algoritmo de skip — implemente antes de gerar qualquer script:**
 
 ```python
+import re
+
 def should_skip(tc):
     tc_type = tc.get("type", "")
     steps_text = " ".join(tc.get("steps", [])).lower()
-    # Extrai duração total de stages em segundos
+    # Extrai duração total de stages em segundos (ignora ms — não afeta duração de pipeline)
     stage_duration_s = sum(
-        int(s.split("m")[0]) * 60 if "m" in s else int(s.replace("s",""))
-        for s in re.findall(r"\d+[ms]", steps_text)
+        int(val) * 60 if unit == "m" else int(val)
+        for val, unit in re.findall(r"(\d+)(ms|m|s)", steps_text)
+        if unit != "ms"
     ) or 0
     if tc_type == "soak":
         return True, "pipeline_lento", "Tipo 'soak' reservado para --pipeline=full."
     if tc_type == "stress" and stage_duration_s > 180:
         return True, "pipeline_lento", f"Stress com {stage_duration_s}s > 3min reservado para --pipeline=full."
-    vus = int(re.search(r"(\d+)\s*vus?", steps_text).group(1)) if re.search(r"(\d+)\s*vus?", steps_text) else 0
-    duration_s = stage_duration_s or (int(re.search(r"(\d+)s", steps_text).group(1)) if re.search(r"(\d+)s", steps_text) else 0)
+    vus = max((int(m.group(1)) for m in re.finditer(r"(\d+)\s*vus?", steps_text)), default=0)
+    duration_s = stage_duration_s or (int(re.search(r"(?<!\w)(\d+)s\b", steps_text).group(1)) if re.search(r"(?<!\w)(\d+)s\b", steps_text) else 0)
     if tc_type in ("performance", "carga") and vus > 50 and duration_s > 60:
         return True, "pipeline_lento", f"VUs={vus} e duration={duration_s}s acima do limite do pipeline rápido."
     return False, None, None
@@ -293,7 +296,7 @@ export default function () {
 > **Multi-URL:** quando o contexto contiver `multi_url: true`, cada TC pode apontar para um domínio diferente. Ao gerar o script k6, não declare uma constante `BASE_URL` global. Em vez disso, declare um objeto de URLs por TC no topo do script:
 > ```javascript
 > const TC_URLS = {
->   "TC-PERF-01": "https://reqres.in/api",
+>   "TC-PERF-01": "https://dummyjson.com",
 >   "TC-PERF-07": "https://jsonplaceholder.typicode.com",
 > };
 > ```
@@ -406,6 +409,9 @@ export default function () {
 **Gere e execute um script k6 por TC** — um script único agregado impossibilita mapear thresholds individuais por TC. Para cada TC, siga o loop:
 
 ```python
+import subprocess, json, os
+
+results = []
 for tc in tcs:
     tc_id = tc["id"]
     script_file  = f"script_{tc_id}.js"
@@ -418,8 +424,14 @@ for tc in tcs:
                         "error": f"{script_file} não foi gerado — verifique os steps do TC"})
         continue
 
-    # 2. Execute e capture stdout
-    os.system(f"k6 run --summary-export={output_file} {script_file} 2>&1 | tee {stdout_file}")
+    # 2. Execute e capture stdout (cross-platform: sem tee)
+    proc = subprocess.run(
+        ["k6", "run", f"--summary-export={output_file}", script_file],
+        capture_output=True, text=True, encoding="utf-8", errors="replace",
+    )
+    k6_stdout = proc.stdout + proc.stderr
+    with open(stdout_file, "w", encoding="utf-8") as _f:
+        _f.write(k6_stdout)
 
     # 3. Extraia linhas relevantes do stdout
     with open(stdout_file, 'r', encoding='utf-8', errors='replace') as f:
@@ -481,9 +493,9 @@ def run_load_test(url, vus, duration_s, headers=None, method='GET', payload=None
     sorted_r = sorted(results)
     n = len(sorted_r)
     return {
-        "p50_ms": round(sorted_r[int(n * 0.50)], 2),
-        "p95_ms": round(sorted_r[int(n * 0.95)], 2),
-        "p99_ms": round(sorted_r[min(int(n * 0.99), n - 1)], 2),
+        "p50_ms": round(sorted_r[max(int(n * 0.50) - 1, 0)], 2),
+        "p95_ms": round(sorted_r[max(int(n * 0.95) - 1, 0)], 2),
+        "p99_ms": round(sorted_r[min(max(int(n * 0.99) - 1, 0), n - 1)], 2),
         "min_ms": round(sorted_r[0], 2),
         "max_ms": round(sorted_r[-1], 2),
         "error_rate_pct": round(len(errors) / (len(results) + len(errors)) * 100, 2),
@@ -566,14 +578,18 @@ metrics = run_stress_test(url, [s for s in stress_stages if s['vus'] > 0], heade
         "[THRESHOLD] p(95) < 200ms ✓ (atual: 178ms)",
         "[THRESHOLD] error rate < 1% ✓ (atual: 0.2%)"
       ],
-      "error": null
+      "error": null,
+      "attempts": 1,
+      "retry_diff_logs": false,
+      "attempt_logs": [{"attempt": 1, "status": "passed", "error": null, "duration_ms": 30000}]
     }
   ],
   "summary": {
     "total": 1,
     "passed": 1,
     "failed": 0,
-    "mode": "k6"
+    "mode": "k6",
+    "warnings": []
   }
 }
 ```
@@ -605,9 +621,20 @@ Ao final de cada execução, grave os artefatos no diretório correto:
 ```python
 import os, json, datetime, shutil
 
+suite_dir = os.environ.get("SUITE_DIR", "")
+import datetime as _dt
+timestamp = _dt.datetime.now().strftime("%Y%m%d_%H%M%S")
+base_url  = os.environ.get("BASE_URL", "")
 output_dir = f"{suite_dir}/performance" if suite_dir else f"tmp_perf_{timestamp}"
 os.makedirs(output_dir, exist_ok=True)
 
+output_json = {
+    "executor": "performance",
+    "mode": "k6",
+    "environment": base_url,
+    "results": results,
+    "summary": summary
+}
 # resultado.json
 with open(f"{output_dir}/resultado.json", "w", encoding="utf-8") as f:
     json.dump(output_json, f, ensure_ascii=False, indent=2)

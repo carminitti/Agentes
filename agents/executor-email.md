@@ -51,8 +51,10 @@ Mapeamento dos campos:
 
 ```python
 import subprocess, sys
-subprocess.run([sys.executable, "-m", "pip", "install", "-q",
-    "requests", "imapclient", "beautifulsoup4", "lxml"], check=False)
+_r = subprocess.run([sys.executable, "-m", "pip", "install", "-q",
+    "requests", "imapclient", "beautifulsoup4", "lxml"], capture_output=True)
+if _r.returncode != 0:
+    raise SystemExit(f"[DEPENDENCY ERROR] pip install falhou:\n{_r.stderr.decode(errors='replace')}")
 ```
 
 ---
@@ -94,7 +96,33 @@ def search_mailhog(api_url, to_email, subject_contains=None, timeout_s=30):
 
 ```python
 def search_mailtrap(inbox_id, api_token, to_email, subject_contains=None, timeout_s=30):
-    """Polling na API do Mailtrap v1."""
+    """Polling na API do Mailtrap. Tenta v2 primeiro (novo padrão), cai para v1 legado."""
+    # v2: Authorization: Bearer (contas novas)
+    # v1: Api-Token header (contas antigas)
+    v2_url = f"https://mailtrap.io/api/v2/inboxes/{inbox_id}/messages"
+    v1_url = f"https://mailtrap.io/api/inboxes/{inbox_id}/messages"
+    headers_v2 = {"Authorization": f"Bearer {api_token}"}
+    headers_v1 = {"Api-Token": api_token}
+    deadline = time.time() + timeout_s
+    while time.time() < deadline:
+        try:
+            r = requests.get(v2_url, headers=headers_v2, timeout=5)
+            if r.status_code == 401:
+                r = requests.get(v1_url, headers=headers_v1, timeout=5)
+            msgs = r.json() if isinstance(r.json(), list) else r.json().get("data", [])
+            for msg in msgs:
+                if to_email in msg.get("to_email", ""):
+                    if subject_contains is None:
+                        return msg
+                    if subject_contains.lower() in msg.get("subject", "").lower():
+                        return msg
+        except Exception:
+            pass
+        time.sleep(2)
+    return None
+
+def _search_mailtrap_LEGACY(inbox_id, api_token, to_email, subject_contains=None, timeout_s=30):
+    """Fallback legado v1 — não remover, usado se v2 não disponível."""
     headers = {"Api-Token": api_token}
     url = f"https://mailtrap.io/api/inboxes/{inbox_id}/messages"
     deadline = time.time() + timeout_s
@@ -246,17 +274,19 @@ O script abaixo é o template base que você adapta para cada suite de TCs receb
 
 ```python
 import subprocess, sys
-subprocess.run([sys.executable, "-m", "pip", "install", "-q",
-    "requests", "imapclient", "beautifulsoup4", "lxml"], check=False)
+_r = subprocess.run([sys.executable, "-m", "pip", "install", "-q",
+    "requests", "imapclient", "beautifulsoup4", "lxml"], capture_output=True)
+if _r.returncode != 0:
+    raise SystemExit(f"[DEPENDENCY ERROR] pip install falhou:\n{_r.stderr.decode(errors='replace')}")
 
 import requests, time, json, os
 from bs4 import BeautifulSoup
 
 # ── Configuração ──────────────────────────────────────────────────────────────
-BASE_URL      = "{{base_url}}"
-AUTH_TOKEN    = os.environ.get("AUTH_TOKEN", "{{auth_token}}")
-PROVIDER_TYPE = "mailhog"          # mailhog | mailtrap | imap
-MAILHOG_URL   = "http://localhost:8025"
+BASE_URL      = os.environ.get("BASE_URL", "")
+AUTH_TOKEN    = os.environ.get("AUTH_TOKEN", "")
+PROVIDER_TYPE = "{{email_provider_type}}"   # agente: substitua pelo valor de context.email_provider.type (mailhog | mailtrap | imap)
+MAILHOG_URL   = "{{email_provider_api_url}}"  # agente: substitua pelo valor de context.email_provider.api_url
 TIMEOUT_S     = 30                 # segundos de polling por email
 SUITE_DIR     = os.environ.get("SUITE_DIR", "")
 
@@ -325,28 +355,42 @@ def run(tc_id, title, fn):
         results.append({
             "id": tc_id,
             "title": title,
+            "type": "email",
             "status": "passed",
             "duration_ms": int((time.time() - start) * 1000),
             "email_details": email_details,
             "error": None,
+            "attempts": 1,
+            "retry_diff_logs": False,
+            "attempt_logs": [{"attempt": 1, "status": "passed", "error": None, "duration_ms": int((time.time() - start) * 1000)}],
         })
     except AssertionError as e:
+        msg = str(e) if str(e) else "AssertionError sem mensagem"
         results.append({
             "id": tc_id,
             "title": title,
+            "type": "email",
             "status": "failed",
             "duration_ms": int((time.time() - start) * 1000),
             "email_details": None,
-            "error": str(e) if str(e) else "AssertionError sem mensagem",
+            "error": msg,
+            "attempts": 1,
+            "retry_diff_logs": False,
+            "attempt_logs": [{"attempt": 1, "status": "failed", "error": msg, "duration_ms": int((time.time() - start) * 1000)}],
         })
     except Exception as e:
+        msg = str(e)
         results.append({
             "id": tc_id,
             "title": title,
+            "type": "email",
             "status": "error",
             "duration_ms": int((time.time() - start) * 1000),
             "email_details": None,
-            "error": str(e),
+            "error": msg,
+            "attempts": 1,
+            "retry_diff_logs": False,
+            "attempt_logs": [{"attempt": 1, "status": "error", "error": msg, "duration_ms": int((time.time() - start) * 1000)}],
         })
 
 # ── Test Cases ────────────────────────────────────────────────────────────────
@@ -411,6 +455,7 @@ summary = {
     "failed":  sum(1 for r in results if r["status"] == "failed"),
     "error":   sum(1 for r in results if r["status"] == "error"),
     "skipped": sum(1 for r in results if r["status"] == "skipped"),
+    "warnings": [],
 }
 
 output = {

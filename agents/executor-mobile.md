@@ -138,6 +138,12 @@ UDID         = "[appium.udid or '']"
 SUITE_DIR    = os.environ.get("SUITE_DIR", ".")
 WAIT_TIMEOUT = 15
 
+if any(str(v).startswith("[") for v in [PLATFORM, DEVICE_NAME, APP_PACKAGE] if v):
+    raise RuntimeError(
+        "Capabilities Appium não configuradas — substitua os placeholders [...] "
+        "pelos valores reais via contexto do orquestrador (campo 'appium')."
+    )
+
 results = []
 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
@@ -230,12 +236,16 @@ def record(tc_id, title, status, duration_ms, logs, error=None):
     results.append({
         "id": tc_id,
         "title": title,
+        "type": "mobile",
         "status": status,
         "duration_ms": duration_ms,
         "platform": PLATFORM,
         "device": DEVICE_NAME,
         "logs": logs,
         "error": error,
+        "attempts": 1,
+        "retry_diff_logs": False,
+        "attempt_logs": [{"attempt": 1, "status": status, "error": error, "duration_ms": duration_ms}],
     })
 
 
@@ -260,6 +270,7 @@ if __name__ == "__main__":
             "passed": passed,
             "failed": failed,
             "skipped": skipped,
+            "warnings": [],
         },
     }
 
@@ -499,7 +510,7 @@ Se o contexto contiver `"lean_mode": true`:
 - **Omita `generated_files` do JSON de saída.** Em modo completo (`lean_mode: false`), preencha `generated_files` com a lista de arquivos `.py` gerados (script de capabilities, script de teste Appium).
 - JSON mínimo por TC — omita `logs`, `platform`, `device`:
   ```json
-  { "id": "TC-001", "title": "Login", "status": "passed", "duration_ms": 3240 }
+  { "id": "TC-001", "title": "Login", "type": "mobile", "status": "passed", "duration_ms": 3240 }
   ```
   O campo `error` só é incluído quando `status` for `"failed"` ou `"error"`.
 

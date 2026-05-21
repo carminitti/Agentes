@@ -60,6 +60,7 @@ Se não estiver instalado:
 ```
 npm install --save-dev cypress
 ```
+Se o exit code for ≠ 0, marque todos os TCs como `skipped` com razão `dependency_missing: cypress`.
 
 > Nota: Cypress inclui seus próprios browsers empacotados (Electron, Chrome). Não é necessário instalar drivers adicionais.
 
@@ -215,7 +216,7 @@ Se o ambiente retornar 4xx antes da lógica de teste começar, marque como `skip
 
 ```bash
 # Executar em modo headless (CI)
-npx cypress run --spec "cypress/e2e/**/*.cy.js" --reporter json --reporter-options "output=resultado_raw.json"
+npx cypress run --spec "cypress/e2e/**/*.cy.js" --reporter json --output-file resultado_raw.json
 ```
 
 ```powershell
@@ -223,29 +224,52 @@ npx cypress run --spec "cypress/e2e/**/*.cy.js" --reporter json --reporter-optio
 $env:BASE_URL="https://staging.app.com"
 $env:USER_EMAIL="qa@example.com"
 $env:USER_PASSWORD="senha123"
-npx cypress run --spec "cypress/e2e/**/*.cy.js" --reporter json --reporter-options "output=resultado_raw.json"
+npx cypress run --spec "cypress/e2e/**/*.cy.js" --reporter json --output-file resultado_raw.json
 ```
 
 Parse o relatório JSON do Mocha (gerado pelo reporter `json`) para montar o resultado estruturado:
 
 ```javascript
+const fs = require('fs');
 const raw = JSON.parse(fs.readFileSync('resultado_raw.json', 'utf-8'));
+
+function collectTests(raw) {
+  // Mocha JSON reporter: flat array at raw.tests
+  if (raw.tests && Array.isArray(raw.tests) && raw.tests.length > 0) {
+    return raw.tests;
+  }
+  // Mochawesome / nested format: raw.results[].tests (single level)
+  const flat = [];
+  for (const suite of raw.results || []) {
+    for (const test of suite.tests || []) flat.push(test);
+    // handle one level of nesting in suites
+    for (const nested of suite.suites || []) {
+      for (const test of nested.tests || []) flat.push(test);
+    }
+  }
+  return flat;
+}
 
 function parseResults(raw) {
   const results = [];
-  for (const suite of raw.results || []) {
-    for (const test of suite.tests || []) {
-      results.push({
-        id: extractId(test.fullTitle),  // extrai "TC-XXX" do título
-        title: test.fullTitle,
-        status: test.state === 'passed' ? 'passed'
-               : test.state === 'failed' ? 'failed'
-               : 'skipped',
-        duration_ms: test.duration || 0,
-        error: test.err?.message || null,
-        browser: 'chrome (cypress)',
-      });
-    }
+  for (const test of collectTests(raw)) {
+    const state = test.state || (test.pending ? 'pending' : 'unknown');
+    const dur = test.duration || 0;
+    const st  = state === 'passed' ? 'passed' : state === 'failed' ? 'failed' : 'skipped';
+    const err = test.err?.message || null;
+    results.push({
+      id: extractId(test.fullTitle),
+      title: test.fullTitle,
+      type: 'smoke',
+      status: st,
+      duration_ms: dur,
+      error: err,
+      browser: 'chrome (cypress)',
+      logs: [],
+      attempts: 1,
+      retry_diff_logs: false,
+      attempt_logs: [{ attempt: 1, status: st, error: err, duration_ms: dur }],
+    });
   }
   return results;
 }
@@ -278,6 +302,21 @@ const timestamp = new Date().toISOString().replace(/[:.]/g, '').slice(0, 15);
 const outputDir = suiteDir ? `${suiteDir}/browser-cypress` : `tmp_cypress_${timestamp}`;
 fs.mkdirSync(outputDir, { recursive: true });
 
+const results = parseResults(raw);
+const passed  = results.filter(r => r.status === 'passed').length;
+const failed  = results.filter(r => r.status === 'failed').length;
+const skipped = results.filter(r => r.status === 'skipped').length;
+const summary = {
+  total: results.length, passed, failed, skipped,
+  credentials_failed: false, warnings: []
+};
+const outputJson = {
+  executor: 'browser-cypress',
+  environment: process.env.BASE_URL || '',
+  credentials_failed: false,
+  results,
+  summary
+};
 fs.writeFileSync(`${outputDir}/resultado.json`, JSON.stringify(outputJson, null, 2));
 
 const ts = () => new Date().toISOString().replace('T', ' ').slice(0, 19);
@@ -346,7 +385,8 @@ O campo `generated_files` no JSON é **sempre preenchido** com todos os arquivos
     "passed": 1,
     "failed": 0,
     "skipped": 0,
-    "credentials_failed": false
+    "credentials_failed": false,
+    "warnings": []
   }
 }
 ```

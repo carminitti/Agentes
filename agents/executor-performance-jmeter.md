@@ -71,16 +71,19 @@ def should_skip(tc):
     tc_type = tc.get("type", "")
     steps_text = " ".join(tc.get("steps", [])).lower()
     stage_duration_s = sum(
-        int(s.split("m")[0]) * 60 if "m" in s else int(s.replace("s", ""))
-        for s in re.findall(r"\d+[ms]", steps_text)
+        int(val) * 60 if unit == "m" else int(val)
+        for val, unit in re.findall(r"(\d+)(ms|m|s)", steps_text)
+        if unit != "ms"
     ) or 0
     if tc_type == "soak":
         return True, "pipeline_lento", "Tipo 'soak' reservado para --pipeline=full."
     if tc_type == "stress" and stage_duration_s > 180:
         return True, "pipeline_lento", f"Stress com {stage_duration_s}s > 3min."
-    threads = int(re.search(r"(\d+)\s*threads?", steps_text).group(1)) \
-              if re.search(r"(\d+)\s*threads?", steps_text) else 0
+    threads = max((int(m.group(1)) for m in re.finditer(r"(\d+)\s*threads?", steps_text)), default=0)
+    threads_peak = max((int(m.group(1)) for m in re.finditer(r"(\d+)\s*(?:threads?|users?|vus?)", steps_text)), default=threads)
     duration_s = stage_duration_s or 30
+    if tc_type == "spike" and threads_peak > 50 and duration_s > 120:
+        return True, "pipeline_lento", f"Spike com {threads_peak} threads_peak e {duration_s}s > 2min."
     if tc_type in ("performance", "carga") and threads > 50 and duration_s > 60:
         return True, "pipeline_lento", f"Threads={threads} e duration={duration_s}s acima do limite."
     return False, None, None
@@ -90,11 +93,12 @@ def should_skip(tc):
 
 ## Pré-requisito — JMeter
 
-```bash
-jmeter --version
+```python
+import shutil
+_jmeter = shutil.which("jmeter") or shutil.which("jmeter.bat")
 ```
 
-**Se não estiver instalado**, vá direto ao **fallback Python** abaixo — sem interromper o fluxo.
+**Se `_jmeter` for `None`**, vá direto ao **fallback Python** abaixo — sem interromper o fluxo.
 
 > JMeter pode ser instalado via:
 > - **Windows**: `winget install apache-jmeter` ou download manual em https://jmeter.apache.org/download_jmeter.cgi
@@ -255,7 +259,7 @@ jmeter -n \
   -Jhost=staging.app.com \
   -Jport=443 \
   -Jprotocol=https \
-  -Jauth_token=Bearer_eyJ... \
+  -Jauth_token=eyJ... \
   2>&1 | tee jmeter_output.txt
 ```
 
@@ -268,13 +272,20 @@ import csv, statistics, os
 
 def parse_jtl(jtl_path: str) -> dict:
     latencies = []
+    timestamps = []
     errors = []
+    total_requests = 0
     with open(jtl_path, newline='', encoding='utf-8') as f:
         reader = csv.DictReader(f)
         for row in reader:
             elapsed = int(row.get('elapsed', 0))
             success = row.get('success', 'true').lower() == 'true'
-            latencies.append(elapsed)
+            total_requests += 1
+            if success and elapsed > 0:
+                latencies.append(elapsed)
+            ts = row.get('timeStamp')
+            if ts:
+                timestamps.append(int(ts))
             if not success:
                 errors.append(row.get('responseCode', 'unknown'))
 
@@ -283,18 +294,28 @@ def parse_jtl(jtl_path: str) -> dict:
 
     sorted_l = sorted(latencies)
     n = len(sorted_l)
-    total = len(latencies)
+    total = total_requests
     err_count = len(errors)
 
+    # Duração real do teste a partir dos timestamps do JTL (evita divisão hardcoded por 30s)
+    if len(timestamps) >= 2:
+        duration_s = max((max(timestamps) - min(timestamps)) / 1000, 1)
+    else:
+        duration_s = 30
+
+    def pct(p):
+        idx = max(int(n * p) - 1, 0)
+        return sorted_l[min(idx, n - 1)]
+
     return {
-        "p50_ms":  sorted_l[int(n * 0.50)],
-        "p95_ms":  sorted_l[int(n * 0.95)],
-        "p99_ms":  sorted_l[min(int(n * 0.99), n - 1)],
+        "p50_ms":  pct(0.50),
+        "p95_ms":  pct(0.95),
+        "p99_ms":  pct(0.99),
         "min_ms":  sorted_l[0],
         "max_ms":  sorted_l[-1],
         "avg_ms":  round(statistics.mean(latencies), 2),
         "error_rate_pct": round(err_count / total * 100, 2) if total > 0 else 0,
-        "throughput_rps": round(total / 30, 2),  # ajuste pela duração real
+        "throughput_rps": round(total / duration_s, 2),
         "total_requests": total,
         "mode": "jmeter"
     }
@@ -331,6 +352,8 @@ def evaluate_thresholds(metrics: dict, tc: dict) -> list:
 ```
 
 ---
+
+> **Regra de assertions — sites externos:** NUNCA gere assertions de texto no corpo HTML (`assertion_text in body`) para sites de terceiros públicos (blazedemo.com, jsonplaceholder, etc.). O conteúdo muda sem aviso e causa falsos negativos intermitentes. Assertions válidas para fallback Python: **código de status HTTP** (`resp.status_code == 200`) e **latência** (`elapsed_ms < threshold`). Se o TC exigir assertion de conteúdo específico, marque-o como `skipped` com razão `assertion_fragile_external_content` e documente qual texto seria verificado.
 
 ## Fallback Python (quando JMeter não está disponível)
 
@@ -375,9 +398,9 @@ def run_load_test(url, threads, duration_s, headers=None, method='GET', payload=
     n = len(sorted_r)
     total = len(results) + len(errors)
     return {
-        "p50_ms": round(sorted_r[int(n * 0.50)], 2),
-        "p95_ms": round(sorted_r[int(n * 0.95)], 2),
-        "p99_ms": round(sorted_r[min(int(n * 0.99), n - 1)], 2),
+        "p50_ms": round(sorted_r[max(int(n * 0.50) - 1, 0)], 2),
+        "p95_ms": round(sorted_r[max(int(n * 0.95) - 1, 0)], 2),
+        "p99_ms": round(sorted_r[min(max(int(n * 0.99) - 1, 0), n - 1)], 2),
         "min_ms": round(sorted_r[0], 2),
         "max_ms": round(sorted_r[-1], 2),
         "error_rate_pct": round(len(errors) / total * 100, 2) if total > 0 else 0,
@@ -427,7 +450,11 @@ def run_load_test(url, threads, duration_s, headers=None, method='GET', payload=
         "[THRESHOLD] p(95) < 200ms ✓ (atual: 185ms)",
         "[THRESHOLD] error rate < 1% ✓ (atual: 0.1%)"
       ],
-      "error": null
+      "error": null,
+      "type": "performance",
+      "attempts": 1,
+      "retry_diff_logs": false,
+      "attempt_logs": [{"attempt": 1, "status": "passed", "error": null, "duration_ms": 30000}]
     }
   ],
   "summary": {
@@ -435,7 +462,8 @@ def run_load_test(url, threads, duration_s, headers=None, method='GET', payload=
     "passed": 1,
     "failed": 0,
     "skipped": 0,
-    "mode": "jmeter"
+    "mode": "jmeter",
+    "warnings": []
   }
 }
 ```
@@ -467,6 +495,13 @@ timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 output_dir = f"{suite_dir}/performance-jmeter" if suite_dir else f"tmp_jmeter_{timestamp}"
 os.makedirs(output_dir, exist_ok=True)
 
+output_json = {
+    "executor": "performance-jmeter",
+    "mode": "jmeter",
+    "environment": os.environ.get("BASE_URL", ""),
+    "results": results,
+    "summary": summary
+}
 with open(os.path.join(output_dir, "resultado.json"), "w", encoding="utf-8") as f:
     json.dump(output_json, f, ensure_ascii=False, indent=2)
 

@@ -251,9 +251,9 @@ subprocess.run(["playwright", "install", "chromium", "--with-deps"], check=False
 import re
 from playwright.sync_api import sync_playwright
 
-BASE_URL      = "{{base_url}}"
+BASE_URL      = os.environ.get("BASE_URL", "")
 LOCALES       = ["pt-BR", "en-US"]        # substituído pelo contexto do orquestrador
-SUITE_DIR     = "{{suite_dir}}"
+SUITE_DIR     = os.environ.get("SUITE_DIR", "")
 TIMEOUT_MS    = 30000
 METHOD        = "url_prefix"              # url_prefix | query_param | cookie | header
 PARAM         = None                      # nome customizado do param/cookie/header
@@ -309,18 +309,24 @@ def run(tc_id, title, fn):
         fn()
         results.append({
             "id": tc_id, "title": title, "status": "passed",
-            "duration_ms": int((time.time() - start) * 1000), "error": None
+            "duration_ms": int((time.time() - start) * 1000), "error": None,
+            "type": "i18n", "attempts": 1, "retry_diff_logs": False,
+            "attempt_logs": [{"attempt": 1, "status": "passed", "error": None, "duration_ms": int((time.time() - start) * 1000)}]
         })
     except AssertionError as e:
         results.append({
             "id": tc_id, "title": title, "status": "failed",
             "duration_ms": int((time.time() - start) * 1000),
-            "error": str(e) if str(e) else "AssertionError sem mensagem"
+            "error": str(e) if str(e) else "AssertionError sem mensagem",
+            "type": "i18n", "attempts": 1, "retry_diff_logs": False,
+            "attempt_logs": [{"attempt": 1, "status": "failed", "error": str(e) if str(e) else "AssertionError sem mensagem", "duration_ms": int((time.time() - start) * 1000)}]
         })
     except Exception as e:
         results.append({
             "id": tc_id, "title": title, "status": "error",
-            "duration_ms": int((time.time() - start) * 1000), "error": str(e)
+            "duration_ms": int((time.time() - start) * 1000), "error": str(e),
+            "type": "i18n", "attempts": 1, "retry_diff_logs": False,
+            "attempt_logs": [{"attempt": 1, "status": "error", "error": str(e), "duration_ms": int((time.time() - start) * 1000)}]
         })
 
 # ── execução por locale ────────────────────────────────────────────────────────
@@ -336,12 +342,17 @@ with sync_playwright() as pw:
             ignore_https_errors=True,
         )
         if METHOD == "cookie":
-            # cookies requerem URL; define após o contexto e antes de goto
-            pass
+            # Configura cookie no contexto antes de qualquer page.goto()
+            context.add_cookies([{
+                "name": PARAM or "lang",
+                "value": locale,
+                "url": BASE_URL,
+            }])
         page = context.new_page()
         page.set_default_timeout(TIMEOUT_MS)
 
-        screenshot_dir = os.path.join(SUITE_DIR, "i18n", locale)
+        _base_i18n_dir = os.path.join(SUITE_DIR, "i18n") if SUITE_DIR else f"tmp_i18n_{timestamp}"
+        screenshot_dir = os.path.join(_base_i18n_dir, locale)
         os.makedirs(screenshot_dir, exist_ok=True)
 
         # default argument capture evita closure bug (for locale in LOCALES: fn captura locale por referência)
@@ -372,12 +383,19 @@ with sync_playwright() as pw:
                 url = build_locale_url(BASE_URL, "/", locale, METHOD, PARAM)
                 page.goto(url, wait_until="domcontentloaded")
                 body_text = page.locator("body").text_content() or ""
-                total = len(translations)
-                missing = [k for k, v in translations.items()
-                           if isinstance(v, str) and v and v not in body_text]
-                coverage = round((total - len(missing)) / total, 4) if total else 1.0
-                results[-1]["translation_coverage"] = coverage
-                results[-1]["untranslated_keys"] = missing
+
+                def _flatten_dict(d, prefix=""):
+                    items = []
+                    for k, v in d.items():
+                        if isinstance(v, dict):
+                            items.extend(_flatten_dict(v, prefix + k + ".").items())
+                        elif isinstance(v, str) and v:
+                            items.append((prefix + k, v))
+                    return dict(items)
+
+                _flat_translations = _flatten_dict(translations)
+                missing = [k for k, v in _flat_translations.items() if v and v not in body_text]
+                coverage = round((len(_flat_translations) - len(missing)) / len(_flat_translations), 4) if _flat_translations else 1.0
                 assert coverage >= 0.8, \
                     f"[{locale}] Cobertura de tradução insuficiente: {coverage:.0%} " \
                     f"({len(missing)} chaves não encontradas: {missing[:5]}{'...' if len(missing)>5 else ''})"
@@ -395,6 +413,7 @@ summary = {
     "failed":  sum(1 for r in results if r["status"] == "failed"),
     "error":   sum(1 for r in results if r["status"] == "error"),
     "skipped": sum(1 for r in results if r["status"] == "skipped"),
+    "warnings": [],
     "locales_with_issues": list({
         r["id"].split("[")[1].rstrip("]")
         for r in results

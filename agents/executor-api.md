@@ -457,7 +457,7 @@ Para cada conjunto de testes:
      expect: { timeout: 5_000 },
      fullyParallel: true,
      workers: process.env.CI ? 2 : 4,
-     retries: process.env.CI ? 2 : 0,
+     retries: parseInt(process.env.RETRY_COUNT || '1'),
      testMatch: ['**/*.spec.ts'],
      reporter: [['html', { outputFolder: 'reports/html', open: 'never' }]],
      outputDir: 'reports/test-results',
@@ -478,6 +478,7 @@ Para cada conjunto de testes:
    $cache = "$HOME\.claude-qa-cache\api"
    if (-not (Test-Path "$cache\node_modules")) {
      npm install --prefix $cache
+     if ($LASTEXITCODE -ne 0) { throw "[DEPENDENCY ERROR] npm install falhou — verifique conexão de rede e permissões" }
      npx playwright install chromium --with-deps
    }
    # mklink /J pode falhar sem privilégios de admin ou em sistemas de arquivo sem suporte
@@ -489,15 +490,17 @@ Para cada conjunto de testes:
    if (-not $linked) {
      Write-Host "[CACHE] Junction falhou — executando npm install normal"
      npm install
+     if ($LASTEXITCODE -ne 0) { throw "[DEPENDENCY ERROR] npm install falhou — verifique conexão de rede e permissões" }
    }
    ```
    ```bash
    # Linux/macOS
    cache="$HOME/.claude-qa-cache/api"
-   [ ! -d "$cache/node_modules" ] && npm install --prefix "$cache"
-   ln -sfn "$cache/node_modules" node_modules
+   if [ ! -d "$cache/node_modules" ]; then
+     npm install --prefix "$cache" || { echo "[DEPENDENCY ERROR] npm install falhou"; exit 1; }
+   fi
+   ln -sfn "$cache/node_modules" node_modules 2>/dev/null || npm install || { echo "[DEPENDENCY ERROR] npm install falhou"; exit 1; }
    ```
-   Se o cache falhar por qualquer motivo, caia em `npm install` normal sem interromper.
 
    ```
    npx playwright test --reporter=json > resultado.json
@@ -524,9 +527,10 @@ Durante a execução, colete um log de cada ação relevante para incluir no res
 
 ## Persistência obrigatória em disco
 
-**Inclua `SUITE_DIR` no `.env` gerado** (quando `suite_dir` vier no contexto):
+**Inclua `SUITE_DIR` e `RETRY_COUNT` no `.env` gerado** (quando presentes no contexto):
 ```
 SUITE_DIR=suite_api_20260511_100000
+RETRY_COUNT=1
 ```
 
 Ao final de cada execução, grave os artefatos no diretório correto:
@@ -631,7 +635,8 @@ O campo `generated_files` no JSON segue a mesma regra: preencha somente quando h
     "passed": 1,
     "failed": 0,
     "skipped": 0,
-    "credentials_failed": false
+    "credentials_failed": false,
+    "warnings": []
   }
 }
 ```
@@ -701,7 +706,13 @@ results.append({
     "message": "APIRequestContext não suporta SSE/chunked streaming. "
                "Use executor-websocket para streams bidirecionais ou "
                "teste apenas o endpoint de inicialização do stream (status 200).",
-    "logs": [f"[SKIP] {title} — streaming requer cliente assíncrono dedicado"]
+    "logs": [f"[SKIP] {title} — streaming requer cliente assíncrono dedicado"],
+    "duration_ms": 0,
+    "error": None,
+    "type": tc.get("type", ""),
+    "attempts": 1,
+    "retry_diff_logs": False,
+    "attempt_logs": [{"attempt": 1, "status": "skipped", "error": None, "duration_ms": 0}]
 })
 ```
 
@@ -723,6 +734,7 @@ Se o `## Contexto de execução` contiver `"lean_mode": true`, aplique todas as 
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 max_workers = min(int(os.environ.get("MAX_PARALLEL_EXECUTORS", "1")), 5)
+rate_limit = os.environ.get("RATE_LIMIT")
 
 if max_workers > 1 and not rate_limit:
     with ThreadPoolExecutor(max_workers=max_workers) as pool:

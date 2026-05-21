@@ -67,7 +67,20 @@ Se não estiver instalado:
 pip install httpx[http2] pydantic
 ```
 
-> `httpx[http2]` inclui suporte a HTTP/2 via `h2`. O suporte é opcional — o executor negocia HTTP/2 automaticamente quando disponível, com fallback para HTTP/1.1.
+> **Verifique h2 separadamente** se TCs validam explicitamente o protocolo HTTP/2: `python -c "import h2"`. Se falhar, `pip install h2` ou reinstale com `pip install "httpx[http2]"`.
+
+> `httpx[http2]` inclui suporte a HTTP/2 via `h2`. O executor negocia HTTP/2 automaticamente quando disponível, com fallback para HTTP/1.1.
+>
+> **Detecção de h2 em runtime:** antes de executar, verifique se o pacote `h2` está instalado:
+> ```python
+> try:
+>     import h2
+>     H2_AVAILABLE = True
+> except ImportError:
+>     H2_AVAILABLE = False
+> ```
+> Se `H2_AVAILABLE = False` e o TC verificar **explicitamente** o protocolo HTTP/2 (ex: step contém "HTTP/2", "h2", "protocolo negociado HTTP/2" ou `[HTTP2]`), marque o TC como `skipped` com razão `http2_not_available` em vez de executá-lo com fallback HTTP/1.1 — isso evitaria um falso positivo onde o TC passaria sem validar o que promete.
+> TCs que não verificam o protocolo explicitamente continuam executando normalmente com qualquer versão disponível.
 
 ---
 
@@ -97,12 +110,17 @@ class ApiClient:
         headers = {}
         if token:
             headers["Authorization"] = token if token.startswith("Bearer ") else f"Bearer {token}"
+        try:
+            import h2  # noqa
+            _http2 = http2
+        except ImportError:
+            _http2 = False  # h2 não instalado — fallback para HTTP/1.1
         self._client = httpx.AsyncClient(
             base_url=base_url,
             headers=headers,
             timeout=timeout,
             verify=verify,
-            http2=http2,
+            http2=_http2,
         )
 
     async def get(self, path: str, params: dict | None = None) -> httpx.Response:
@@ -252,18 +270,40 @@ async def run_tc(client: ApiClient, tc: dict) -> dict:
             }
         }
     except AssertionError as e:
+        _dur = int((time.time() - start_ts) * 1000)
         return {
             "id": tc_id, "title": title, "status": "failed",
-            "duration_ms": int((time.time() - start_ts) * 1000),
-            "logs": logs, "error": str(e)
+            "duration_ms": _dur,
+            "logs": logs, "error": str(e),
+            "type": tc.get("type", ""),
+            "attempts": 1,
+            "retry_diff_logs": False,
+            "attempt_logs": [{"attempt": 1, "status": "failed", "error": str(e), "duration_ms": _dur}]
         }
     except Exception as e:
         logs.append(f"[ERROR] {type(e).__name__}: {e}")
+        _dur = int((time.time() - start_ts) * 1000)
         return {
             "id": tc_id, "title": title, "status": "error",
-            "duration_ms": int((time.time() - start_ts) * 1000),
-            "logs": logs, "error": f"{type(e).__name__}: {e}"
+            "duration_ms": _dur,
+            "logs": logs, "error": f"{type(e).__name__}: {e}",
+            "type": tc.get("type", ""),
+            "attempts": 1,
+            "retry_diff_logs": False,
+            "attempt_logs": [{"attempt": 1, "status": "failed", "error": f"{type(e).__name__}: {e}", "duration_ms": _dur}]
         }
+
+def build_credentials_failed_result():
+    return {
+        "executor": "executor-api-httpx",
+        "environment": BASE_URL,
+        "credentials_failed": True,
+        "results": [],
+        "summary": {
+            "total": 0, "passed": 0, "failed": 0, "error": 0, "skipped": 0,
+            "credentials_failed": True, "warnings": [],
+        },
+    }
 
 async def main():
     # Obtenção de token
@@ -271,8 +311,15 @@ async def main():
     if not token and USER_EMAIL and USER_PASSWORD:
         token = await auto_get_token(BASE_URL, USER_EMAIL, USER_PASSWORD)
         if not token:
-            # Credenciais falharam
-            return build_credentials_failed_result()
+            # Credenciais falharam — persiste resultado em disco antes de retornar
+            _cf_output = build_credentials_failed_result()
+            _cf_suite = os.environ.get("SUITE_DIR", "")
+            _cf_dir = f"{_cf_suite}/api-httpx" if _cf_suite else f"tmp_httpx_{int(__import__('time').time())}"
+            os.makedirs(_cf_dir, exist_ok=True)
+            import json as _json2
+            with open(f"{_cf_dir}/resultado.json", "w", encoding="utf-8") as _f2:
+                _json2.dump(_cf_output, _f2, ensure_ascii=False, indent=2)
+            return _cf_output
 
     client = ApiClient(
         base_url=BASE_URL,
@@ -295,6 +342,27 @@ async def main():
     finally:
         await client.aclose()
 
+    # Persiste resultado em disco antes de retornar
+    import datetime as _dt
+    _suite_dir = os.environ.get("SUITE_DIR")
+    _timestamp = _dt.datetime.now().strftime("%Y%m%d_%H%M%S")
+    _output_dir = f"{_suite_dir}/api-httpx" if _suite_dir else f"tmp_httpx_{_timestamp}"
+    os.makedirs(_output_dir, exist_ok=True)
+    _summary = {
+        "total": len(results),
+        "passed": sum(1 for r in results if r.get("status") == "passed"),
+        "failed": sum(1 for r in results if r.get("status") == "failed"),
+        "skipped": sum(1 for r in results if r.get("status") == "skipped"),
+        "error": sum(1 for r in results if r.get("status") == "error"),
+        "warnings": [],
+        "credentials_failed": False,
+    }
+    _credentials_failed = any(r.get("status") == "skipped" and r.get("reason") == "env_auth_required" for r in results)
+    _output = {"executor": "executor-api-httpx", "environment": BASE_URL,
+                "credentials_failed": _credentials_failed, "results": results, "summary": _summary}
+    with open(os.path.join(_output_dir, "resultado.json"), "w", encoding="utf-8") as _f:
+        import json as _json
+        _json.dump(_output, _f, ensure_ascii=False, indent=2)
     return results
 
 if __name__ == "__main__":

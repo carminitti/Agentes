@@ -36,6 +36,7 @@ Procure no input `## Contexto de execução`. Se presente:
 ## Dependências
 
 ```python
+import subprocess, sys
 subprocess.run([sys.executable, "-m", "pip", "install", "-q", "requests", "websockets"], check=False)
 ```
 
@@ -127,7 +128,15 @@ assert "errors" not in data, f"Erro no upload: {data.get('errors')}"
 **Estrutura do script:**
 
 ```python
-import requests, json, time
+import requests, json, time, os, sys
+
+TIMEOUT    = int(os.environ.get("REQUEST_TIMEOUT_MS", "30000")) / 1000
+SSL_VERIFY = os.environ.get("SSL_VERIFY", "true").lower() != "false"
+GRAPHQL_URL = os.environ.get("BASE_URL", "").rstrip("/") + "/graphql"
+AUTH_TOKEN  = os.environ.get("AUTH_TOKEN", "")
+HEADERS     = {"Content-Type": "application/json"}
+if AUTH_TOKEN:
+    HEADERS["Authorization"] = f"Bearer {AUTH_TOKEN}"
 
 def run_graphql_tc(tc_id, query, variables=None, expected_fields=None, expect_errors=False):
     start = time.time()
@@ -172,6 +181,8 @@ def run_graphql_tc(tc_id, query, variables=None, expected_fields=None, expect_er
 ```python
 import asyncio, websockets, json
 
+TIMEOUT_MS = int(os.environ.get("REQUEST_TIMEOUT_MS", "30000"))
+
 async def run_subscription(tc_id, subscription_query, expected_event_field, timeout=None, token=None):
     if timeout is None:
         timeout = TIMEOUT_MS / 1000  # TIMEOUT_MS definido no bloco de inicialização do script
@@ -184,15 +195,15 @@ async def run_subscription(tc_id, subscription_query, expected_event_field, time
                                        extra_headers=auth_headers) as ws:
             await ws.send(json.dumps({"type": "connection_init", "payload": {}}))
             await ws.recv()  # connection_ack
-            await ws.send(json.dumps({"id": "1", "type": "start",
+            await ws.send(json.dumps({"id": "1", "type": "subscribe",
                                        "payload": {"query": subscription_query}}))
-            # Ignora frames ka/next antes do frame data/error/complete
+            # Ignora frames ka/next antes do frame next/error/complete
             while True:
                 raw = await asyncio.wait_for(ws.recv(), timeout=timeout)
                 msg = json.loads(raw)
-                if msg.get("type") in ("data", "error", "complete"):
+                if msg.get("type") in ("next", "error", "complete"):
                     break
-            if msg.get("type") == "data" and expected_event_field in msg.get("payload", {}).get("data", {}):
+            if msg.get("type") == "next" and expected_event_field in msg.get("payload", {}).get("data", {}):
                 result["status"] = "passed"
             else:
                 result["error"] = f"Evento esperado '{expected_event_field}' não recebido. Recebido: {msg}"
@@ -208,6 +219,8 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import os
 
 max_workers = min(int(os.environ.get("MAX_PARALLEL_EXECUTORS", "1")), 5)
+rate_limit = os.environ.get("RATE_LIMIT")
+results = []
 
 if max_workers > 1 and not rate_limit:
     with ThreadPoolExecutor(max_workers=max_workers) as pool:

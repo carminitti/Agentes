@@ -53,7 +53,9 @@ Procure no input a seção `## Contexto de execução`. Se presente:
 
 ```python
 import subprocess, sys
-subprocess.run([sys.executable, "-m", "pip", "install", "-q", "websockets", "requests"], check=False)
+_r = subprocess.run([sys.executable, "-m", "pip", "install", "-q", "websockets", "requests"], capture_output=True)
+if _r.returncode != 0:
+    raise SystemExit(f"[DEPENDENCY ERROR] pip install falhou:\n{_r.stderr.decode(errors='replace')}")
 ```
 
 ---
@@ -99,6 +101,11 @@ async def run_broadcast_test(sender_uri, receiver_uris, payload, headers):
             msg.get("type") == payload.get("type") for msg in msgs
         ), f"Receiver {i} não recebeu a mensagem broadcast"
 
+# Preenchido pelo contexto do orquestrador:
+SENDER_URI    = os.environ.get("BROADCAST_SENDER_URI", BASE_URL)
+RECEIVER_URIS = os.environ.get("BROADCAST_RECEIVER_URIS", "").split(",") if os.environ.get("BROADCAST_RECEIVER_URIS") else [BASE_URL]
+PAYLOAD       = {}  # preenchido pelo LLM com base nos steps do TC
+AUTH_HEADERS  = {"Authorization": f"Bearer {TOKEN}"} if TOKEN else {}
 asyncio.run(run_broadcast_test(SENDER_URI, RECEIVER_URIS, PAYLOAD, AUTH_HEADERS))
 ```
 
@@ -138,18 +145,30 @@ Para cada TC, gere um script Python assíncrono usando `asyncio` e `websockets.c
 **Estrutura padrão do script:**
 
 ```python
-import asyncio, ssl, json, time
+import asyncio, ssl, json, time, os
 import websockets
 
 BASE_URL = "wss://staging.app.com"
-TOKEN = "Bearer eyJ..."
+TOKEN = os.environ.get("AUTH_TOKEN", "")
 TIMEOUT = 30  # segundos
 
-async def run_tc(tc_id, path, send_payload, expected_keys=None, expected_value=None):
+async def run_tc(tc_id, title, path, send_payload, expected_keys=None, expected_value=None):
     start = time.time()
-    result = {"id": tc_id, "status": "failed", "duration_ms": 0, "error": None}
+    result = {"id": tc_id, "title": title, "status": "failed", "duration_ms": 0, "error": None}
     extra_headers = {"Authorization": TOKEN} if TOKEN else {}
-    ssl_ctx = None  # substituir por ssl.SSLContext configurado se ssl_verify=False
+    # ssl=None → websockets usa verificação padrão (TLS via sistema)
+    # ssl=False → desabilita TLS completamente (somente ws://)
+    # ssl_ctx com check_hostname=False → TLS ativo mas sem verificação de certificado
+    _ssl_verify = os.environ.get("SSL_VERIFY", "true").lower() != "false"
+    if BASE_URL.startswith("wss://") and not _ssl_verify:
+        import ssl as _ssl
+        ssl_ctx = _ssl.create_default_context()
+        ssl_ctx.check_hostname = False
+        ssl_ctx.verify_mode = _ssl.CERT_NONE
+    elif BASE_URL.startswith("ws://"):
+        ssl_ctx = False  # sem TLS para ws://
+    else:
+        ssl_ctx = None  # TLS padrão com verificação
 
     try:
         async with websockets.connect(
@@ -200,6 +219,8 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import os
 
 max_workers = min(int(os.environ.get("MAX_PARALLEL_EXECUTORS", "1")), 5)
+rate_limit = os.environ.get("RATE_LIMIT")
+results = []
 
 if max_workers > 1 and not rate_limit:
     with ThreadPoolExecutor(max_workers=max_workers) as pool:

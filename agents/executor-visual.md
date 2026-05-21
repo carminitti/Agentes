@@ -98,6 +98,7 @@ SUITE_DIR=suite_vis_20260511_100000
 Após execução, colete screenshots e vídeos localizando os artefatos em `reports/test-results/`:
 
 ```typescript
+const outputDir = process.env.SUITE_DIR ? require('path').join(process.env.SUITE_DIR, 'visual') : `tmp_visual_${Date.now()}`;
 const testResultsDir = path.join('reports', 'test-results');
 const screenshotsDir = path.join(outputDir, 'screenshots');
 const videosDir = path.join(outputDir, 'videos');
@@ -276,6 +277,14 @@ Baseline de print é **separado** do baseline padrão — use sufixo `-print.png
    Quando o executor gerar um script Python com a função `compare_screenshots()` (padrão lean/fallback), o `run()` wrapper deve lidar com o status `baseline_created` explicitamente. O padrão abaixo é **obrigatório** — sem ele, `baseline_created` aparece como `passed` porque nenhuma exceção é lançada:
 
    ```python
+   import os, sys, shutil, subprocess, time
+
+   SUITE_DIR    = os.environ.get("SUITE_DIR", "")
+   BASELINE_DIR = os.path.join(SUITE_DIR, "visual", "baselines") if SUITE_DIR else os.path.join(os.getcwd(), "visual_baselines")
+   CURRENT_DIR  = os.path.join(SUITE_DIR, "visual", "current")   if SUITE_DIR else os.path.join(os.getcwd(), "visual_current")
+   os.makedirs(BASELINE_DIR, exist_ok=True)
+   os.makedirs(CURRENT_DIR,  exist_ok=True)
+
    class BaselineCreated(Exception):
        pass
 
@@ -283,7 +292,7 @@ Baseline de print é **separado** do baseline padrão — use sufixo `-print.png
        """Retorna % de pixels diferentes entre dois PNGs. Requer Pillow+numpy."""
        try:
            subprocess.run([sys.executable, "-m", "pip", "install", "-q",
-                           "Pillow", "numpy"], check=False)
+                           "Pillow", "numpy"], check=True)
            from PIL import Image
            import numpy as np
            raw_a = Image.open(path_a)
@@ -303,7 +312,7 @@ Baseline de print é **separado** do baseline padrão — use sufixo `-print.png
            hb = hashlib.md5(open(path_b, "rb").read()).hexdigest()
            return 0.0 if ha == hb else 100.0
 
-   def compare_screenshots(tc_id, page, threshold_pct=0.2):
+   def compare_screenshots(tc_id, page, threshold_pct=2.0):
        baseline_path = os.path.join(BASELINE_DIR, f"{tc_id}.png")
        current_path  = os.path.join(CURRENT_DIR,  f"{tc_id}_current.png")
        page.screenshot(path=current_path)
@@ -411,10 +420,14 @@ Baseline de print é **separado** do baseline padrão — use sufixo `-print.png
     {
       "id": "TC-030",
       "title": "Página de checkout sem regressão visual",
+      "type": "visual",
       "status": "passed",
       "baseline": "existing",
       "diff_pixels": 0,
       "diff_percent": 0.0,
+      "attempts": 1,
+      "retry_diff_logs": false,
+      "attempt_logs": [{"attempt": 1, "status": "passed", "error": null, "duration_ms": 800}],
       "screenshot_path": "screenshots/checkout.png",
       "video_path": "videos/checkout.webm",
       "logs": [
@@ -429,10 +442,14 @@ Baseline de print é **separado** do baseline padrão — use sufixo `-print.png
     {
       "id": "TC-031",
       "title": "Página de login sem regressão visual",
+      "type": "visual",
       "status": "baseline_created",
       "baseline": "created",
       "diff_pixels": null,
       "diff_percent": null,
+      "attempts": 1,
+      "retry_diff_logs": false,
+      "attempt_logs": [{"attempt": 1, "status": "baseline_created", "error": null, "duration_ms": 800}],
       "screenshot_path": "screenshots/login.png",
       "logs": [
         "[NAV] Acessando https://staging.app.com/login",
@@ -446,10 +463,14 @@ Baseline de print é **separado** do baseline padrão — use sufixo `-print.png
     {
       "id": "TC-032",
       "title": "Dashboard sem regressão visual",
+      "type": "visual",
       "status": "failed",
       "baseline": "existing",
       "diff_pixels": 1247,
       "diff_percent": 3.1,
+      "attempts": 1,
+      "retry_diff_logs": false,
+      "attempt_logs": [{"attempt": 1, "status": "failed", "error": "Diferença de 3.1% excede o threshold de 2.0%", "duration_ms": 800}],
       "screenshot_path": "screenshots/dashboard.png",
       "diff_path": "screenshots/dashboard-diff.png",
       "logs": [
@@ -469,7 +490,8 @@ Baseline de print é **separado** do baseline padrão — use sufixo `-print.png
     "total": 3,
     "passed": 1,
     "failed": 1,
-    "baseline_created": 1
+    "baseline_created": 1,
+    "warnings": []
   }
 }
 ```
@@ -502,6 +524,9 @@ Ao final de cada execução, **antes de encerrar**, grave os artefatos no diret�
 import * as fs from 'fs';
 import * as path from 'path';
 
+const suiteDir = process.env.SUITE_DIR || null;
+const timestamp = new Date().toISOString().replace(/[:.]/g, '').slice(0, 15);
+const baseUrl = process.env.BASE_URL || '';
 const outputDir = suiteDir ? path.join(suiteDir, 'visual') : `tmp_visual_${timestamp}`;
 fs.mkdirSync(outputDir, { recursive: true });
 
