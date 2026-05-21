@@ -326,7 +326,7 @@ def run(tc_id, title, fn):
         details = fn()
         dur = int((time.time() - start) * 1000)
         results.append({
-            "id": tc_id, "title": title, "type": tc_id.split("-")[1].lower() if "-" in tc_id else "webhook",
+            "id": tc_id, "title": title, "type": "webhook",
             "status": "passed", "duration_ms": dur,
             "webhook_details": details, "error": None,
             "attempts": 1, "retry_diff_logs": False,
@@ -336,7 +336,7 @@ def run(tc_id, title, fn):
         dur = int((time.time() - start) * 1000)
         msg = str(e) if str(e) else "AssertionError sem mensagem"
         results.append({
-            "id": tc_id, "title": title, "type": tc_id.split("-")[1].lower() if "-" in tc_id else "webhook",
+            "id": tc_id, "title": title, "type": "webhook",
             "status": "failed", "duration_ms": dur,
             "webhook_details": None, "error": msg,
             "attempts": 1, "retry_diff_logs": False,
@@ -346,7 +346,7 @@ def run(tc_id, title, fn):
         dur = int((time.time() - start) * 1000)
         msg = str(e) if str(e) else f"{type(e).__name__} (sem mensagem)"
         results.append({
-            "id": tc_id, "title": title, "type": tc_id.split("-")[1].lower() if "-" in tc_id else "webhook",
+            "id": tc_id, "title": title, "type": "webhook",
             "status": "error", "duration_ms": dur,
             "webhook_details": None, "error": msg,
             "attempts": 1, "retry_diff_logs": False,

@@ -138,9 +138,9 @@ HEADERS     = {"Content-Type": "application/json"}
 if AUTH_TOKEN:
     HEADERS["Authorization"] = f"Bearer {AUTH_TOKEN}"
 
-def run_graphql_tc(tc_id, query, variables=None, expected_fields=None, expect_errors=False):
+def run_graphql_tc(tc_id, title, query, variables=None, expected_fields=None, expect_errors=False):
     start = time.time()
-    result = {"id": tc_id, "status": "failed", "duration_ms": 0, "error": None}
+    result = {"id": tc_id, "title": title, "type": "graphql", "status": "failed", "duration_ms": 0, "error": None}
     try:
         payload = {"query": query}
         if variables:
@@ -179,7 +179,7 @@ def run_graphql_tc(tc_id, query, variables=None, expected_fields=None, expect_er
 **Para subscriptions (graphql-ws):**
 
 ```python
-import asyncio, websockets, json
+import asyncio, websockets, json, time, os
 
 TIMEOUT_MS = int(os.environ.get("REQUEST_TIMEOUT_MS", "30000"))
 

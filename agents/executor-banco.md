@@ -293,7 +293,7 @@ if not ok:
     is_auth_error = any(kw.lower() in err.lower() for kw in AUTH_ERROR_KEYWORDS)
 
     if is_auth_error:
-        import json
+        import json, sys
         results = [{"id": t["id"], "title": t["title"], "status": "skipped",
                     "error": f"Falha de autenticação no banco: {err}"} for t in tests]
         print(json.dumps({"executor": "executor-banco", "credentials_failed": True,

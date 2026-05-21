@@ -354,9 +354,10 @@ def tc_body(row):
 
 TC_ID    = "TC-DD-001"
 TC_TITLE = "Login com múltiplos usuários"
+TC_TYPE  = BASE_TYPE  # tipo do TC original (smoke, e2e, regressão, etc.) — definido acima
 
 for i, row in enumerate(DATASET):
-    run_iteration(TC_ID, TC_TITLE, row, i, tc_body)
+    run_iteration(TC_ID, TC_TITLE, TC_TYPE, row, i, tc_body)
 
 total   = len(results)
 passed  = sum(1 for r in results if r["status"] == "passed")

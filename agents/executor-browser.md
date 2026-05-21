@@ -542,8 +542,8 @@ import * as fs from 'fs';
 export default async function globalSetup(config: FullConfig): Promise<void> {
   fs.mkdirSync('reports', { recursive: true });
 
-  // Pula o fluxo de auth quando nenhum teste da suite precisa de autenticação
-  if (!process.env.AUTH_REQUIRED) return;
+  // Pula o fluxo de auth quando nenhum teste precisa de autenticação E nenhuma credencial foi fornecida
+  if (!process.env.AUTH_REQUIRED && !(process.env.USER_EMAIL && process.env.USER_PASSWORD)) return;
 
   // Auto-registro restrito a ambientes de demonstração conhecidos
   // Em ambientes reais (produção/staging) não tentamos criar contas automaticamente
@@ -889,7 +889,7 @@ Para cada conjunto de testes:
        const errorMsgs = result.attempt_logs.map((a: any) => a.logs.join('|'));
        result.retry_diff_logs = new Set(errorMsgs).size > 1;
      } else {
-       result.attempt_logs = null;
+       result.attempt_logs = [{ attempt: 1, status: result.status, error: result.error ?? null, duration_ms: result.duration ?? 0 }];
        result.retry_diff_logs = false;
      }
    }

@@ -257,7 +257,8 @@ if __name__ == "__main__":
     [RUN_CALLS]
 
     passed  = sum(1 for r in results if r["status"] == "passed")
-    failed  = sum(1 for r in results if r["status"] in ("failed", "error"))
+    failed  = sum(1 for r in results if r["status"] == "failed")
+    error   = sum(1 for r in results if r["status"] == "error")
     skipped = sum(1 for r in results if r["status"] == "skipped")
 
     output = {
@@ -269,6 +270,7 @@ if __name__ == "__main__":
             "total": len(results),
             "passed": passed,
             "failed": failed,
+            "error": error,
             "skipped": skipped,
             "warnings": [],
         },

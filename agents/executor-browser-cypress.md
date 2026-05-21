@@ -247,18 +247,21 @@ function collectTests(raw) {
       for (const test of nested.tests || []) flat.push(test);
     }
   }
+  if (flat.length === 0) {
+    console.error('[WARN] collectTests: nenhum teste encontrado em resultado_raw.json — verifique o reporter e o formato do JSON');
+  }
   return flat;
 }
 
 function parseResults(raw) {
   const results = [];
-  for (const test of collectTests(raw)) {
+  for (const [idx, test] of collectTests(raw).entries()) {
     const state = test.state || (test.pending ? 'pending' : 'unknown');
     const dur = test.duration || 0;
     const st  = state === 'passed' ? 'passed' : state === 'failed' ? 'failed' : 'skipped';
     const err = test.err?.message || null;
     results.push({
-      id: extractId(test.fullTitle),
+      id: extractId(test.fullTitle, idx),
       title: test.fullTitle,
       type: 'smoke',
       status: st,
@@ -274,9 +277,9 @@ function parseResults(raw) {
   return results;
 }
 
-function extractId(title) {
+function extractId(title, index) {
   const match = title.match(/TC-\d+/i);
-  return match ? match[0].toUpperCase() : 'TC-?';
+  return match ? match[0].toUpperCase() : `TC-CYPRESS-${String(index + 1).padStart(3, '0')}`;
 }
 ```
 
@@ -306,14 +309,19 @@ const results = parseResults(raw);
 const passed  = results.filter(r => r.status === 'passed').length;
 const failed  = results.filter(r => r.status === 'failed').length;
 const skipped = results.filter(r => r.status === 'skipped').length;
+const authKeywords = ['401', '403', 'unauthorized', 'forbidden', 'login', 'password', 'credencial', 'autenticação'];
+const failedErrors = results.filter(r => r.status === 'failed' || r.status === 'error').map(r => (r.error || '').toLowerCase());
+const credentialsFailed = failedErrors.length > 0
+  && failedErrors.length === results.filter(r => r.status !== 'passed' && r.status !== 'skipped').length
+  && failedErrors.every(e => authKeywords.some(k => e.includes(k)));
 const summary = {
   total: results.length, passed, failed, skipped,
-  credentials_failed: false, warnings: []
+  credentials_failed: credentialsFailed, warnings: []
 };
 const outputJson = {
   executor: 'browser-cypress',
   environment: process.env.BASE_URL || '',
-  credentials_failed: false,
+  credentials_failed: credentialsFailed,
   results,
   summary
 };

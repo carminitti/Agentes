@@ -154,7 +154,7 @@ TIMEOUT = 30  # segundos
 
 async def run_tc(tc_id, title, path, send_payload, expected_keys=None, expected_value=None):
     start = time.time()
-    result = {"id": tc_id, "title": title, "status": "failed", "duration_ms": 0, "error": None}
+    result = {"id": tc_id, "title": title, "type": "websocket", "status": "failed", "duration_ms": 0, "error": None}
     extra_headers = {"Authorization": TOKEN} if TOKEN else {}
     # ssl=None → websockets usa verificação padrão (TLS via sistema)
     # ssl=False → desabilita TLS completamente (somente ws://)

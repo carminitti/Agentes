@@ -460,11 +460,13 @@ summary = {
     "warnings": [],
 }
 
+# Detecta falha de credenciais: TOKEN ausente quando auth foi tentada via auto_get_token
+_credentials_failed = bool(os.environ.get("USER_EMAIL")) and not TOKEN
 output = {
     "executor":           "executor-chaos",
     "mode":               CHAOS_MODE,
     "environment":        BASE_URL,
-    "credentials_failed": False,
+    "credentials_failed": _credentials_failed,
     "results":            results,
     "summary":            summary,
 }

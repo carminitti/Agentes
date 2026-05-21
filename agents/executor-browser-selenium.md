@@ -380,10 +380,18 @@ summary = {
     "total": len(results), "passed": passed, "failed": failed,
     "error": error, "skipped": skipped, "warnings": [],
 }
+# Detecta falha de credenciais: todos os testes falharam com erro relacionado a login/auth
+_auth_keywords = ("401", "403", "unauthorized", "forbidden", "login", "password", "autenticação", "credencial")
+_failed_errors = [r.get("error", "") or "" for r in results if r.get("status") in ("failed", "error")]
+_credentials_failed = (
+    len(_failed_errors) > 0
+    and len(_failed_errors) == len([r for r in results if r.get("status") not in ("passed", "skipped")])
+    and all(any(kw in (e or "").lower() for kw in _auth_keywords) for e in _failed_errors)
+)
 output_json = {
     "executor": "executor-browser-selenium",
     "environment": os.environ.get("BASE_URL", ""),
-    "credentials_failed": False,
+    "credentials_failed": _credentials_failed,
     "results": results,
     "summary": summary,
 }
