@@ -605,6 +605,7 @@ retries_performed = []
 url_map           = None
 multi_url         = False
 profile_name      = None
+history_data      = None  # inicializado aqui para ser seguro em lean_mode (flaky detection é pulado)
 
 # Rastreador de métricas global para o relatório
 _suite_start = time.time()
@@ -1777,13 +1778,16 @@ for executor, cmds in binarios.items():
   >
   > **Deseja prosseguir sem os executores acima (eles serão marcados como `skipped`), ou cancelar para instalar os binários?**
 
-  Se o usuário optar por prosseguir → marque os TCs dos executores afetados como `skipped` com razão `binary_missing` e não os despache. Registre em `executores_skipped_info`:
+  Se o usuário optar por prosseguir → marque os TCs dos executores afetados como `skipped` com razão `binary_missing` e não os despache. Registre em `executores_skipped_info` e remova imediatamente de `executores_a_despachar`:
   ```python
   executores_skipped_info[executor] = {
       "reason": "binary_missing",
       "tcs": [tc["id"] for tc in tcs_do_executor],
       "message": f"{', '.join(binarios_ausentes[executor])} não encontrado no ambiente",
   }
+  # Remoção obrigatória — garante que o executor não seja despachado mesmo que
+  # a instrução "Execute todos" abaixo seja lida fora de contexto.
+  executores_a_despachar.discard(executor)
   ```
   Se cancelar → encerre sem despachar nenhum executor.
 
@@ -1981,7 +1985,7 @@ Com o contexto de execução completo, invoque os subagentes correspondentes.
 - **`lean_mode: false`:** invoque múltiplos executores **em paralelo** onde possível.
 - **`lean_mode: true`:** invoque os executores **sequencialmente**, um por vez — menos overhead, sem paralelismo.
 
-Execute **todos** os tipos identificados. Nunca pergunte se deve executar um subconjunto.
+Execute **todos** os tipos identificados **que não estejam em `executores_skipped_info`** (binary_missing). Nunca pergunte se deve executar um subconjunto.
 
 **Nota sobre nomes de executor (v1.43.0):** o classifier v1.43.0 retorna nomes canônicos diretamente (ex: `executor-browser`, `executor-performance`). Ele também pode retornar variantes de framework (ex: `executor-browser-selenium`). A tabela abaixo cobre ambos os formatos — legado e canônico.
 
@@ -2301,7 +2305,7 @@ _t4_start = time.time()
 
 execution_metrics = {
     "suite_id": suite_dir,
-    "agent_version": "1.47.0",
+    "agent_version": "1.50.6",
     "suite_start_iso": datetime.datetime.fromtimestamp(_suite_start).isoformat(),
     "suite_end_iso": datetime.datetime.fromtimestamp(_t4_start).isoformat(),
     "total_duration_ms": int((_t4_start - _suite_start) * 1000),
@@ -2455,7 +2459,7 @@ _t4_start = time.time()
 
 execution_metrics = {
     "suite_id": suite_dir,
-    "agent_version": "1.47.0",
+    "agent_version": "1.50.6",
     "suite_start_iso": datetime.datetime.fromtimestamp(_suite_start).isoformat(),
     "suite_end_iso": datetime.datetime.fromtimestamp(_t4_start).isoformat(),
     "total_duration_ms": int((_t4_start - _suite_start) * 1000),

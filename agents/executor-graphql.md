@@ -138,6 +138,15 @@ HEADERS     = {"Content-Type": "application/json"}
 if AUTH_TOKEN:
     HEADERS["Authorization"] = f"Bearer {AUTH_TOKEN}"
 
+_credentials_failed = False
+# Se auth.credentials fornecido e AUTH_TOKEN vazio, obtenha token via mutation de login.
+# Se a mutation falhar (status != 200 ou token ausente na resposta):
+#   _credentials_failed = True
+#   results = [{"id": tc["id"], "title": tc.get("title",""), "type": "graphql",
+#               "status": "error", "error": "Falha ao obter token — verifique credenciais e endpoint de login",
+#               "duration_ms": 0} for tc in test_cases]
+#   # finalize o output e encerre sem executar os TCs
+
 def run_graphql_tc(tc_id, title, query, variables=None, expected_fields=None, expect_errors=False):
     start = time.time()
     result = {"id": tc_id, "title": title, "type": "graphql", "status": "failed", "duration_ms": 0, "error": ""}
@@ -240,7 +249,8 @@ Garanta que `run_tc` use apenas variáveis locais (não compartilhe estado mutá
 ```json
 {
   "executor": "executor-graphql",
-  "summary": { "passed": 3, "failed": 1, "skipped": 0, "duration_ms": 1450, "warnings": [] },
+  "credentials_failed": false,
+  "summary": { "total": 4, "passed": 3, "failed": 1, "skipped": 0, "credentials_failed": false, "duration_ms": 1450, "warnings": [] },
   "results": [
     { "id": "TC-GQL-01", "title": "...", "type": "graphql", "status": "passed", "duration_ms": 280, "error": "", "attempts": 1, "retry_diff_logs": false, "attempt_logs": [{"attempt": 1, "status": "passed", "error": "", "duration_ms": 280}] }
   ]
@@ -249,5 +259,7 @@ Garanta que `run_tc` use apenas variáveis locais (não compartilhe estado mutá
 
 **Regras de output:**
 - `type` sempre incluso em cada TC result — use o tipo do TC recebido.
+- `total` sempre incluso no summary — `len(results)`.
+- `credentials_failed` sempre incluso na raiz e no summary — `false` por padrão; `true` quando a mutation de login falha ou o token não é retornado.
 - `warnings: []` sempre incluso no summary — lista vazia quando não houver avisos.
 - `attempts`, `retry_diff_logs` e `attempt_logs` sempre inclusos por TC.

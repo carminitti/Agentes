@@ -367,7 +367,6 @@ def run_load_test(url, users, duration_s, headers=None, method='GET', payload=No
         "[THRESHOLD] error rate < 1% ✓ (atual: 0.0%)"
       ],
       "error": "",
-      "type": "performance",
       "attempts": 1,
       "retry_diff_logs": false,
       "attempt_logs": [{"attempt": 1, "status": "passed", "error": "", "duration_ms": 30000}]
@@ -378,6 +377,7 @@ def run_load_test(url, users, duration_s, headers=None, method='GET', payload=No
     "passed": 1,
     "failed": 0,
     "skipped": 0,
+    "credentials_failed": false,
     "mode": "gatling",
     "warnings": []
   }

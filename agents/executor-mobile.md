@@ -88,7 +88,7 @@ Se o Appium server não estiver acessível, retorne imediatamente sem tentar exe
   "device": "[device_name]",
   "error": "Appium server não acessível em http://localhost:4723. Inicie o servidor com 'appium' antes de executar os testes.",
   "results": [],
-  "summary": { "total": 0, "passed": 0, "failed": 0, "skipped": 0 }
+  "summary": { "total": 0, "passed": 0, "failed": 0, "skipped": 0, "credentials_failed": false, "warnings": [] }
 }
 ```
 
@@ -273,6 +273,7 @@ if __name__ == "__main__":
             "failed": failed,
             "error": error,
             "skipped": skipped,
+            "credentials_failed": False,
             "warnings": [],
         },
     }
@@ -576,6 +577,7 @@ Se o contexto contiver `"lean_mode": true`:
     "passed": 1,
     "failed": 1,
     "skipped": 0,
+    "credentials_failed": false,
     "warnings": []
   }
 }
@@ -583,5 +585,6 @@ Se o contexto contiver `"lean_mode": true`:
 
 **Regras de output:**
 - `type` sempre incluso em cada TC result — use o tipo do TC recebido.
+- `credentials_failed` sempre incluso no summary — `false` por padrão.
 - `warnings: []` sempre incluso no summary — lista vazia quando não houver avisos.
 - `attempts`, `retry_diff_logs` e `attempt_logs` sempre inclusos por TC.

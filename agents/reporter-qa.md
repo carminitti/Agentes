@@ -206,9 +206,9 @@ O reporter sempre produz **HTML dual-mode completo** (modo relatório + modo té
 ```python
 # Calcule deploy_blocked como:
 deploy_blocked = (
-    any(tc.get("status") == "failed" and tc.get("type") in ("smoke", "sanity") for tc in all_results)
+    any(tc.get("status") in ("failed", "error") and tc.get("type") in ("smoke", "sanity") for tc in all_results)
     or any(
-        tc.get("status") == "failed"
+        tc.get("status") in ("failed", "error")
         and any(kw in (tc.get("title") or "").lower() for kw in ("segurança", "security", "auth", "autenticação"))
         for tc in all_results
     )

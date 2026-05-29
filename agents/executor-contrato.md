@@ -220,7 +220,8 @@ tc_result = {
 ```json
 {
   "executor": "executor-contrato",
-  "summary": { "total": 2, "passed": 2, "failed": 0, "skipped": 0, "duration_ms": 1200, "warnings": [] },
+  "credentials_failed": false,
+  "summary": { "total": 2, "passed": 2, "failed": 0, "skipped": 0, "credentials_failed": false, "duration_ms": 1200, "warnings": [] },
   "results": [
     {
       "id": "TC-PACT-01",
@@ -240,6 +241,7 @@ tc_result = {
 
 **Regras de output:**
 - `type` sempre incluso em cada TC result — use o tipo do TC recebido.
+- `credentials_failed` sempre incluso na raiz e no summary — `false` por padrão; `true` quando `auto_get_token` falha ou o Pact Broker rejeita a autenticação (HTTP 401).
 - `warnings: []` sempre incluso no summary — lista vazia quando não houver avisos.
 - `attempts`, `retry_diff_logs` e `attempt_logs` sempre inclusos por TC.
 

@@ -69,6 +69,7 @@ for _ in range(6):
     if _os.path.isdir(_os.path.join(_p, 'lib', 'snippets')):
         _sys.path.insert(0, _os.path.join(_p, 'lib', 'snippets'))
         break
+from qa_auth import auto_get_token, detect_credentials_failed
 from qa_retry import run_with_retry
 from qa_result import make_tc_result, make_summary, apply_retry
 
@@ -192,7 +193,8 @@ test_cases = [
 ]
 
 results = [run_tc(tc) for tc in test_cases]
-summary = make_summary("executor-api-soap", results)
+_credentials_failed = detect_credentials_failed(results)
+summary = make_summary("executor-api-soap", results, credentials_failed=_credentials_failed)
 output = {"summary": summary, "results": results}
 out_file = os.path.join(SOAP_DIR, "resultado.json")
 with open(out_file, "w", encoding="utf-8") as f:
@@ -230,7 +232,7 @@ O executor emite JSON no stdout e salva em `[suite_dir]/soap/resultado.json`:
   "summary": {
     "executor": "executor-api-soap",
     "total": 2, "passed": 1, "failed": 1, "skipped": 0, "error": 0,
-    "warnings": [], "deploy_blocked": false
+    "credentials_failed": false, "warnings": [], "deploy_blocked": false
   },
   "results": [
     {

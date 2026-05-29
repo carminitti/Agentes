@@ -129,6 +129,7 @@ for _ in range(6):
     if _os2.path.isdir(_os2.path.join(_p, 'lib', 'snippets')):
         _sys2.path.insert(0, _os2.path.join(_p, 'lib', 'snippets'))
         break
+from qa_auth import detect_credentials_failed
 from qa_result import make_tc_result, make_summary
 
 results = []
@@ -192,7 +193,8 @@ else:
         "duration_ms": elapsed_ms, "evidence": {},
     })
 
-summary = make_summary("executor-newman", results)
+_credentials_failed = detect_credentials_failed(results)
+summary = make_summary("executor-newman", results, credentials_failed=_credentials_failed)
 output  = {"summary": summary, "results": results}
 out_file = os.path.join(NEWMAN_DIR, "resultado.json")
 with open(out_file, "w", encoding="utf-8") as f:
@@ -234,7 +236,7 @@ if not NEWMAN_AVAILABLE:
   "summary": {
     "executor": "executor-newman",
     "total": 5, "passed": 4, "failed": 1, "skipped": 0, "error": 0,
-    "warnings": [], "deploy_blocked": true
+    "credentials_failed": false, "warnings": [], "deploy_blocked": true
   },
   "results": [
     {

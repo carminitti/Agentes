@@ -622,6 +622,7 @@ metrics = run_stress_test(url, [s for s in stress_stages if s['vus'] > 0], heade
     "total": 1,
     "passed": 1,
     "failed": 0,
+    "credentials_failed": false,
     "mode": "k6",
     "warnings": []
   }
@@ -727,7 +728,7 @@ Se o `## Contexto de execução` contiver `"lean_mode": true`, aplique todas as 
     { "id": "TC-030", "title": "Carga 50 VUs por 60s", "status": "passed", "duration_ms": 62000, "attempts": 1, "retry_diff_logs": false, "attempt_logs": [{"attempt": 1, "status": "passed", "error": "", "duration_ms": 62000}] },
     { "id": "TC-031", "title": "Stress 200 VUs", "status": "failed", "duration_ms": 30000, "error": "p95=4200ms — limite 3000ms excedido", "attempts": 1, "retry_diff_logs": false, "attempt_logs": [{"attempt": 1, "status": "failed", "error": "p95=4200ms — limite 3000ms excedido", "duration_ms": 30000}] }
   ],
-  "summary": { "total": 2, "passed": 1, "failed": 1, "skipped": 0, "warnings": [] }
+  "summary": { "total": 2, "passed": 1, "failed": 1, "skipped": 0, "credentials_failed": false, "warnings": [] }
 }
 ```
 Omita completamente: `logs`, `metrics`, `thresholds_detail`, `generated_files`.

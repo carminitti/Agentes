@@ -368,12 +368,22 @@ Baseline de print é **separado** do baseline padrão — use sufixo `-print.png
 
    O summary do resultado deve contar `baseline_created` separadamente de `passed`:
    ```python
+   _cred_errors = [r.get("error", "") or "" for r in results if r.get("status") in ("failed", "error")]
+   _credentials_failed = (
+       len(_cred_errors) > 0
+       and all(
+           any(kw in e.lower() for kw in ("401", "403", "unauthorized", "forbidden", "net::err_aborted"))
+           for e in _cred_errors
+       )
+   )
    summary = {
-       "total":            len(results),
-       "passed":           sum(1 for r in results if r["status"] == "passed"),
-       "failed":           sum(1 for r in results if r["status"] == "failed"),
-       "baseline_created": sum(1 for r in results if r["status"] == "baseline_created"),
-       "error":            sum(1 for r in results if r["status"] == "error"),
+       "total":              len(results),
+       "passed":             sum(1 for r in results if r["status"] == "passed"),
+       "failed":             sum(1 for r in results if r["status"] == "failed"),
+       "baseline_created":   sum(1 for r in results if r["status"] == "baseline_created"),
+       "error":              sum(1 for r in results if r["status"] == "error"),
+       "credentials_failed": _credentials_failed,
+       "warnings":           [],
    }
    ```
 
@@ -416,6 +426,7 @@ Baseline de print é **separado** do baseline padrão — use sufixo `-print.png
 {
   "executor": "playwright-visual",
   "environment": "https://staging.app.com",
+  "credentials_failed": false,
   "results": [
     {
       "id": "TC-030",
@@ -491,6 +502,8 @@ Baseline de print é **separado** do baseline padrão — use sufixo `-print.png
     "passed": 1,
     "failed": 1,
     "baseline_created": 1,
+    "error": 0,
+    "credentials_failed": false,
     "warnings": []
   }
 }
@@ -617,13 +630,14 @@ test('TC-040 — Homepage — regressão visual', async ({ page }) => {
     { "id": "TC-040", "title": "Homepage — regressão visual", "status": "passed", "duration_ms": 890, "attempts": 1, "retry_diff_logs": false, "attempt_logs": [{"attempt": 1, "status": "passed", "error": "", "duration_ms": 890}] },
     { "id": "TC-041", "title": "Checkout — regressão visual", "status": "failed", "duration_ms": 1100, "error": "Diferença visual detectada: 3.2% dos pixels alterados", "attempts": 1, "retry_diff_logs": false, "attempt_logs": [{"attempt": 1, "status": "failed", "error": "Diferença visual detectada: 3.2% dos pixels alterados", "duration_ms": 1100}] }
   ],
-  "summary": { "total": 2, "passed": 1, "failed": 1, "skipped": 0, "baseline_created": 0, "warnings": [] }
+  "summary": { "total": 2, "passed": 1, "failed": 1, "skipped": 0, "baseline_created": 0, "credentials_failed": false, "warnings": [] }
 }
 ```
 Omita completamente: `logs`, `screenshot_path`, `diff_path`, `generated_files`.
 O campo `error` só é obrigatório quando `status` for `"failed"` ou `"error"` — omita-o nos demais casos.
 
 **Regras de output:**
+- `credentials_failed` sempre incluso na raiz e no summary — `false` quando não houver falha de autenticação.
 - `warnings: []` sempre incluso no summary — lista vazia quando não houver avisos.
 - `attempts`, `retry_diff_logs` e `attempt_logs` sempre inclusos por TC.
 
