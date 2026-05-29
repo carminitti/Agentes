@@ -457,11 +457,11 @@ O campo `generated_files` no JSON é **sempre preenchido** com todos os arquivos
         "[ASSERT] URL contém '/dashboard' ✓",
         "[SCREENSHOT] screenshots/TC-001_assert_100001.png"
       ],
-      "error": null,
+      "error": "",
       "type": "smoke",
       "attempts": 1,
       "retry_diff_logs": false,
-      "attempt_logs": [{"attempt": 1, "status": "passed", "error": null, "duration_ms": 2140}]
+      "attempt_logs": [{"attempt": 1, "status": "passed", "error": "", "duration_ms": 2140}]
     }
   ],
   "summary": {

@@ -309,9 +309,9 @@ def run(tc_id, title, fn):
         fn()
         results.append({
             "id": tc_id, "title": title, "status": "passed",
-            "duration_ms": int((time.time() - start) * 1000), "error": None,
+            "duration_ms": int((time.time() - start) * 1000), "error": "",
             "type": "i18n", "attempts": 1, "retry_diff_logs": False,
-            "attempt_logs": [{"attempt": 1, "status": "passed", "error": None, "duration_ms": int((time.time() - start) * 1000)}]
+            "attempt_logs": [{"attempt": 1, "status": "passed", "error": "", "duration_ms": int((time.time() - start) * 1000)}]
         })
     except AssertionError as e:
         results.append({
@@ -524,7 +524,7 @@ Em execuções sem falhas, omita completamente esta seção.
       "hardcoded_strings_found": [],
       "translation_coverage": 1.0,
       "untranslated_keys": [],
-      "error": null
+      "error": ""
     }
   ],
   "summary": {

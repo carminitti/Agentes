@@ -450,11 +450,11 @@ def run_load_test(url, threads, duration_s, headers=None, method='GET', payload=
         "[THRESHOLD] p(95) < 200ms ✓ (atual: 185ms)",
         "[THRESHOLD] error rate < 1% ✓ (atual: 0.1%)"
       ],
-      "error": null,
+      "error": "",
       "type": "performance",
       "attempts": 1,
       "retry_diff_logs": false,
-      "attempt_logs": [{"attempt": 1, "status": "passed", "error": null, "duration_ms": 30000}]
+      "attempt_logs": [{"attempt": 1, "status": "passed", "error": "", "duration_ms": 30000}]
     }
   ],
   "summary": {
@@ -550,7 +550,7 @@ Se o `## Contexto de execução` contiver `"lean_mode": true`:
       "duration_ms": 31000,
       "attempts": 1,
       "retry_diff_logs": false,
-      "attempt_logs": [{"attempt": 1, "status": "passed", "error": null, "duration_ms": 31000}]
+      "attempt_logs": [{"attempt": 1, "status": "passed", "error": "", "duration_ms": 31000}]
     }
   ],
   "summary": { "total": 1, "passed": 1, "failed": 0, "skipped": 0, "warnings": [] }

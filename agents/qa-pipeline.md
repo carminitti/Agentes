@@ -24,7 +24,12 @@ Aguarde a resposta antes de continuar. Se o usuário recusar todos os formatos o
 
 Invoque o subagente `gerador-cenarios-teste` passando os critérios de aceite gerados na Etapa 1 e o formato escolhido na Etapa 2. Apresente integralmente o resultado.
 
-Após cada entrega, ofereça os formatos ainda não entregues. Continue até que todos os três tenham sido entregues ou o usuário recuse os restantes.
+Após a **primeira** entrega, invoque automaticamente o subagente `coverage-gap-detector` passando os critérios de aceite da Etapa 1 e os cenários recém-gerados. Apresente o resultado como:
+
+> **📊 Análise de cobertura automática**
+> [resultado do coverage-gap-detector]
+
+Após apresentar a análise de cobertura, ofereça os formatos ainda não entregues. Continue até que todos os três tenham sido entregues ou o usuário recuse os restantes. Não invoque o `coverage-gap-detector` nas entregas seguintes — ele já foi executado na primeira.
 
 **Com dois formatos restantes**, pergunte:
 "Deseja receber os cenários também em outro formato?

@@ -889,7 +889,7 @@ Para cada conjunto de testes:
        const errorMsgs = result.attempt_logs.map((a: any) => a.logs.join('|'));
        result.retry_diff_logs = new Set(errorMsgs).size > 1;
      } else {
-       result.attempt_logs = [{ attempt: 1, status: result.status, error: result.error ?? null, duration_ms: result.duration ?? 0 }];
+       result.attempt_logs = [{ attempt: 1, status: result.status, error: result.error ?? "", duration_ms: result.duration ?? 0 }];
        result.retry_diff_logs = false;
      }
    }
@@ -1134,7 +1134,7 @@ pronto antes do conteúdo dinâmico ser renderizado.
         { "attempt": 1, "status": "failed", "logs": ["[ERROR] Elemento não encontrado após 5000ms"], "duration_ms": 4200 },
         { "attempt": 2, "status": "passed", "logs": [], "duration_ms": 1100 }
       ],
-      "error": null
+      "error": ""
     },
     {
       "id": "TC-002",

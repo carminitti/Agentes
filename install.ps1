@@ -53,4 +53,38 @@ Get-ChildItem -Path $source -Filter "*.md" -Recurse |
 
 Write-Host ""
 Write-Host "$installed novo(s), $updated atualizado(s) em $destination"
+
+# Instala agents user-facing como slash commands em ~/.claude/skills/<nome>/SKILL.md
+# Esses são os agents invocados diretamente pelo usuário via /comando
+$userFacingAgents = @("orquestrador-qa", "qa-pipeline", "revisor", "consulta-treinamento")
+$skillsBase = "$env:USERPROFILE\.claude\skills"
+$skillsInstalled = 0
+$skillsUpdated = 0
+
+foreach ($agentName in $userFacingAgents) {
+    $agentFile = Get-ChildItem -Path $source -Filter "$agentName.md" -Recurse |
+        Where-Object { $_.DirectoryName -notmatch '\\suites($|\\)' } |
+        Select-Object -First 1
+    if ($null -eq $agentFile) { continue }
+
+    $skillDir = Join-Path $skillsBase $agentName
+    if (-not (Test-Path $skillDir)) {
+        New-Item -ItemType Directory -Path $skillDir -Force | Out-Null
+    }
+    $skillFile = Join-Path $skillDir "SKILL.md"
+    $isNew = -not (Test-Path $skillFile)
+    Copy-Item $agentFile.FullName -Destination $skillFile -Force
+    if ($isNew) {
+        Write-Host "Skill criado:     /$agentName"
+        $skillsInstalled++
+    } else {
+        Write-Host "Skill atualizado: /$agentName"
+        $skillsUpdated++
+    }
+}
+
+if (($skillsInstalled + $skillsUpdated) -gt 0) {
+    Write-Host ""
+    Write-Host "$skillsInstalled criado(s), $skillsUpdated atualizado(s) em $skillsBase"
+}
 Write-Host "Reinicie o Claude Code para que os agentes fiquem disponíveis."

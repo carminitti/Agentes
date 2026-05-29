@@ -43,24 +43,17 @@ Mapeamento dos campos:
 - `auth.token` → use como `Authorization: Bearer <token>` em todas as chamadas à aplicação.
 - `auth.credentials` → gere o token via HTTP POST antes de executar os TCs usando `auto_get_token()`:
   ```python
-  import requests as _req
-
-  def auto_get_token(base_url, email, password):
-      for ep in ["/auth/login", "/api/auth/login", "/api/login", "/login", "/oauth/token"]:
-          try:
-              r = _req.post(base_url.rstrip("/") + ep,
-                            json={"email": email, "password": password}, timeout=5)
-              if r.ok:
-                  body = r.json()
-                  tok = (body.get("access_token") or body.get("token")
-                         or body.get("accessToken") or body.get("AccessToken"))
-                  if tok:
-                      return tok
-          except Exception:
-              pass
-      return None
+  # — carrega snippets do Squad QA —
+  import sys as _sys, os as _os
+  _p = _os.path.abspath(__file__)
+  for _ in range(6):
+      _p = _os.path.dirname(_p)
+      if _os.path.isdir(_os.path.join(_p, 'lib', 'snippets')):
+          _sys.path.insert(0, _os.path.join(_p, 'lib', 'snippets'))
+          break
+  from qa_auth import auto_get_token, detect_credentials_failed
   ```
-  Chame antes do loop de testes: `TOKEN = auto_get_token(BASE_URL, email, password)`.
+  Chame antes do loop de testes: `TOKEN = auto_get_token(base_url, email=email, password=password)`.
   Se `TOKEN` for `None`, não prossiga: retorne imediatamente todos os TCs com `{"status": "error", "credentials_failed": True, "error": "Falha ao obter token — verifique credenciais e endpoint de login"}`.
 - `auth.api_key` → injete conforme `auth.api_key.in`: se `"header"`, adicione ao header; se `"query"`, anexe à URL.
 - `auth_map` → mapa de autenticação por domínio; para cada chamada à aplicação, extraia o host e use a entrada correspondente em vez do `auth` global.
@@ -304,17 +297,21 @@ CHAOS_MODE       = os.environ.get("CHAOS_MODE", "http_simulation")
 if ENVIRONMENT_TYPE in ("production", "demo"):
     import json as _json
     _skip = lambda tc_id, title: {
-        "id": tc_id, "title": title, "status": "skipped",
+        "id": tc_id, "title": title, "type": "chaos", "status": "skipped",
         "reason": "chaos_not_allowed_in_production",
-        "duration_ms": 0, "error": None, "chaos_details": None,
+        "duration_ms": 0, "error": "", "chaos_details": None,
+        "attempts": 1, "retry_diff_logs": False,
+        "attempt_logs": [{"attempt": 1, "status": "skipped", "error": "", "duration_ms": 0}],
     }
     _results = [_skip("TC-CHAOS-001", "Bloqueado — ambiente de produção")]
     _output = {
         "executor": "executor-chaos",
         "mode": CHAOS_MODE,
         "environment": BASE_URL,
+        "credentials_failed": False,
         "results": _results,
-        "summary": {"total": 1, "passed": 0, "failed": 0, "error": 0, "skipped": 1},
+        "summary": {"total": 1, "passed": 0, "failed": 0, "error": 0, "skipped": 1,
+                    "credentials_failed": False, "warnings": []},
     }
     print(_json.dumps(_output, ensure_ascii=False))
     if SUITE_DIR:
@@ -399,9 +396,9 @@ def run(tc_id, title, fn):
         dur = int((time.time() - start) * 1000)
         results.append({
             "id": tc_id, "title": title, "type": "chaos", "status": "passed",
-            "duration_ms": dur, "chaos_details": details, "error": None,
+            "duration_ms": dur, "chaos_details": details, "error": "",
             "attempts": 1, "retry_diff_logs": False,
-            "attempt_logs": [{"attempt": 1, "status": "passed", "error": None, "duration_ms": dur}],
+            "attempt_logs": [{"attempt": 1, "status": "passed", "error": "", "duration_ms": dur}],
         })
     except AssertionError as e:
         dur = int((time.time() - start) * 1000)
@@ -451,17 +448,17 @@ def tc_001():
 run("TC-CHAOS-001", "App responde graciosamente quando serviço dependente retorna 503", tc_001)
 
 # ── Persistência do resultado ─────────────────────────────────────────────────
+# Detecta falha de credenciais: TOKEN ausente quando auth foi tentada via auto_get_token
+_credentials_failed = bool(os.environ.get("USER_EMAIL")) and not TOKEN
 summary = {
     "total":   len(results),
     "passed":  sum(1 for r in results if r["status"] == "passed"),
     "failed":  sum(1 for r in results if r["status"] == "failed"),
     "error":   sum(1 for r in results if r["status"] == "error"),
     "skipped": sum(1 for r in results if r["status"] == "skipped"),
+    "credentials_failed": _credentials_failed,
     "warnings": [],
 }
-
-# Detecta falha de credenciais: TOKEN ausente quando auth foi tentada via auto_get_token
-_credentials_failed = bool(os.environ.get("USER_EMAIL")) and not TOKEN
 output = {
     "executor":           "executor-chaos",
     "mode":               CHAOS_MODE,
@@ -598,10 +595,10 @@ Retorne JSON no formato:
         "app_has_error_message": true,
         "recovery_time_ms": null
       },
-      "error": null,
+      "error": "",
       "attempts": 1,
       "retry_diff_logs": false,
-      "attempt_logs": [{"attempt": 1, "status": "passed", "error": null, "duration_ms": 1200}]
+      "attempt_logs": [{"attempt": 1, "status": "passed", "error": "", "duration_ms": 1200}]
     }
   ],
   "summary": {

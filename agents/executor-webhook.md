@@ -37,24 +37,17 @@ Mapeamento dos campos:
 - `auth.token` → use como `Authorization: Bearer <token>` nas chamadas à aplicação que disparam o webhook.
 - `auth.credentials` → gere o token via HTTP POST antes de disparar os TCs usando `auto_get_token()`:
   ```python
-  import requests as _req
-
-  def auto_get_token(base_url, email, password):
-      for ep in ["/auth/login", "/api/auth/login", "/api/login", "/login", "/oauth/token"]:
-          try:
-              r = _req.post(base_url.rstrip("/") + ep,
-                            json={"email": email, "password": password}, timeout=5)
-              if r.ok:
-                  body = r.json()
-                  tok = (body.get("access_token") or body.get("token")
-                         or body.get("accessToken") or body.get("AccessToken"))
-                  if tok:
-                      return tok
-          except Exception:
-              pass
-      return None
+  # — carrega snippets do Squad QA —
+  import sys as _sys, os as _os
+  _p = _os.path.abspath(__file__)
+  for _ in range(6):
+      _p = _os.path.dirname(_p)
+      if _os.path.isdir(_os.path.join(_p, 'lib', 'snippets')):
+          _sys.path.insert(0, _os.path.join(_p, 'lib', 'snippets'))
+          break
+  from qa_auth import auto_get_token, detect_credentials_failed
   ```
-  Chame antes do loop de testes: `TOKEN = auto_get_token(BASE_URL, email, password)`.
+  Chame antes do loop de testes: `TOKEN = auto_get_token(base_url, email=email, password=password)`.
   Se `TOKEN` for `None`, não prossiga: retorne imediatamente todos os TCs com `{"status": "error", "credentials_failed": True, "error": "Falha ao obter token — verifique credenciais e endpoint de login"}`.
 - `auth.api_key` → injete conforme `auth.api_key.in`: se `"header"`, adicione ao header; se `"query"`, anexe à URL da chamada que dispara o webhook.
 - `auth_map` → mapa de autenticação por domínio; para cada chamada à aplicação, extraia o host e use a entrada correspondente em vez do `auth` global.
@@ -328,9 +321,9 @@ def run(tc_id, title, fn):
         results.append({
             "id": tc_id, "title": title, "type": "webhook",
             "status": "passed", "duration_ms": dur,
-            "webhook_details": details, "error": None,
+            "webhook_details": details, "error": "",
             "attempts": 1, "retry_diff_logs": False,
-            "attempt_logs": [{"attempt": 1, "status": "passed", "error": None, "duration_ms": dur}],
+            "attempt_logs": [{"attempt": 1, "status": "passed", "error": "", "duration_ms": dur}],
         })
     except AssertionError as e:
         dur = int((time.time() - start) * 1000)
@@ -522,10 +515,10 @@ Retorne JSON no formato:
         "hmac_detail": "OK",
         "payload_received": {"event": "payment.confirmed", "order_id": "PED-001", "amount": 99.90}
       },
-      "error": null,
+      "error": "",
       "attempts": 1,
       "retry_diff_logs": false,
-      "attempt_logs": [{"attempt": 1, "status": "passed", "error": null, "duration_ms": 3400}]
+      "attempt_logs": [{"attempt": 1, "status": "passed", "error": "", "duration_ms": 3400}]
     }
   ],
   "summary": {

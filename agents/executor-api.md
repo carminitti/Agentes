@@ -73,6 +73,8 @@ Se o usuário confirmar que não há autenticação, prossiga sem auth.
 
 ## Estrutura do projeto gerado
 
+> **⚠️ Guard de modo:** se o `## Contexto de execução` contiver `"lean_mode": true`, **pule toda esta seção** (Estrutura do projeto, API Client, schemas, globalSetup, etc.) e vá diretamente para **[Modo Enxuto](#modo-enxuto-lean_mode-true)**. Não crie nenhum diretório POM (`src/`, `reports/`, `support/`), não gere TypeScript, não execute `npm install`.
+
 Gere sempre esta estrutura dentro de `tmp_api_[timestamp]/`:
 
 ```
@@ -275,7 +277,10 @@ import { request, FullConfig } from '@playwright/test';
 import * as fs from 'fs';
 
 export default async function globalSetup(_config: FullConfig): Promise<void> {
-  fs.mkdirSync('reports', { recursive: true });
+  // Cria apenas quando o diretório de relatórios for realmente necessário (full mode)
+  if (!process.env.LEAN_MODE || process.env.LEAN_MODE === 'false') {
+    fs.mkdirSync('reports', { recursive: true });
+  }
 
   if (process.env.USER_EMAIL && process.env.USER_PASSWORD && !process.env.AUTH_TOKEN) {
     const apiCtx = await request.newContext({ baseURL: process.env.BASE_URL });
@@ -627,7 +632,7 @@ O campo `generated_files` no JSON segue a mesma regra: preencha somente quando h
         "[ASSERT] content-type contém application/json ✓",
         "[CONTRACT] Schema Zod válido ✓"
       ],
-      "error": null
+      "error": ""
     }
   ],
   "summary": {
@@ -708,11 +713,11 @@ results.append({
                "teste apenas o endpoint de inicialização do stream (status 200).",
     "logs": [f"[SKIP] {title} — streaming requer cliente assíncrono dedicado"],
     "duration_ms": 0,
-    "error": None,
+    "error": "",
     "type": tc.get("type", ""),
     "attempts": 1,
     "retry_diff_logs": False,
-    "attempt_logs": [{"attempt": 1, "status": "skipped", "error": None, "duration_ms": 0}]
+    "attempt_logs": [{"attempt": 1, "status": "skipped", "error": "", "duration_ms": 0}]
 })
 ```
 

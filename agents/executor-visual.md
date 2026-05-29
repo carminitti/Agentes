@@ -427,7 +427,7 @@ Baseline de print é **separado** do baseline padrão — use sufixo `-print.png
       "diff_percent": 0.0,
       "attempts": 1,
       "retry_diff_logs": false,
-      "attempt_logs": [{"attempt": 1, "status": "passed", "error": null, "duration_ms": 800}],
+      "attempt_logs": [{"attempt": 1, "status": "passed", "error": "", "duration_ms": 800}],
       "screenshot_path": "screenshots/checkout.png",
       "video_path": "videos/checkout.webm",
       "logs": [
@@ -437,7 +437,7 @@ Baseline de print é **separado** do baseline padrão — use sufixo `-print.png
         "[RESULT] Diferença: 0.0% (threshold: 2%) ✓"
       ],
       "console_logs": [],
-      "error": null
+      "error": ""
     },
     {
       "id": "TC-031",
@@ -449,7 +449,7 @@ Baseline de print é **separado** do baseline padrão — use sufixo `-print.png
       "diff_percent": null,
       "attempts": 1,
       "retry_diff_logs": false,
-      "attempt_logs": [{"attempt": 1, "status": "baseline_created", "error": null, "duration_ms": 800}],
+      "attempt_logs": [{"attempt": 1, "status": "baseline_created", "error": "", "duration_ms": 800}],
       "screenshot_path": "screenshots/login.png",
       "logs": [
         "[NAV] Acessando https://staging.app.com/login",
@@ -458,7 +458,7 @@ Baseline de print é **separado** do baseline padrão — use sufixo `-print.png
         "[BASELINE] ATENÇÃO: valide visualmente o screenshot gerado antes de usar como referência — estado inicial pode conter defeitos visuais"
       ],
       "console_logs": [],
-      "error": null
+      "error": ""
     },
     {
       "id": "TC-032",
@@ -614,7 +614,7 @@ test('TC-040 — Homepage — regressão visual', async ({ page }) => {
 ```json
 {
   "results": [
-    { "id": "TC-040", "title": "Homepage — regressão visual", "status": "passed", "duration_ms": 890, "attempts": 1, "retry_diff_logs": false, "attempt_logs": [{"attempt": 1, "status": "passed", "error": null, "duration_ms": 890}] },
+    { "id": "TC-040", "title": "Homepage — regressão visual", "status": "passed", "duration_ms": 890, "attempts": 1, "retry_diff_logs": false, "attempt_logs": [{"attempt": 1, "status": "passed", "error": "", "duration_ms": 890}] },
     { "id": "TC-041", "title": "Checkout — regressão visual", "status": "failed", "duration_ms": 1100, "error": "Diferença visual detectada: 3.2% dos pixels alterados", "attempts": 1, "retry_diff_logs": false, "attempt_logs": [{"attempt": 1, "status": "failed", "error": "Diferença visual detectada: 3.2% dos pixels alterados", "duration_ms": 1100}] }
   ],
   "summary": { "total": 2, "passed": 1, "failed": 1, "skipped": 0, "baseline_created": 0, "warnings": [] }

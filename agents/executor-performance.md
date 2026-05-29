@@ -60,27 +60,18 @@ Analise todos os testes recebidos. Verifique se algum test case acessa endpoints
 **2. Credenciais (usuário/senha ou email/senha) presentes nos steps, mas sem token** → gere o token via Python antes de montar o script k6:
 
 ```python
-import requests
-
-def auto_get_token(base_url, credentials):
-    auth_endpoints = [
-        '/auth/login', '/api/auth/login', '/api/login', '/login',
-        '/oauth/token', '/token', '/api/token', '/signin', '/api/signin'
-    ]
-    for endpoint in auth_endpoints:
-        try:
-            resp = requests.post(f"{base_url}{endpoint}", json=credentials, timeout=5)
-            if resp.status_code in [200, 201]:
-                data = resp.json()
-                token = (data.get('access_token') or data.get('token') or
-                         data.get('accessToken') or data.get('AccessToken') or
-                         data.get('jwt') or data.get('authToken') or data.get('id_token'))
-                if token:
-                    return token
-        except Exception:
-            continue
-    return None
+# — carrega snippets do Squad QA —
+import sys as _sys, os as _os
+_p = _os.path.abspath(__file__)
+for _ in range(6):
+    _p = _os.path.dirname(_p)
+    if _os.path.isdir(_os.path.join(_p, 'lib', 'snippets')):
+        _sys.path.insert(0, _os.path.join(_p, 'lib', 'snippets'))
+        break
+from qa_auth import auto_get_token, detect_credentials_failed
 ```
+
+Chame como: `token = auto_get_token(base_url, credentials=credentials)` — **nunca posicional**.
 
 Com o token gerado, injete-o como constante no script k6:
 ```javascript
@@ -439,10 +430,53 @@ for tc in tcs:
     k6_failed_checks = [l.strip() for l in k6_lines if l.strip().startswith('✗')]
     k6_summary_lines = [l.rstrip() for l in k6_lines[-15:] if l.strip()]
 
-    # 4. Leia o resultado individual e mapeie ao TC
+    # 4. Leia o resultado individual, determine status via thresholds e monte o resultado
     with open(output_file, 'r', encoding='utf-8') as f:
         tc_summary = json.load(f)
-    # ... determine status via thresholds do tc_summary e monte o resultado ...
+
+    # tc_summary["thresholds"] = {"http_req_duration": {"p(95)<200": false}, ...}
+    # threshold failed = qualquer valor False no dict de cada métrica
+    thresholds_data = tc_summary.get("thresholds", {})
+    threshold_failures = []
+    for metric_name, threshold_dict in thresholds_data.items():
+        if isinstance(threshold_dict, dict):
+            for expr, passed in threshold_dict.items():
+                if not passed:
+                    threshold_failures.append(f"{metric_name}: {expr}")
+
+    status = "failed" if (threshold_failures or proc.returncode != 0) else "passed"
+    error_msg = ("; ".join(threshold_failures) if threshold_failures
+                 else ("" if proc.returncode == 0 else f"k6 exit code {proc.returncode}"))
+
+    # Extrai métricas do summary-export
+    metrics_data = tc_summary.get("metrics", {})
+    dur_vals = metrics_data.get("http_req_duration", {}).get("values", {})
+    fail_vals = metrics_data.get("http_req_failed", {}).get("values", {})
+    state_data = tc_summary.get("state", {})
+
+    result = {
+        "id": tc_id,
+        "title": tc.get("title", tc_id),
+        "type": tc.get("type", "performance"),
+        "status": status,
+        "duration_ms": int(state_data.get("testRunDurationMs", 0)),
+        "error": error_msg,
+        "attempts": 1,
+        "retry_diff_logs": False,
+        "attempt_logs": [{"attempt": 1, "status": status, "error": error_msg, "duration_ms": 0}],
+        "metrics": {
+            "p50_ms":        round(dur_vals.get("p(50)", 0), 2),
+            "p95_ms":        round(dur_vals.get("p(95)", 0), 2),
+            "p99_ms":        round(dur_vals.get("p(99)", 0), 2),
+            "min_ms":        round(dur_vals.get("min", 0), 2),
+            "max_ms":        round(dur_vals.get("max", 0), 2),
+            "error_rate_pct": round(fail_vals.get("rate", 0) * 100, 2),
+        },
+        "thresholds_violated": threshold_failures,
+        "logs": ([f"[K6-OUT] {l}" for l in k6_failed_checks] +
+                 [f"[K6-SUMMARY] {l}" for l in k6_summary_lines]),
+    }
+    results.append(result)
 ```
 
 Inclua `k6_failed_checks` como `[K6-OUT]` e `k6_summary_lines` como `[K6-SUMMARY]` nos logs do resultado (veja "Log de execução").
@@ -578,10 +612,10 @@ metrics = run_stress_test(url, [s for s in stress_stages if s['vus'] > 0], heade
         "[THRESHOLD] p(95) < 200ms ✓ (atual: 178ms)",
         "[THRESHOLD] error rate < 1% ✓ (atual: 0.2%)"
       ],
-      "error": null,
+      "error": "",
       "attempts": 1,
       "retry_diff_logs": false,
-      "attempt_logs": [{"attempt": 1, "status": "passed", "error": null, "duration_ms": 30000}]
+      "attempt_logs": [{"attempt": 1, "status": "passed", "error": "", "duration_ms": 30000}]
     }
   ],
   "summary": {
@@ -690,7 +724,7 @@ Se o `## Contexto de execução` contiver `"lean_mode": true`, aplique todas as 
 ```json
 {
   "results": [
-    { "id": "TC-030", "title": "Carga 50 VUs por 60s", "status": "passed", "duration_ms": 62000, "attempts": 1, "retry_diff_logs": false, "attempt_logs": [{"attempt": 1, "status": "passed", "error": null, "duration_ms": 62000}] },
+    { "id": "TC-030", "title": "Carga 50 VUs por 60s", "status": "passed", "duration_ms": 62000, "attempts": 1, "retry_diff_logs": false, "attempt_logs": [{"attempt": 1, "status": "passed", "error": "", "duration_ms": 62000}] },
     { "id": "TC-031", "title": "Stress 200 VUs", "status": "failed", "duration_ms": 30000, "error": "p95=4200ms — limite 3000ms excedido", "attempts": 1, "retry_diff_logs": false, "attempt_logs": [{"attempt": 1, "status": "failed", "error": "p95=4200ms — limite 3000ms excedido", "duration_ms": 30000}] }
   ],
   "summary": { "total": 2, "passed": 1, "failed": 1, "skipped": 0, "warnings": [] }

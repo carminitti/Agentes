@@ -344,7 +344,7 @@ expect(announcement).toContain(EXPECTED_ANNOUNCEMENT);
       "flaky": false,
       "attempts": 1,
       "retry_diff_logs": false,
-      "attempt_logs": [{"attempt": 1, "status": "failed", "error": null, "duration_ms": 1200}],
+      "attempt_logs": [{"attempt": 1, "status": "failed", "error": "", "duration_ms": 1200}],
       "logs": [
         "[NAV] Acessando https://staging.app.com/login",
         "[SCREENSHOT] Capturado: [outputDir]/screenshots/[nome_do_teste].png",
@@ -357,7 +357,7 @@ expect(announcement).toContain(EXPECTED_ANNOUNCEMENT);
         "[CONSOLE:ERROR] TypeError: Cannot set properties of null (setting 'innerHTML')",
         "[PAGE_ERROR] Uncaught TypeError: Cannot set properties of null"
       ],
-      "error": null
+      "error": ""
     },
     {
       "id": "TC-041",
@@ -382,7 +382,7 @@ expect(announcement).toContain(EXPECTED_ANNOUNCEMENT);
       "flaky": false,
       "attempts": 1,
       "retry_diff_logs": false,
-      "attempt_logs": [{"attempt": 1, "status": "warning", "error": null, "duration_ms": 1200}],
+      "attempt_logs": [{"attempt": 1, "status": "warning", "error": "", "duration_ms": 1200}],
       "logs": [
         "[NAV] Acessando https://staging.app.com/cadastro",
         "[SCREENSHOT] Capturado: [outputDir]/screenshots/[nome_do_teste].png",
@@ -391,7 +391,7 @@ expect(announcement).toContain(EXPECTED_ANNOUNCEMENT);
         "[RESULT] 1 violação encontrada — warning"
       ],
       "console_logs": [],
-      "error": null
+      "error": ""
     },
     {
       "id": "TC-042",
@@ -405,7 +405,7 @@ expect(announcement).toContain(EXPECTED_ANNOUNCEMENT);
       "flaky": false,
       "attempts": 1,
       "retry_diff_logs": false,
-      "attempt_logs": [{"attempt": 1, "status": "passed", "error": null, "duration_ms": 1200}],
+      "attempt_logs": [{"attempt": 1, "status": "passed", "error": "", "duration_ms": 1200}],
       "logs": [
         "[NAV] Acessando https://staging.app.com",
         "[SCREENSHOT] Capturado: [outputDir]/screenshots/[nome_do_teste].png",
@@ -413,7 +413,7 @@ expect(announcement).toContain(EXPECTED_ANNOUNCEMENT);
         "[RESULT] 0 violações encontradas — passed"
       ],
       "console_logs": [],
-      "error": null
+      "error": ""
     }
   ],
   "summary": {
@@ -525,7 +525,7 @@ Se o `## Contexto de execução` contiver `"lean_mode": true`, aplique todas as 
 ```json
 {
   "results": [
-    { "id": "TC-070", "title": "Página inicial — WCAG 2.1 AA", "status": "passed", "duration_ms": 1200, "attempts": 1, "retry_diff_logs": false, "attempt_logs": [{"attempt": 1, "status": "passed", "error": null, "duration_ms": 1200}] },
+    { "id": "TC-070", "title": "Página inicial — WCAG 2.1 AA", "status": "passed", "duration_ms": 1200, "attempts": 1, "retry_diff_logs": false, "attempt_logs": [{"attempt": 1, "status": "passed", "error": "", "duration_ms": 1200}] },
     { "id": "TC-071", "title": "Formulário de login — WCAG 2.1 AA", "status": "failed", "duration_ms": 980, "error": "2 violações críticas: button-name, label", "attempts": 1, "retry_diff_logs": false, "attempt_logs": [{"attempt": 1, "status": "failed", "error": "2 violações críticas: button-name, label", "duration_ms": 980}] }
   ],
   "summary": { "total": 2, "passed": 1, "failed": 1, "warning": 0, "skipped": 0 }

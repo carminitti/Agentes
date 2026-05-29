@@ -18,23 +18,17 @@ Procure no input a seção `## Contexto de execução`. Se presente:
 - `auth.token` → injete como header `Authorization: Bearer <token>` na conexão, ou como query param `?token=<token>` se o step indicar query.
 - `auth.credentials` → gere o token via HTTP POST antes de abrir a conexão WebSocket usando `auto_get_token()`:
   ```python
-  import requests as _req
-
-  def auto_get_token(base_url, email, password):
-      for ep in ["/auth/login", "/api/auth/login", "/api/login", "/login", "/oauth/token"]:
-          try:
-              r = _req.post(base_url.rstrip("/") + ep,
-                            json={"email": email, "password": password}, timeout=5)
-              if r.ok:
-                  body = r.json()
-                  tok = body.get("access_token") or body.get("token") or body.get("accessToken")
-                  if tok:
-                      return tok
-          except Exception:
-              pass
-      return None
+  # — carrega snippets do Squad QA —
+  import sys as _sys, os as _os
+  _p = _os.path.abspath(__file__)
+  for _ in range(6):
+      _p = _os.path.dirname(_p)
+      if _os.path.isdir(_os.path.join(_p, 'lib', 'snippets')):
+          _sys.path.insert(0, _os.path.join(_p, 'lib', 'snippets'))
+          break
+  from qa_auth import auto_get_token, detect_credentials_failed
   ```
-  Chame antes do loop de testes: `TOKEN = auto_get_token(HTTP_BASE_URL, email, password)`.
+  Chame antes do loop de testes: `TOKEN = auto_get_token(http_base_url, email=email, password=password)`.
   Se `TOKEN` for `None`, não prossiga: retorne imediatamente todos os TCs com `{"status": "error", "credentials_failed": True, "error": "Falha ao obter token — verifique credenciais e endpoint de login"}`.
 - `auth.api_key` → injete conforme `auth.api_key.in`: se `"header"`, adicione ao extra_headers; se `"query"`, anexe à URL.
 - `auth_map` → mapa de autenticação por domínio (`{"host": {"token": "..."}}` ou similar); para cada URL WebSocket testada, extraia o host e use a entrada correspondente no mapa em vez do `auth` global.
@@ -154,7 +148,7 @@ TIMEOUT = 30  # segundos
 
 async def run_tc(tc_id, title, path, send_payload, expected_keys=None, expected_value=None):
     start = time.time()
-    result = {"id": tc_id, "title": title, "type": "websocket", "status": "failed", "duration_ms": 0, "error": None}
+    result = {"id": tc_id, "title": title, "type": "websocket", "status": "failed", "duration_ms": 0, "error": ""}
     extra_headers = {"Authorization": TOKEN} if TOKEN else {}
     # ssl=None → websockets usa verificação padrão (TLS via sistema)
     # ssl=False → desabilita TLS completamente (somente ws://)
@@ -255,7 +249,7 @@ Retorne JSON no formato:
   "executor": "executor-websocket",
   "summary": { "passed": 2, "failed": 1, "skipped": 0, "duration_ms": 3200, "warnings": [] },
   "results": [
-    { "id": "TC-WS-01", "title": "...", "type": "websocket", "status": "passed", "duration_ms": 210, "error": null, "attempts": 1, "retry_diff_logs": false, "attempt_logs": [{"attempt": 1, "status": "passed", "error": null, "duration_ms": 210}] }
+    { "id": "TC-WS-01", "title": "...", "type": "websocket", "status": "passed", "duration_ms": 210, "error": "", "attempts": 1, "retry_diff_logs": false, "attempt_logs": [{"attempt": 1, "status": "passed", "error": "", "duration_ms": 210}] }
   ]
 }
 ```

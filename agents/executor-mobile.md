@@ -546,10 +546,10 @@ Se o contexto contiver `"lean_mode": true`:
         "[ASSERT] Dashboard visível ✓",
         "[TEARDOWN] Driver encerrado"
       ],
-      "error": null,
+      "error": "",
       "attempts": 1,
       "retry_diff_logs": false,
-      "attempt_logs": [{"attempt": 1, "status": "passed", "error": null, "duration_ms": 3240}]
+      "attempt_logs": [{"attempt": 1, "status": "passed", "error": "", "duration_ms": 3240}]
     },
     {
       "id": "TC-002",

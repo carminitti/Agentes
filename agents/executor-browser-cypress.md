@@ -385,7 +385,7 @@ O campo `generated_files` no JSON é **sempre preenchido** com todos os arquivos
         "[ASSERT] URL inclui '/dashboard' ✓",
         "[ASSERT] h1 'Dashboard' visível ✓"
       ],
-      "error": null
+      "error": ""
     }
   ],
   "summary": {

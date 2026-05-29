@@ -294,8 +294,13 @@ if not ok:
 
     if is_auth_error:
         import json, sys
-        results = [{"id": t["id"], "title": t["title"], "status": "skipped",
-                    "error": f"Falha de autenticação no banco: {err}"} for t in tests]
+        _auth_err = f"Falha de autenticação no banco: {err}"
+        results = [{"id": t["id"], "title": t["title"], "type": "banco", "status": "skipped",
+                    "duration_ms": 0, "error": _auth_err,
+                    "attempts": 1, "retry_diff_logs": False,
+                    "attempt_logs": [{"attempt": 1, "status": "skipped",
+                                      "error": _auth_err, "duration_ms": 0}]}
+                   for t in tests]
         print(json.dumps({"executor": "executor-banco", "credentials_failed": True,
                           "results": results,
                           "summary": {"total": len(results), "passed": 0, "failed": 0,
@@ -421,14 +426,14 @@ A validação de segurança deve checar `EXPLAIN` antes das keywords destrutivas
       "actual": "processando",
       "attempts": 1,
       "retry_diff_logs": false,
-      "attempt_logs": [{"attempt": 1, "status": "passed", "error": null, "duration_ms": 45}],
+      "attempt_logs": [{"attempt": 1, "status": "passed", "error": "", "duration_ms": 45}],
       "logs": [
         "[CONNECT] Conectado ao banco (tipo: postgresql)",
         "[QUERY] SELECT status FROM pedidos WHERE referencia = 'PED-2026-001'",
         "[RESULT] Retornou: 'processando' — esperado: 'processando' ✓",
         "[DISCONNECT] Conexão encerrada"
       ],
-      "error": null
+      "error": ""
     }
   ],
   "summary": {
@@ -481,7 +486,7 @@ A validação de segurança deve checar `EXPLAIN` antes das keywords destrutivas
       "actual": "processando",
       "attempts": 1,
       "retry_diff_logs": false,
-      "attempt_logs": [{"attempt": 1, "status": "passed", "error": null, "duration_ms": 45}],
+      "attempt_logs": [{"attempt": 1, "status": "passed", "error": "", "duration_ms": 45}],
       "logs": [
         "[CONNECT] Conectado ao banco simulado (SQLite :memory:)",
         "[SETUP] Tabelas criadas: usuarios, pedidos",
@@ -490,7 +495,7 @@ A validação de segurança deve checar `EXPLAIN` antes das keywords destrutivas
         "[RESULT] Retornou: 'processando' — esperado: 'processando' ✓",
         "[DISCONNECT] Conexão encerrada"
       ],
-      "error": null
+      "error": ""
     }
   ],
   "summary": {

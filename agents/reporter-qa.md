@@ -85,8 +85,61 @@ O **Total classificado** deve bater com `summary.environment_tests` do classifie
   "tcs_total": 12,
   "tcs_passed": 10,
   "tcs_failed": 2,
-  "tcs_skipped": 0
+  "tcs_skipped": 0,
+  "history_data": null
+  // history_data: null | { "TC-001": ["passed","failed","passed",...] }
+  // Opcional — passado pelo orquestrador quando disponível no .qa_history.json.
+  // Contém até 50 execuções passadas por TC. O reporter usa para exibir sparkline.
 }
+```
+
+---
+
+## Sparkline de histórico (history_data)
+
+Se `execution_metrics.history_data` estiver presente e não-nulo, exiba um mini sparkline inline em SVG após o título de cada TC (em `.tc-title-cell` no modo relatório e em `.tch-title` no modo técnico).
+
+**Função de geração (pseudocódigo Python — execute mentalmente ao gerar o HTML):**
+
+```python
+def make_sparkline(statuses):
+    if not statuses:
+        return ""
+    n = min(len(statuses), 10)
+    recent = statuses[-n:]
+    colors = {"passed": "#36a64f", "failed": "#e01e5a"}
+    bar_w = 4
+    gap = 1
+    total_w = n * (bar_w + gap) - gap
+    bars = ""
+    for i, s in enumerate(recent):
+        color = colors.get(s, "#ccc")
+        x = i * (bar_w + gap)
+        bars += f'<rect x="{x}" y="0" width="{bar_w}" height="12" fill="{color}" rx="1"/>'
+    return f'<svg class="sparkline" width="{total_w}" height="12" xmlns="http://www.w3.org/2000/svg">{bars}</svg>'
+```
+
+- Barra verde (`#36a64f`) = `passed`; vermelha (`#e01e5a`) = `failed`; cinza (`#ccc`) = qualquer outro status (skipped, error, etc.)
+- Exibe as últimas 10 execuções (mais antiga à esquerda, mais recente à direita)
+- Se não houver histórico para um TC específico: não renderize nada (não quebre o layout)
+- SVG é puramente inline — sem JavaScript, sem bibliotecas externas
+
+**Onde inserir o sparkline no HTML gerado:**
+
+No modo relatório (`.tc-row`), após o título dentro de `.tc-title-cell`:
+```html
+<span class="tc-title-cell">
+  [Título]
+  [make_sparkline(history_data.get("[ID]", []))]
+</span>
+```
+
+No modo técnico (`.tc-card-hdr`), após o título dentro de `.tch-title`:
+```html
+<span class="tch-title">
+  [Título]
+  [make_sparkline(history_data.get("[ID]", []))]
+</span>
 ```
 
 ---
@@ -541,6 +594,9 @@ pre.code-content{background:rgba(0,0,0,.5);border:1px solid var(--border);border
 .attach-path{font-size:11px;color:var(--text-dim);margin-top:4px;font-family:'Courier New',monospace}
 .attach-none{font-size:13px;color:var(--text-dim);font-style:italic}
 
+/* ── SPARKLINE ── */
+.sparkline{display:inline-block;vertical-align:middle;margin-left:6px}
+
 /* ── FOOTER ── */
 footer{text-align:center;padding:28px;color:var(--text-muted);font-size:13px;border-top:1px solid var(--border)}
 
@@ -907,9 +963,12 @@ Preencha os valores com dados reais de `execution_metrics`:
     = Sem variação vs. execução anterior ([delta.prev_date])
   </div> -->
 
-  <!-- ── TECH MODE CTA BAR — só se N_failed > 0 ── -->
-  <!-- INSTRUÇÃO: renderize este bloco APENAS se houver ao menos 1 teste com status failed ou error.
-       Se N_failed == 0, omita completamente. -->
+  <!-- ── TECH MODE CTA BAR ──
+       ⚠️ REGRA ABSOLUTA: renderize este bloco SE E SOMENTE SE N_failed > 0 OU N_error > 0.
+       Se todos os testes passaram (N_failed == 0 E N_error == 0), NÃO inclua o div abaixo — omita-o completamente.
+       Incluir este bloco com 0 falhas é um bug: o texto "[N_failed] falha(s)" não faz sentido com zero falhas.
+  -->
+  <!-- {% if N_failed > 0 or N_error > 0 %} -->
   <div class="tech-cta-bar" onclick="toggleMode()">
     <span class="tech-cta-icon">⚙️</span>
     <div class="tech-cta-body">
@@ -923,6 +982,7 @@ Preencha os valores com dados reais de `execution_metrics`:
       ⚙️ Ver Modo Técnico →
     </button>
   </div>
+  <!-- {% endif %} -->
 
   <!-- ── 2. ERROS DE AMBIENTE — só se houver ── -->
   <!-- INSTRUÇÃO: renderize esta seção apenas se algum executor retornou falha de infraestrutura
@@ -987,6 +1047,7 @@ Preencha os valores com dados reais de `execution_metrics`:
             [Título]
             <!-- se regression:true: <span class="tc-reg-badge">🔄 R</span> -->
             <!-- se flaky:true: <span class="tc-reg-badge" style="background:var(--orange);color:#fff" title="Passou somente após retry">🔁 Flaky</span> -->
+            <!-- se history_data não-nulo e contiver histórico para este TC: [make_sparkline(history_data["[ID]"])] -->
           </span>
           <span class="tc-duration">[Xms | N/A]</span>
           <span class="tc-err-hint">[resumo do erro, ou "" se passed]</span>
@@ -1218,6 +1279,7 @@ Preencha os valores com dados reais de `execution_metrics`:
           [Título]
           <!-- se regression: <span class="badge b-purple" style="font-size:10px">🔄 R</span> -->
           <!-- se flaky:true: <span class="badge b-orange" style="font-size:10px" title="Passou somente após retry">🔁 Flaky</span> -->
+          <!-- se history_data não-nulo e contiver histórico para este TC: [make_sparkline(history_data["[ID]"])] -->
         </span>
         <span class="tch-executor"><span class="badge b-gray">[executor]</span></span>
         <span class="tch-duration">[Xms | N/A]</span>

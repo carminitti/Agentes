@@ -177,27 +177,15 @@ def validate_schema(schema_class, data: Any) -> tuple[bool, list[str]]:
 ## Auto-geração de token
 
 ```python
-# support/auth.py
-import httpx
-
-async def auto_get_token(base_url: str, email: str, password: str) -> str | None:
-    auth_endpoints = [
-        '/auth/login', '/api/auth/login', '/api/login', '/login',
-        '/oauth/token', '/token', '/api/token', '/signin',
-    ]
-    async with httpx.AsyncClient(base_url=base_url, timeout=5.0) as client:
-        for endpoint in auth_endpoints:
-            try:
-                resp = await client.post(endpoint, json={"email": email, "password": password})
-                if resp.status_code in (200, 201):
-                    body = resp.json()
-                    token = (body.get('access_token') or body.get('token') or
-                             body.get('accessToken') or body.get('jwt') or body.get('id_token'))
-                    if token:
-                        return token
-            except Exception:
-                continue
-    return None
+# support/auth.py  — carrega qa_auth_async do snippet compartilhado
+import sys as _sys, os as _os
+_p = _os.path.abspath(__file__)
+for _ in range(6):
+    _p = _os.path.dirname(_p)
+    if _os.path.isdir(_os.path.join(_p, 'lib', 'snippets')):
+        _sys.path.insert(0, _os.path.join(_p, 'lib', 'snippets'))
+        break
+from qa_auth import auto_get_token_async as auto_get_token
 ```
 
 ---
@@ -207,6 +195,13 @@ async def auto_get_token(base_url: str, email: str, password: str) -> str | None
 ```python
 # main.py
 import asyncio, os, json, time, datetime
+import sys as _sys, os as _os
+_p = _os.path.abspath(__file__)
+for _ in range(6):
+    _p = _os.path.dirname(_p)
+    if _os.path.isdir(_os.path.join(_p, 'lib', 'snippets')):
+        _sys.path.insert(0, _os.path.join(_p, 'lib', 'snippets')); break
+from qa_result import make_tc_result, make_summary
 from client import ApiClient
 from schemas import validate_schema, ProductSchema
 from support.auth import auto_get_token
@@ -257,8 +252,8 @@ async def run_tc(client: ApiClient, tc: dict) -> dict:
             assert ok, f"Contrato inválido: {'; '.join(errors)}"
 
         return {
-            "id": tc_id, "title": title, "status": "passed",
-            "duration_ms": elapsed_ms, "logs": logs, "error": None,
+            "id": tc_id, "title": title, "type": tc.get("type", "integração"),
+            "status": "passed", "duration_ms": elapsed_ms, "logs": logs, "error": "",
             "details": {
                 "method": "GET",
                 "url": f"{BASE_URL}/api/products",
@@ -267,7 +262,9 @@ async def run_tc(client: ApiClient, tc: dict) -> dict:
                     {"check": "status == 200", "result": "passed"},
                     {"check": "contrato Pydantic válido", "result": "passed" if ok else "failed"},
                 ]
-            }
+            },
+            "attempts": 1, "retry_diff_logs": False,
+            "attempt_logs": [{"attempt": 1, "status": "passed", "error": "", "duration_ms": elapsed_ms}]
         }
     except AssertionError as e:
         _dur = int((time.time() - start_ts) * 1000)
@@ -281,16 +278,17 @@ async def run_tc(client: ApiClient, tc: dict) -> dict:
             "attempt_logs": [{"attempt": 1, "status": "failed", "error": str(e), "duration_ms": _dur}]
         }
     except Exception as e:
-        logs.append(f"[ERROR] {type(e).__name__}: {e}")
+        _emsg = str(e) or f"{type(e).__name__} (sem mensagem)"
+        logs.append(f"[ERROR] {_emsg}")
         _dur = int((time.time() - start_ts) * 1000)
         return {
             "id": tc_id, "title": title, "status": "error",
             "duration_ms": _dur,
-            "logs": logs, "error": f"{type(e).__name__}: {e}",
-            "type": tc.get("type", ""),
+            "logs": logs, "error": _emsg,
+            "type": tc.get("type", "integração"),
             "attempts": 1,
             "retry_diff_logs": False,
-            "attempt_logs": [{"attempt": 1, "status": "failed", "error": f"{type(e).__name__}: {e}", "duration_ms": _dur}]
+            "attempt_logs": [{"attempt": 1, "status": "error", "error": _emsg, "duration_ms": _dur}]
         }
 
 def build_credentials_failed_result():
@@ -348,22 +346,14 @@ async def main():
     _timestamp = _dt.datetime.now().strftime("%Y%m%d_%H%M%S")
     _output_dir = f"{_suite_dir}/api-httpx" if _suite_dir else f"tmp_httpx_{_timestamp}"
     os.makedirs(_output_dir, exist_ok=True)
-    _summary = {
-        "total": len(results),
-        "passed": sum(1 for r in results if r.get("status") == "passed"),
-        "failed": sum(1 for r in results if r.get("status") == "failed"),
-        "skipped": sum(1 for r in results if r.get("status") == "skipped"),
-        "error": sum(1 for r in results if r.get("status") == "error"),
-        "warnings": [],
-        "credentials_failed": False,
-    }
     _credentials_failed = any(r.get("status") == "skipped" and r.get("reason") == "env_auth_required" for r in results)
+    _summary = make_summary("executor-api-httpx", results, credentials_failed=_credentials_failed)
     _output = {"executor": "executor-api-httpx", "environment": BASE_URL,
                 "credentials_failed": _credentials_failed, "results": results, "summary": _summary}
     with open(os.path.join(_output_dir, "resultado.json"), "w", encoding="utf-8") as _f:
         import json as _json
         _json.dump(_output, _f, ensure_ascii=False, indent=2)
-    return results
+    return _output
 
 if __name__ == "__main__":
     asyncio.run(main())
@@ -505,7 +495,7 @@ O campo `generated_files` no JSON é **sempre preenchido** com todos os arquivos
         "[ASSERT] status == 200 ✓",
         "[CONTRACT] Schema Pydantic válido ✓"
       ],
-      "error": null
+      "error": ""
     }
   ],
   "summary": {

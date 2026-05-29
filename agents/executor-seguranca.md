@@ -77,27 +77,18 @@ Analise todos os testes recebidos. Verifique se algum test case verifica **autor
 **2. Credenciais (usuário/senha) de um usuário com permissões limitadas presentes nos steps, mas sem token** → gere o token automaticamente antes de executar:
 
 ```python
-import requests
-
-def auto_get_token(base_url, credentials):
-    auth_endpoints = [
-        '/auth/login', '/api/auth/login', '/api/login', '/login',
-        '/oauth/token', '/token', '/api/token', '/signin', '/api/signin'
-    ]
-    for endpoint in auth_endpoints:
-        try:
-            resp = requests.post(f"{base_url}{endpoint}", json=credentials, timeout=5)
-            if resp.status_code in [200, 201]:
-                data = resp.json()
-                token = (data.get('access_token') or data.get('token') or
-                         data.get('accessToken') or data.get('jwt') or
-                         data.get('authToken') or data.get('id_token'))
-                if token:
-                    return token
-        except Exception:
-            continue
-    return None
+# — carrega snippets do Squad QA —
+import sys as _sys, os as _os
+_p = _os.path.abspath(__file__)
+for _ in range(6):
+    _p = _os.path.dirname(_p)
+    if _os.path.isdir(_os.path.join(_p, 'lib', 'snippets')):
+        _sys.path.insert(0, _os.path.join(_p, 'lib', 'snippets'))
+        break
+from qa_auth import auto_get_token, detect_credentials_failed
 ```
+
+Chame como: `token = auto_get_token(base_url, credentials=credentials)` — **nunca posicional** (a assinatura canônica tem `email` como 2º argumento, não `credentials`).
 
 Se o token for gerado, use-o nos testes de autorização. Se falhar, passe para o passo 3.
 
@@ -119,8 +110,8 @@ if auth_required and not token:
         "credentials_failed": True,
         "error": "Token não obtido — verifique credenciais e endpoint de login",
         "results": [],
-        "summary": {"total": len(tcs), "passed": 0, "failed": 0,
-                    "skipped": len(tcs), "credentials_failed": True}
+        "summary": {"total": len(tcs), "passed": 0, "failed": 0, "error": 0,
+                    "skipped": len(tcs), "credentials_failed": True, "warnings": []}
     }
 ```
 
@@ -602,11 +593,11 @@ Para paths que retornam 200:
       "note": null,
       "attempts": 1,
       "retry_diff_logs": false,
-      "attempt_logs": [{"attempt": 1, "status": "passed", "error": null, "duration_ms": 120}],
+      "attempt_logs": [{"attempt": 1, "status": "passed", "error": "", "duration_ms": 120}],
       "logs": [
         "[CHECK] GET /api/admin sem token → esperado 401, recebido 401 ✓"
       ],
-      "error": null
+      "error": ""
     },
     {
       "id": "TC-051",

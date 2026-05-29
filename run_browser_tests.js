@@ -1,468 +1,397 @@
-
-const { chromium, firefox, webkit } = require('@playwright/test');
-const fs = require('fs');
+/**
+ * Browser test runner — executes Playwright tests for SauceDemo + The Internet suite
+ * and writes resultado.json to the suite browser/ folder.
+ *
+ * Allowed by settings.local.json: Bash(node run_browser_tests.js)
+ */
+const { chromium } = require('@playwright/test');
 const path = require('path');
+const fs = require('fs');
 
-const SUITE_DIR = 'suite_axe_core_db_http_k6_magnitude_playwright_20260511_083909';
-fs.mkdirSync(path.join(SUITE_DIR, 'browser'), { recursive: true });
+const SUITE_BROWSER_DIR = path.join(
+  __dirname,
+  'agents', 'suites',
+  'suite_brw_api_sec_perf_vis_acc_db_gql_ws_dd_wh_cha_i18n_grpc_20260521_133730',
+  'browser'
+);
+const RESULTADO_PATH = path.join(SUITE_BROWSER_DIR, 'resultado.json');
+
+console.log('[INFO] Suite dir:', SUITE_BROWSER_DIR);
+console.log('[INFO] Node:', process.version);
+
+fs.mkdirSync(path.join(SUITE_BROWSER_DIR, 'reports'), { recursive: true });
+fs.mkdirSync(path.join(SUITE_BROWSER_DIR, 'screenshots'), { recursive: true });
+
+// ── helpers ──────────────────────────────────────────────────────────────────
 
 function ts() {
   return new Date().toISOString().replace('T', ' ').slice(0, 19);
 }
 
-async function runTest(testId, title, browserType, testFn) {
+async function runTC(id, title, fn) {
   const start = Date.now();
   const logs = [];
+  const consoleLogs = [];
+  const networkLogs = [];
+  const steps = [];
   let status = 'passed';
   let error = null;
-  const steps = [];
+  let browser = null;
 
   try {
-    const browser = await browserType.launch({ headless: true });
+    browser = await chromium.launch({ headless: true });
     const context = await browser.newContext({
       ignoreHTTPSErrors: true,
-      viewport: { width: 1280, height: 720 }
+      viewport: { width: 1280, height: 720 },
     });
     const page = await context.newPage();
 
+    // Capture console and network
+    page.on('console', msg => consoleLogs.push(`[CONSOLE:${msg.type().toUpperCase()}] ${msg.text()}`));
+    page.on('pageerror', err => consoleLogs.push(`[PAGE_ERROR] ${err.message}`));
+    page.on('requestfailed', req => consoleLogs.push(`[REQUEST_FAILED] ${req.method()} ${req.url()}`));
+    page.on('response', resp => {
+      try {
+        const u = new URL(resp.url());
+        if (['www.saucedemo.com', 'the-internet.herokuapp.com'].includes(u.hostname)) {
+          networkLogs.push(`[NETWORK] ${resp.request().method()} ${u.pathname} → ${resp.status()}`);
+        }
+      } catch {}
+    });
+
     try {
-      await testFn(page, logs, steps);
+      await fn(page, logs, steps);
     } finally {
+      // Screenshot on failure
+      if (status === 'failed' || status === 'error') {
+        try {
+          const ssPath = path.join(SUITE_BROWSER_DIR, 'screenshots', `${id}.png`);
+          await page.screenshot({ path: ssPath });
+          logs.push(`[SCREENSHOT] Saved to ${ssPath}`);
+        } catch {}
+      }
       await browser.close();
     }
   } catch (e) {
     status = 'failed';
-    error = e.message || String(e);
+    error = (e.message || String(e)).slice(0, 600);
     logs.push(`[ERROR] ${error}`);
+    if (browser) {
+      try { await browser.close(); } catch {}
+    }
   }
 
+  const duration_ms = Date.now() - start;
+  console.log(`[${status.toUpperCase()}] ${id} — ${title} (${duration_ms}ms)`);
+
   return {
-    id: testId,
-    title,
-    status,
-    duration_ms: Date.now() - start,
-    browser: browserType.name(),
-    steps,
-    logs,
-    error
+    id, title, type: 'browser', status, duration_ms, error,
+    steps, logs, console_logs: consoleLogs, network_logs: networkLogs,
+    attempts: 1, flaky: false, retry_diff_logs: false,
+    attempt_logs: [{ attempt: 1, status, error, duration_ms }],
   };
 }
+
+// ── test cases ────────────────────────────────────────────────────────────────
 
 async function main() {
   const results = [];
 
-  // TC-BROWSER-001: Smoke - Homepage
-  console.log('TC-BROWSER-001: Smoke homepage...');
-  const r1 = await runTest('TC-BROWSER-001', 'Homepage carrega elementos criticos', chromium, async (page, logs, steps) => {
-    logs.push('[NAV] Acessando https://automationexercise.com');
-    await page.goto('https://automationexercise.com', { waitUntil: 'domcontentloaded', timeout: 30000 });
-    logs.push('[ASSERT] Verificando titulo');
-    const title = await page.title();
-    if (!title.includes('Automation Exercise')) {
-      throw new Error(`Titulo incorreto: ${title}`);
-    }
-    logs.push(`[ASSERT] Titulo: "${title}" OK`);
-    steps.push({ step: 'Verificar titulo', status: 'passed' });
+  // TC-BRW-001 — Login válido → inventário
+  results.push(await runTC(
+    'TC-BRW-001',
+    'Login com credenciais válidas redireciona para inventário',
+    async (page, logs, steps) => {
+      page.setDefaultNavigationTimeout(45000);
+      page.setDefaultTimeout(30000);
 
-    // Check nav elements
-    const navItems = ['Signup / Login', 'Products', 'Cart'];
-    for (const item of navItems) {
-      try {
-        const visible = await page.getByRole('link', { name: item }).first().isVisible({ timeout: 5000 });
-        if (!visible) throw new Error(`${item} nao visivel`);
-        logs.push(`[ASSERT] Nav "${item}" visivel OK`);
-      } catch (e) {
-        // Try text locator
-        const visible2 = await page.getByText(item).first().isVisible({ timeout: 3000 }).catch(() => false);
-        if (!visible2) throw new Error(`Elemento "${item}" nao encontrado`);
-        logs.push(`[ASSERT] Nav "${item}" (via texto) visivel OK`);
-      }
-    }
-    steps.push({ step: 'Verificar elementos de navegacao', status: 'passed' });
-  });
-  results.push(r1);
-  console.log(`TC-BROWSER-001: ${r1.status}`);
+      logs.push('[NAV] Acessando https://www.saucedemo.com');
+      await page.goto('https://www.saucedemo.com', { waitUntil: 'domcontentloaded' });
+      await page.waitForSelector('#user-name', { timeout: 30000 });
+      steps.push({ step: 'Navegar para a página de login', status: 'passed' });
 
-  // TC-BROWSER-002: Smoke - Products page
-  console.log('TC-BROWSER-002: Smoke products...');
-  const r2 = await runTest('TC-BROWSER-002', 'Pagina de produtos carrega lista', chromium, async (page, logs, steps) => {
-    logs.push('[NAV] Acessando https://automationexercise.com/products');
-    await page.goto('https://automationexercise.com/products', { waitUntil: 'domcontentloaded', timeout: 30000 });
-    const title = await page.title();
-    logs.push(`[ASSERT] Titulo: "${title}"`);
-    if (!title.toLowerCase().includes('product') && !title.includes('Automation')) {
-      throw new Error(`Titulo incorreto: ${title}`);
-    }
-    steps.push({ step: 'Verificar titulo pagina produtos', status: 'passed' });
+      logs.push('[ACTION] Preenchendo #user-name: standard_user');
+      await page.fill('#user-name', 'standard_user');
+      logs.push('[ACTION] Preenchendo #password: secret_sauce');
+      await page.fill('#password', 'secret_sauce');
+      logs.push('[ACTION] Clicando em #login-button');
+      await page.click('#login-button');
+      steps.push({ step: 'Preencher credenciais e fazer login', status: 'passed' });
 
-    // Check product list
-    const productCount = await page.locator('.product-image-wrapper, .productinfo, .features_items .col-sm-4').count();
-    logs.push(`[ASSERT] Produtos encontrados: ${productCount}`);
-    if (productCount === 0) throw new Error('Nenhum produto encontrado na pagina');
-    steps.push({ step: 'Verificar lista de produtos', status: 'passed' });
-  });
-  results.push(r2);
-  console.log(`TC-BROWSER-002: ${r2.status}`);
-
-  // TC-BROWSER-003: E2E - Register (may fail if account already exists)
-  console.log('TC-BROWSER-003: E2E register...');
-  const r3 = await runTest('TC-BROWSER-003', 'Cadastro novo usuario', chromium, async (page, logs, steps) => {
-    logs.push('[NAV] Acessando https://automationexercise.com');
-    await page.goto('https://automationexercise.com', { waitUntil: 'domcontentloaded', timeout: 30000 });
-
-    // Check if already logged in
-    const loggedIn = await page.getByText('Logged in as').isVisible({ timeout: 3000 }).catch(() => false);
-    if (loggedIn) {
-      logs.push('[INFO] Usuario ja esta logado -- pulando registro');
-      steps.push({ step: 'Verificar estado de login', status: 'passed' });
-      return;
-    }
-
-    logs.push('[ACTION] Clicando em Signup / Login');
-    await page.getByRole('link', { name: /signup.*login/i }).first().click();
-    await page.waitForLoadState('domcontentloaded');
-    steps.push({ step: 'Navegar para signup', status: 'passed' });
-
-    // Fill signup form
-    const nameField = page.getByPlaceholder('Name').first();
-    const emailField = page.locator('[data-qa="signup-email"]');
-
-    await nameField.fill('QA Squad');
-    logs.push('[ACTION] Preenchendo Nome: QA Squad');
-    await emailField.fill('qa_squad_test@venturus.org.br');
-    logs.push('[ACTION] Preenchendo Email');
-
-    await page.locator('[data-qa="signup-button"]').click();
-    logs.push('[ACTION] Clicando em Signup');
-
-    // Wait for either account form or error
-    await page.waitForLoadState('domcontentloaded');
-    const alreadyExists = await page.getByText('Email Address already exist!').isVisible({ timeout: 3000 }).catch(() => false);
-    if (alreadyExists) {
-      logs.push('[INFO] Email ja cadastrado -- comportamento esperado para ambiente de demonstracao');
-      steps.push({ step: 'Verificar formulario conta', status: 'passed' });
-      return;
-    }
-
-    // Fill account form
-    const pwdField = page.locator('[data-qa="password"]');
-    await pwdField.fill('QASquad@2024!');
-    logs.push('[ACTION] Preenchendo senha');
-
-    await page.locator('#id_gender1').check().catch(() => {});
-    await page.locator('[data-qa="days"]').selectOption('15').catch(() => {});
-    await page.locator('[data-qa="months"]').selectOption('6').catch(() => {});
-    await page.locator('[data-qa="years"]').selectOption('1990').catch(() => {});
-
-    await page.locator('[data-qa="first_name"]').fill('QA').catch(() => {});
-    await page.locator('[data-qa="last_name"]').fill('Squad').catch(() => {});
-    await page.locator('[data-qa="address"]').fill('Rua dos Testes, 42').catch(() => {});
-    await page.locator('[data-qa="country"]').selectOption('Brazil').catch(() => {});
-    await page.locator('[data-qa="state"]').fill('São Paulo').catch(() => {});
-    await page.locator('[data-qa="city"]').fill('Campinas').catch(() => {});
-    await page.locator('[data-qa="zipcode"]').fill('13000-000').catch(() => {});
-    await page.locator('[data-qa="mobile_number"]').fill('19999999999').catch(() => {});
-
-    await page.locator('[data-qa="create-account"]').click();
-    logs.push('[ACTION] Clicando em Create Account');
-    await page.waitForLoadState('domcontentloaded');
-
-    const created = await page.getByText('ACCOUNT CREATED!').isVisible({ timeout: 5000 }).catch(() => false);
-    if (created) {
-      logs.push('[ASSERT] ACCOUNT CREATED! visivel OK');
-      await page.locator('[data-qa="continue-button"]').click();
-      steps.push({ step: 'Criar conta e continuar', status: 'passed' });
-    } else {
-      logs.push('[INFO] Formulario de criacao nao completado -- possivelmente email ja existe');
-      steps.push({ step: 'Criar conta', status: 'passed' });
-    }
-  });
-  results.push(r3);
-  console.log(`TC-BROWSER-003: ${r3.status}`);
-
-  // TC-BROWSER-004: E2E - Login/Logout
-  console.log('TC-BROWSER-004: E2E login/logout...');
-  const r4 = await runTest('TC-BROWSER-004', 'Login valido e logout', chromium, async (page, logs, steps) => {
-    logs.push('[NAV] Acessando https://automationexercise.com');
-    await page.goto('https://automationexercise.com', { waitUntil: 'domcontentloaded', timeout: 30000 });
-
-    const alreadyLoggedIn = await page.getByText('Logged in as').isVisible({ timeout: 3000 }).catch(() => false);
-    if (alreadyLoggedIn) {
-      logs.push('[INFO] Ja logado -- fazendo logout primeiro');
-      await page.getByRole('link', { name: /logout/i }).click();
-      await page.waitForLoadState('domcontentloaded');
-    }
-
-    await page.getByRole('link', { name: /signup.*login/i }).first().click();
-    await page.waitForLoadState('domcontentloaded');
-    logs.push('[ACTION] Clicando em Signup/Login');
-    steps.push({ step: 'Navegar para login', status: 'passed' });
-
-    await page.locator('[data-qa="login-email"]').fill('qa_squad_test@venturus.org.br');
-    await page.locator('[data-qa="login-password"]').fill('QASquad@2024!');
-    logs.push('[ACTION] Preenchendo credenciais');
-    await page.locator('[data-qa="login-button"]').click();
-    logs.push('[ACTION] Clicando em Login');
-    await page.waitForLoadState('domcontentloaded');
-    steps.push({ step: 'Submeter formulario de login', status: 'passed' });
-
-    const loggedIn = await page.getByText('Logged in as').isVisible({ timeout: 8000 }).catch(() => false);
-    const invalidMsg = await page.getByText('Your email or password is incorrect!').isVisible({ timeout: 3000 }).catch(() => false);
-
-    if (loggedIn) {
-      logs.push('[ASSERT] Logged in as -- visivel OK');
-      steps.push({ step: 'Verificar login bem-sucedido', status: 'passed' });
-
-      await page.getByRole('link', { name: /logout/i }).click();
-      await page.waitForLoadState('domcontentloaded');
-      logs.push('[ACTION] Clicando em Logout');
-
-      const loginLink = await page.getByRole('link', { name: /signup.*login/i }).first().isVisible({ timeout: 5000 }).catch(() => false);
-      logs.push(`[ASSERT] Link Signup/Login apos logout: ${loginLink ? 'visivel OK' : 'NAO visivel'}`);
-      steps.push({ step: 'Verificar logout', status: loginLink ? 'passed' : 'failed' });
-      if (!loginLink) throw new Error('Link Signup/Login nao visivel apos logout');
-    } else if (invalidMsg) {
-      throw new Error('Credenciais invalidas -- conta pode nao existir, use TC-BROWSER-003 primeiro');
-    } else {
-      // Login might have worked but text differs
-      logs.push('[INFO] Texto "Logged in as" nao encontrado, verificando URL');
+      await page.waitForURL('**/inventory.html', { timeout: 30000 });
       const url = page.url();
-      if (url.includes('login')) {
-        throw new Error('Ainda na pagina de login apos submissao');
+      if (!url.includes('inventory.html')) {
+        throw new Error(`Esperado URL contendo /inventory.html. URL atual: ${url}`);
       }
-      logs.push('[INFO] Redirecionado da pagina de login -- considerando como login bem-sucedido');
-      steps.push({ step: 'Verificar redirecionamento pos-login', status: 'passed' });
+      logs.push(`[ASSERT] URL contém /inventory.html ✓ (${url})`);
+      steps.push({ step: 'Validar redirecionamento para inventário', status: 'passed' });
     }
-  });
-  results.push(r4);
-  console.log(`TC-BROWSER-004: ${r4.status}`);
+  ));
 
-  // TC-BROWSER-005: E2E - Login com senha errada
-  console.log('TC-BROWSER-005: E2E wrong password...');
-  const r5 = await runTest('TC-BROWSER-005', 'Login senha incorreta exibe erro', chromium, async (page, logs, steps) => {
-    logs.push('[NAV] Acessando https://automationexercise.com');
-    await page.goto('https://automationexercise.com', { waitUntil: 'domcontentloaded', timeout: 30000 });
-    await page.getByRole('link', { name: /signup.*login/i }).first().click();
-    await page.waitForLoadState('domcontentloaded');
-    steps.push({ step: 'Navegar para login', status: 'passed' });
+  // TC-BRW-002 — Login inválido → mensagem de erro
+  results.push(await runTC(
+    'TC-BRW-002',
+    'Login com credenciais inválidas exibe mensagem de erro',
+    async (page, logs, steps) => {
+      page.setDefaultNavigationTimeout(45000);
+      page.setDefaultTimeout(30000);
 
-    await page.locator('[data-qa="login-email"]').fill('qa_squad_test@venturus.org.br');
-    await page.locator('[data-qa="login-password"]').fill('SenhaErrada999!');
-    await page.locator('[data-qa="login-button"]').click();
-    await page.waitForLoadState('domcontentloaded');
-    logs.push('[ACTION] Submetido login com senha errada');
-    steps.push({ step: 'Submeter login com senha incorreta', status: 'passed' });
+      logs.push('[NAV] Acessando https://www.saucedemo.com');
+      await page.goto('https://www.saucedemo.com', { waitUntil: 'domcontentloaded' });
+      await page.waitForSelector('#user-name', { timeout: 30000 });
+      steps.push({ step: 'Navegar para a página de login', status: 'passed' });
 
-    const errorMsg = await page.getByText('Your email or password is incorrect!').isVisible({ timeout: 5000 }).catch(() => false);
-    logs.push(`[ASSERT] Mensagem erro: ${errorMsg ? 'visivel OK' : 'NAO visivel FALHOU'}`);
-    steps.push({ step: 'Verificar mensagem de erro', status: errorMsg ? 'passed' : 'failed' });
-    if (!errorMsg) throw new Error('Mensagem de erro nao exibida para credenciais invalidas');
-  });
-  results.push(r5);
-  console.log(`TC-BROWSER-005: ${r5.status}`);
+      logs.push('[ACTION] Preenchendo credenciais inválidas: wrong_user / wrong_pass');
+      await page.fill('#user-name', 'wrong_user');
+      await page.fill('#password', 'wrong_pass');
+      await page.click('#login-button');
+      steps.push({ step: 'Submeter credenciais inválidas', status: 'passed' });
 
-  // TC-BROWSER-006: Regressão - Fluxo de compra (complex, may have issues)
-  console.log('TC-BROWSER-006: Regressao compra...');
-  const r6 = await runTest('TC-BROWSER-006', 'Fluxo completo de compra', chromium, async (page, logs, steps) => {
-    // Login first
-    logs.push('[NAV] Acessando https://automationexercise.com');
-    await page.goto('https://automationexercise.com', { waitUntil: 'domcontentloaded', timeout: 30000 });
-
-    const alreadyLoggedIn = await page.getByText('Logged in as').isVisible({ timeout: 3000 }).catch(() => false);
-    if (!alreadyLoggedIn) {
-      await page.getByRole('link', { name: /signup.*login/i }).first().click();
-      await page.waitForLoadState('domcontentloaded');
-      await page.locator('[data-qa="login-email"]').fill('qa_squad_test@venturus.org.br');
-      await page.locator('[data-qa="login-password"]').fill('QASquad@2024!');
-      await page.locator('[data-qa="login-button"]').click();
-      await page.waitForLoadState('domcontentloaded');
-      const loggedIn = await page.getByText('Logged in as').isVisible({ timeout: 8000 }).catch(() => false);
-      if (!loggedIn) throw new Error('Login falhou -- prerequisito do TC-BROWSER-006');
-    }
-    logs.push('[INFO] Usuario logado');
-    steps.push({ step: 'Login do usuario', status: 'passed' });
-
-    // Navigate to products
-    await page.getByRole('link', { name: /^Products$/i }).first().click();
-    await page.waitForLoadState('domcontentloaded');
-    logs.push('[NAV] Pagina de produtos');
-    steps.push({ step: 'Navegar para produtos', status: 'passed' });
-
-    // Add first product to cart
-    const addBtn = page.locator('.add-to-cart').first();
-    await addBtn.scrollIntoViewIfNeeded().catch(() => {});
-    await addBtn.hover().catch(() => {});
-    await addBtn.click({ timeout: 5000 });
-    logs.push('[ACTION] Adicionado produto ao carrinho');
-    steps.push({ step: 'Adicionar produto ao carrinho', status: 'passed' });
-
-    // Handle modal
-    await page.waitForTimeout(1000);
-    const modal = await page.getByText('Added!').isVisible({ timeout: 3000 }).catch(() => false);
-    if (modal) {
-      logs.push('[ASSERT] Modal "Added!" visivel OK');
-      const viewCartBtn = page.getByRole('button', { name: /view cart/i }).first();
-      const viewCartLink = page.getByRole('link', { name: /view cart/i }).first();
-      if (await viewCartBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
-        await viewCartBtn.click();
-      } else if (await viewCartLink.isVisible({ timeout: 2000 }).catch(() => false)) {
-        await viewCartLink.click();
-      } else {
-        await page.goto('https://automationexercise.com/view_cart');
+      await page.waitForSelector('[data-test="error"]', { timeout: 15000 });
+      const errorEl = page.locator('[data-test="error"]');
+      const visible = await errorEl.isVisible();
+      if (!visible) {
+        throw new Error('Esperado: container de erro visível. Encontrado: não visível.');
       }
-    } else {
-      logs.push('[INFO] Modal nao detectado -- navegando direto para carrinho');
-      await page.goto('https://automationexercise.com/view_cart');
+      const errorText = (await errorEl.textContent()) || '';
+      if (!errorText.includes('Username and password do not match')) {
+        throw new Error(`Esperado texto "Username and password do not match". Encontrado: "${errorText}"`);
+      }
+      logs.push(`[ASSERT] Mensagem de erro visível ✓: "${errorText.trim()}"`);
+      steps.push({ step: 'Validar mensagem de erro', status: 'passed' });
     }
-    await page.waitForLoadState('domcontentloaded');
-    steps.push({ step: 'Ver carrinho', status: 'passed' });
+  ));
 
-    const cartItems = await page.locator('#cart_info_table tbody tr').count();
-    logs.push(`[ASSERT] Itens no carrinho: ${cartItems}`);
-    if (cartItems === 0) throw new Error('Carrinho vazio apos adicionar produto');
-    steps.push({ step: 'Verificar carrinho', status: 'passed' });
+  // TC-BRW-003 — Listagem ≥ 6 itens
+  results.push(await runTC(
+    'TC-BRW-003',
+    'Listagem de produtos exibe pelo menos 6 itens',
+    async (page, logs, steps) => {
+      page.setDefaultNavigationTimeout(45000);
+      page.setDefaultTimeout(30000);
 
-    // Proceed to checkout
-    await page.getByText('Proceed To Checkout').click().catch(async () => {
-      await page.locator('.btn.btn-default.check_out').click();
-    });
-    await page.waitForLoadState('domcontentloaded');
-    logs.push('[ACTION] Proceed To Checkout');
-    steps.push({ step: 'Prosseguir para checkout', status: 'passed' });
+      logs.push('[NAV] Acessando https://www.saucedemo.com');
+      await page.goto('https://www.saucedemo.com', { waitUntil: 'domcontentloaded' });
+      await page.waitForSelector('#user-name', { timeout: 30000 });
 
-    // Place Order
-    const placeOrderBtn = page.getByRole('link', { name: /place order/i }).first();
-    if (await placeOrderBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
-      await placeOrderBtn.click();
-      await page.waitForLoadState('domcontentloaded');
-      logs.push('[ACTION] Place Order');
-      steps.push({ step: 'Efetuar pedido', status: 'passed' });
+      await page.fill('#user-name', 'standard_user');
+      await page.fill('#password', 'secret_sauce');
+      await page.click('#login-button');
+      await page.waitForURL('**/inventory.html', { timeout: 30000 });
+      await page.waitForSelector('.inventory_item', { timeout: 30000 });
+      steps.push({ step: 'Login e aguardar inventário', status: 'passed' });
 
-      // Payment form
-      await page.locator('[data-qa="name-on-card"]').fill('QA Squad Test').catch(() => {});
-      await page.locator('[data-qa="card-number"]').fill('4111111111111111').catch(() => {});
-      await page.locator('[data-qa="cvc"]').fill('123').catch(() => {});
-      await page.locator('[data-qa="expiry-month"]').fill('12').catch(() => {});
-      await page.locator('[data-qa="expiry-year"]').fill('2028').catch(() => {});
-      logs.push('[ACTION] Preenchendo dados do cartao');
-
-      await page.locator('[data-qa="pay-button"]').click().catch(async () => {
-        await page.getByRole('button', { name: /pay.*confirm/i }).click();
-      });
-      await page.waitForLoadState('domcontentloaded');
-      logs.push('[ACTION] Pay and Confirm Order');
-
-      const orderPlaced = await page.getByText('Order Placed!').isVisible({ timeout: 8000 }).catch(() => false);
-      const congrats = await page.getByText('Congratulations').isVisible({ timeout: 3000 }).catch(() => false);
-      logs.push(`[ASSERT] Order Placed: ${orderPlaced ? 'OK' : 'NAO VISIVEL'}`);
-      logs.push(`[ASSERT] Congratulations: ${congrats ? 'OK' : 'NAO VISIVEL'}`);
-      steps.push({ step: 'Verificar confirmacao do pedido', status: (orderPlaced || congrats) ? 'passed' : 'failed' });
-      if (!orderPlaced && !congrats) throw new Error('Confirmacao de pedido nao exibida');
-    } else {
-      logs.push('[INFO] Botao Place Order nao encontrado -- possivel redirecionamento para login');
-      steps.push({ step: 'Verificar botao checkout', status: 'failed' });
-      throw new Error('Botao Place Order nao encontrado');
+      const count = await page.locator('.inventory_item').count();
+      logs.push(`[ASSERT] Itens encontrados: ${count}`);
+      if (count < 6) {
+        throw new Error(`Esperado >= 6 produtos. Encontrado: ${count}`);
+      }
+      logs.push(`[ASSERT] Contagem de produtos ${count} >= 6 ✓`);
+      steps.push({ step: `Validar >= 6 itens (encontrado: ${count})`, status: 'passed' });
     }
-  });
-  results.push(r6);
-  console.log(`TC-BROWSER-006: ${r6.status}`);
+  ));
 
-  // TC-BROWSER-007: Regressão - Busca de produto
-  console.log('TC-BROWSER-007: Regressao busca...');
-  const r7 = await runTest('TC-BROWSER-007', 'Busca produto por nome', chromium, async (page, logs, steps) => {
-    logs.push('[NAV] Acessando https://automationexercise.com/products');
-    await page.goto('https://automationexercise.com/products', { waitUntil: 'domcontentloaded', timeout: 30000 });
-    steps.push({ step: 'Navegar para produtos', status: 'passed' });
+  // TC-BRW-004 — Adicionar produto atualiza badge
+  results.push(await runTC(
+    'TC-BRW-004',
+    'Adicionar produto ao carrinho atualiza badge do carrinho',
+    async (page, logs, steps) => {
+      page.setDefaultNavigationTimeout(45000);
+      page.setDefaultTimeout(30000);
 
-    await page.locator('#search_product').fill('dress');
-    logs.push('[ACTION] Preenchendo busca: dress');
-    await page.locator('#submit_search').click();
-    logs.push('[ACTION] Clicando em Submit busca');
-    await page.waitForLoadState('domcontentloaded');
-    steps.push({ step: 'Submeter busca', status: 'passed' });
+      logs.push('[NAV] Acessando https://www.saucedemo.com');
+      await page.goto('https://www.saucedemo.com', { waitUntil: 'domcontentloaded' });
+      await page.waitForSelector('#user-name', { timeout: 30000 });
 
-    const searchTitle = await page.getByText('Searched Products').isVisible({ timeout: 5000 }).catch(() => false);
-    logs.push(`[ASSERT] "Searched Products" visivel: ${searchTitle ? 'OK' : 'NAO visivel'}`);
-    steps.push({ step: 'Verificar titulo resultados', status: searchTitle ? 'passed' : 'failed' });
-    if (!searchTitle) throw new Error('"Searched Products" nao encontrado');
+      await page.fill('#user-name', 'standard_user');
+      await page.fill('#password', 'secret_sauce');
+      await page.click('#login-button');
+      await page.waitForURL('**/inventory.html', { timeout: 30000 });
+      await page.waitForSelector('.btn_inventory', { timeout: 30000 });
+      steps.push({ step: 'Login e aguardar inventário', status: 'passed' });
 
-    const productCount = await page.locator('.productinfo, .product-image-wrapper').count();
-    logs.push(`[ASSERT] Resultados encontrados: ${productCount}`);
-    if (productCount === 0) throw new Error('Nenhum produto encontrado na busca por "dress"');
-    steps.push({ step: 'Verificar resultados de busca', status: 'passed' });
-  });
-  results.push(r7);
-  console.log(`TC-BROWSER-007: ${r7.status}`);
+      logs.push('[ACTION] Clicando no primeiro botão .btn_inventory (Add to cart)');
+      await page.locator('.btn_inventory').first().click();
+      steps.push({ step: 'Clicar em Add to cart', status: 'passed' });
 
-  // TC-BROWSER-008: Cross-browser - Contact form
-  console.log('TC-BROWSER-008: Cross-browser contact form...');
-  const browsers_to_test = [
-    { type: chromium, name: 'chromium' },
-    { type: firefox, name: 'firefox' },
-    { type: webkit, name: 'webkit' }
-  ];
+      await page.waitForSelector('.shopping_cart_badge', { timeout: 10000 });
+      const badgeText = await page.locator('.shopping_cart_badge').textContent();
+      if (badgeText !== '1') {
+        throw new Error(`Esperado badge do carrinho = "1". Encontrado: "${badgeText}"`);
+      }
+      logs.push(`[ASSERT] Badge do carrinho = "${badgeText}" ✓`);
+      steps.push({ step: 'Validar badge do carrinho = "1"', status: 'passed' });
+    }
+  ));
 
-  for (const { type: browserType, name: browserName } of browsers_to_test) {
-    const r8 = await runTest(`TC-BROWSER-008-${browserName}`, `Formulario contato - ${browserName}`, browserType, async (page, logs, steps) => {
-      logs.push(`[NAV] Acessando /contact_us (${browserName})`);
-      await page.goto('https://automationexercise.com/contact_us', { waitUntil: 'domcontentloaded', timeout: 30000 });
-      steps.push({ step: `Navegar para contact_us (${browserName})`, status: 'passed' });
+  // TC-BRW-005 — Fluxo completo de checkout
+  results.push(await runTC(
+    'TC-BRW-005',
+    'Fluxo completo de checkout finalizado com sucesso',
+    async (page, logs, steps) => {
+      page.setDefaultNavigationTimeout(45000);
+      page.setDefaultTimeout(30000);
 
-      await page.locator('[data-qa="name"]').fill('QA Squad');
-      await page.locator('[data-qa="email"]').fill('qa_squad_test@venturus.org.br');
-      await page.locator('[data-qa="subject"]').fill(`Teste Cross-Browser - ${browserName}`);
-      await page.locator('[data-qa="message"]').fill('Mensagem de teste automatizado cross-browser pelo squad QA');
-      logs.push('[ACTION] Formulario preenchido');
-      steps.push({ step: 'Preencher formulario', status: 'passed' });
+      logs.push('[NAV] Acessando https://www.saucedemo.com');
+      await page.goto('https://www.saucedemo.com', { waitUntil: 'domcontentloaded' });
+      await page.waitForSelector('#user-name', { timeout: 30000 });
 
-      page.once('dialog', dialog => dialog.accept().catch(() => {}));
-      await page.locator('[data-qa="submit-button"]').click();
-      await page.waitForLoadState('domcontentloaded');
-      logs.push('[ACTION] Submit clicado');
+      await page.fill('#user-name', 'standard_user');
+      await page.fill('#password', 'secret_sauce');
+      await page.click('#login-button');
+      await page.waitForURL('**/inventory.html', { timeout: 30000 });
+      await page.waitForSelector('.btn_inventory', { timeout: 30000 });
+      steps.push({ step: 'Login e aguardar inventário', status: 'passed' });
 
-      const success = await page.getByText('Success! Your details have been submitted successfully.').isVisible({ timeout: 8000 }).catch(() => false);
-      logs.push(`[ASSERT] Mensagem sucesso (${browserName}): ${success ? 'OK' : 'NAO visivel'}`);
-      steps.push({ step: 'Verificar mensagem sucesso', status: success ? 'passed' : 'failed' });
-      if (!success) throw new Error(`Mensagem de sucesso nao exibida no ${browserName}`);
-    });
-    r8.id = 'TC-BROWSER-008';
-    results.push(r8);
-    console.log(`TC-BROWSER-008 (${browserName}): ${r8.status}`);
+      logs.push('[ACTION] Adicionando primeiro produto ao carrinho');
+      await page.locator('.btn_inventory').first().click();
+      steps.push({ step: 'Adicionar primeiro produto', status: 'passed' });
+
+      logs.push('[NAV] Navegando para /cart.html');
+      await page.goto('https://www.saucedemo.com/cart.html', { waitUntil: 'domcontentloaded' });
+      await page.waitForSelector('#checkout', { timeout: 15000 });
+      steps.push({ step: 'Ir para carrinho', status: 'passed' });
+
+      logs.push('[ACTION] Clicando em Checkout');
+      await page.click('#checkout');
+      await page.waitForURL('**/checkout-step-one.html', { timeout: 15000 });
+      steps.push({ step: 'Iniciar checkout', status: 'passed' });
+
+      logs.push('[ACTION] Preenchendo dados: QA / Tester / 12345');
+      await page.fill('#first-name', 'QA');
+      await page.fill('#last-name', 'Tester');
+      await page.fill('#postal-code', '12345');
+      await page.click('#continue');
+      await page.waitForURL('**/checkout-step-two.html', { timeout: 15000 });
+      steps.push({ step: 'Preencher informações de checkout e continuar', status: 'passed' });
+
+      logs.push('[ACTION] Clicando em Finish');
+      await page.click('#finish');
+      await page.waitForURL('**/checkout-complete.html', { timeout: 15000 });
+      steps.push({ step: 'Finalizar pedido', status: 'passed' });
+
+      const successEl = page.locator('.complete-header');
+      await successEl.waitFor({ timeout: 15000 });
+      const successText = (await successEl.textContent()) || '';
+      if (!successText.toLowerCase().includes('thank you for your order')) {
+        throw new Error(`Esperado texto "Thank you for your order". Encontrado: "${successText}"`);
+      }
+      logs.push(`[ASSERT] Mensagem de sucesso visível ✓: "${successText.trim()}"`);
+      steps.push({ step: 'Validar mensagem de sucesso', status: 'passed' });
+    }
+  ));
+
+  // TC-BRW-006 — The Internet basic auth
+  results.push(await runTC(
+    'TC-BRW-006',
+    'Login básico protege página no The Internet',
+    async (page, logs, steps) => {
+      page.setDefaultNavigationTimeout(60000);
+      page.setDefaultTimeout(45000);
+
+      logs.push('[NAV] Acessando https://the-internet.herokuapp.com/login');
+      await page.goto('https://the-internet.herokuapp.com/login', { waitUntil: 'domcontentloaded' });
+      await page.waitForSelector('#username', { timeout: 45000 });
+      steps.push({ step: 'Navegar para a página de login', status: 'passed' });
+
+      logs.push('[ACTION] Preenchendo #username: tomsmith');
+      await page.fill('#username', 'tomsmith');
+      logs.push('[ACTION] Preenchendo #password: SuperSecretPassword!');
+      await page.fill('#password', 'SuperSecretPassword!');
+      logs.push('[ACTION] Clicando em button[type=submit]');
+      await page.click('button[type="submit"]');
+      steps.push({ step: 'Preencher credenciais e fazer login', status: 'passed' });
+
+      // Wait for navigation or flash
+      await page.waitForTimeout(2000);
+      const currentUrl = page.url();
+      let flashText = '';
+      try {
+        const flashEl = page.locator('#flash');
+        if (await flashEl.isVisible({ timeout: 5000 })) {
+          flashText = (await flashEl.textContent()) || '';
+        }
+      } catch {}
+
+      const urlIsSecure = currentUrl.includes('/secure');
+      const flashContainsText = flashText.toLowerCase().includes('logged into a secure area');
+
+      logs.push(`[ASSERT] URL atual: ${currentUrl}`);
+      logs.push(`[ASSERT] Flash message: "${flashText.trim()}"`);
+
+      if (!urlIsSecure && !flashContainsText) {
+        throw new Error(
+          `Esperado: URL contém '/secure' OU flash contém 'logged into a secure area'. ` +
+          `URL atual: ${currentUrl}, Flash: "${flashText.trim()}"`
+        );
+      }
+
+      if (urlIsSecure) logs.push('[ASSERT] URL contém /secure ✓');
+      if (flashContainsText) logs.push('[ASSERT] Flash message contém "logged into a secure area" ✓');
+      steps.push({ step: 'Validar acesso à área segura', status: 'passed' });
+    }
+  ));
+
+  // ── Build resultado.json ─────────────────────────────────────────────────
+  let passed = 0, failed = 0, errors = 0, skipped = 0;
+  for (const r of results) {
+    if (r.status === 'passed') passed++;
+    else if (r.status === 'failed') failed++;
+    else if (r.status === 'skipped') skipped++;
+    else errors++;
   }
 
-  // Summary
-  const passed = results.filter(r => r.status === 'passed').length;
-  const failed = results.filter(r => r.status === 'failed').length;
-  const skipped = results.filter(r => r.status === 'skipped').length;
+  // Strip internal helpers before writing
+  const cleanResults = results.map(r => ({
+    id: r.id,
+    title: r.title,
+    type: r.type,
+    status: r.status,
+    duration_ms: r.duration_ms,
+    error: r.error,
+    attempts: r.attempts,
+    flaky: r.flaky,
+    retry_diff_logs: r.retry_diff_logs,
+    attempt_logs: r.attempt_logs,
+    steps: r.steps,
+    logs: r.logs,
+    console_logs: r.console_logs,
+    network_logs: r.network_logs,
+  }));
 
-  const summary = { total: results.length, passed, failed, skipped, credentials_failed: false };
-  const outputJson = {
-    executor: 'browser',
-    environment: 'https://automationexercise.com',
+  const resultado = {
+    executor: 'executor-browser',
+    environment: 'https://www.saucedemo.com',
     credentials_failed: false,
-    generated_files: null,
-    results,
-    summary
+    results: cleanResults,
+    summary: {
+      total: results.length,
+      passed,
+      failed,
+      error: errors,
+      skipped,
+      warnings: [],
+    },
   };
 
-  fs.writeFileSync(path.join(SUITE_DIR, 'browser', 'resultado.json'), JSON.stringify(outputJson, null, 2));
+  fs.writeFileSync(RESULTADO_PATH, JSON.stringify(resultado, null, 2), 'utf8');
 
-  const logLines = [`[${ts()}] === executor-browser -- inicio ===`];
-  logLines.push(`[${ts()}] Ambiente: https://automationexercise.com`);
-  for (const res of results) {
-    logLines.push(`[${ts()}] [${res.id}] ${res.title} (${res.browser})`);
-    for (const line of (res.logs || [])) {
-      logLines.push(`[${ts()}]   ${line}`);
-    }
-    logLines.push(`[${ts()}]   -> STATUS: ${res.status.toUpperCase()}`);
+  // Write execution.log
+  const logLines = [`[${ts()}] === executor-browser — início ===`];
+  logLines.push(`[${ts()}] Ambiente: https://www.saucedemo.com`);
+  for (const r of results) {
+    logLines.push(`[${ts()}] [${r.id}] ${r.title}`);
+    for (const line of (r.logs || [])) logLines.push(`[${ts()}]   ${line}`);
+    logLines.push(`[${ts()}]   → STATUS: ${r.status.toUpperCase()}`);
   }
-  logLines.push(`[${ts()}] === Fim: ${passed} passou, ${failed} falhou ===`);
-  fs.writeFileSync(path.join(SUITE_DIR, 'browser', 'execution.log'), logLines.join('\n'));
+  logLines.push(`[${ts()}] === Fim: ${passed} passou, ${failed} falhou, ${errors} erro ===`);
+  fs.writeFileSync(path.join(SUITE_BROWSER_DIR, 'execution.log'), logLines.join('\n'), 'utf8');
 
-  console.log(`\n=== BROWSER SUMMARY: ${passed} passed, ${failed} failed ===`);
+  console.log('\n[DONE] resultado.json written to:', RESULTADO_PATH);
+  console.log('[SUMMARY] Total:', results.length, '| Passed:', passed, '| Failed:', failed, '| Error:', errors);
 }
 
 main().catch(e => {
-  console.error('Fatal error:', e);
+  console.error('[FATAL]', e.message || e);
   process.exit(1);
 });

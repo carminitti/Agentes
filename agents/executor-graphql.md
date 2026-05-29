@@ -140,7 +140,7 @@ if AUTH_TOKEN:
 
 def run_graphql_tc(tc_id, title, query, variables=None, expected_fields=None, expect_errors=False):
     start = time.time()
-    result = {"id": tc_id, "title": title, "type": "graphql", "status": "failed", "duration_ms": 0, "error": None}
+    result = {"id": tc_id, "title": title, "type": "graphql", "status": "failed", "duration_ms": 0, "error": ""}
     try:
         payload = {"query": query}
         if variables:
@@ -186,7 +186,7 @@ TIMEOUT_MS = int(os.environ.get("REQUEST_TIMEOUT_MS", "30000"))
 async def run_subscription(tc_id, subscription_query, expected_event_field, timeout=None, token=None):
     if timeout is None:
         timeout = TIMEOUT_MS / 1000  # TIMEOUT_MS definido no bloco de inicialização do script
-    result = {"id": tc_id, "status": "failed", "duration_ms": 0, "error": None}
+    result = {"id": tc_id, "status": "failed", "duration_ms": 0, "error": ""}
     start = time.time()
     ws_url = GRAPHQL_URL.replace("https://", "wss://").replace("http://", "ws://")
     try:
@@ -242,7 +242,7 @@ Garanta que `run_tc` use apenas variáveis locais (não compartilhe estado mutá
   "executor": "executor-graphql",
   "summary": { "passed": 3, "failed": 1, "skipped": 0, "duration_ms": 1450, "warnings": [] },
   "results": [
-    { "id": "TC-GQL-01", "title": "...", "type": "graphql", "status": "passed", "duration_ms": 280, "error": null, "attempts": 1, "retry_diff_logs": false, "attempt_logs": [{"attempt": 1, "status": "passed", "error": null, "duration_ms": 280}] }
+    { "id": "TC-GQL-01", "title": "...", "type": "graphql", "status": "passed", "duration_ms": 280, "error": "", "attempts": 1, "retry_diff_logs": false, "attempt_logs": [{"attempt": 1, "status": "passed", "error": "", "duration_ms": 280}] }
   ]
 }
 ```

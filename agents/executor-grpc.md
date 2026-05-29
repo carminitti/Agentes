@@ -162,7 +162,7 @@ for line in proc.stdout.splitlines():
   "executor": "executor-grpc",
   "summary": { "passed": 2, "failed": 0, "skipped": 1, "duration_ms": 890, "warnings": [] },
   "results": [
-    { "id": "TC-GRPC-01", "title": "...", "type": "grpc", "status": "passed", "duration_ms": 340, "error": null, "attempts": 1, "retry_diff_logs": false, "attempt_logs": [{"attempt": 1, "status": "passed", "error": null, "duration_ms": 340}] }
+    { "id": "TC-GRPC-01", "title": "...", "type": "grpc", "status": "passed", "duration_ms": 340, "error": "", "attempts": 1, "retry_diff_logs": false, "attempt_logs": [{"attempt": 1, "status": "passed", "error": "", "duration_ms": 340}] }
   ]
 }
 ```

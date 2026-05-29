@@ -59,6 +59,157 @@ if _r.returncode != 0:
 
 ---
 
+## Auto-setup do provider
+
+Antes de executar qualquer TC, verifique se o provider está disponível. Se não estiver, tente subir automaticamente na seguinte ordem de fallback:
+
+1. **Provider já disponível** — usa diretamente, sem setup.
+2. **Mock Python puro** — `aiosmtpd` (SMTP) + `http.server` (API compatível Mailhog). Sem Docker, sem serviços externos.
+3. **Docker** — `mailhog/mailhog` via `docker run`.
+
+Se todas as tentativas falharem, marque todos os TCs como `skipped` com `reason: "email_provider_unavailable"`.
+
+```python
+import socket, threading, http.server
+
+def _wait_http_ready(url, timeout_s=15):
+    deadline = time.time() + timeout_s
+    while time.time() < deadline:
+        try:
+            if requests.get(url, timeout=2).status_code == 200:
+                return True
+        except Exception:
+            pass
+        time.sleep(1)
+    return False
+
+
+def _start_mock_email_server(smtp_port=1025, api_port=8025):
+    """Opção 2 — mock Python puro: aiosmtpd + HTTP API compatível com Mailhog."""
+    import email as _email_lib
+
+    _inbox, _lock = [], threading.Lock()
+
+    class _SMTPHandler:
+        async def handle_RCPT(self, server, session, envelope, address, rcpt_options):
+            envelope.rcpt_tos.append(address)
+            return "250 OK"
+
+        async def handle_DATA(self, server, session, envelope):
+            msg = _email_lib.message_from_bytes(envelope.content)
+            record = {
+                "ID": f"mock-{int(time.time()*1000)}",
+                "From": envelope.mail_from or "",
+                "To": [
+                    {"Mailbox": a.split("@")[0], "Domain": a.split("@")[1] if "@" in a else ""}
+                    for a in envelope.rcpt_tos
+                ],
+                "Content": {
+                    "Headers": {
+                        "Subject": [msg.get("Subject", "")],
+                        "From":    [msg.get("From", "")],
+                        "To":      [msg.get("To", "")],
+                    },
+                    "Body": "",
+                },
+                "MIME": None,
+            }
+            if msg.is_multipart():
+                parts = []
+                for part in msg.walk():
+                    ct = part.get_content_type()
+                    raw = part.get_payload(decode=True)
+                    if raw is None:
+                        continue
+                    decoded = raw.decode(part.get_content_charset() or "utf-8", errors="replace")
+                    if ct == "text/plain" and not record["Content"]["Body"]:
+                        record["Content"]["Body"] = decoded
+                    parts.append({"Headers": {"Content-Type": [ct]}, "Body": decoded})
+                record["MIME"] = {"Parts": parts}
+            else:
+                raw = msg.get_payload(decode=True)
+                if raw:
+                    record["Content"]["Body"] = raw.decode(
+                        msg.get_content_charset() or "utf-8", errors="replace")
+            with _lock:
+                _inbox.append(record)
+            return "250 Message accepted for delivery"
+
+    class _APIHandler(http.server.BaseHTTPRequestHandler):
+        def do_GET(self):
+            if "/api/v2/messages" in self.path or "/api/v1/messages" in self.path:
+                with _lock:
+                    data = json.dumps({
+                        "total": len(_inbox), "count": len(_inbox),
+                        "start": 0, "items": list(reversed(_inbox)),
+                    }).encode()
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Length", str(len(data)))
+                self.end_headers()
+                self.wfile.write(data)
+            else:
+                self.send_response(404)
+                self.end_headers()
+        def log_message(self, *_): pass
+
+    try:
+        from aiosmtpd.controller import Controller
+        ctrl = Controller(_SMTPHandler(), hostname="localhost", port=smtp_port)
+        ctrl.start()
+        srv = http.server.HTTPServer(("localhost", api_port), _APIHandler)
+        threading.Thread(target=srv.serve_forever, daemon=True).start()
+        return f"http://localhost:{api_port}", lambda: (ctrl.stop(), srv.shutdown())
+    except Exception:
+        return None, None
+
+
+def auto_setup_email_provider(configured_url="http://localhost:8025", smtp_port=1025):
+    """
+    Ordem de tentativas:
+    1. Provider já disponível → usa diretamente.
+    2. Mock Python (aiosmtpd + HTTP) → sem dependências externas além de pip.
+    3. Docker mailhog/mailhog → sobe container se Docker disponível.
+    Retorna (api_url, cleanup_fn) ou (None, None) se tudo falhar.
+    """
+    # 1. Já disponível?
+    try:
+        if requests.get(f"{configured_url}/api/v2/messages", timeout=3).status_code == 200:
+            return configured_url, lambda: None
+    except Exception:
+        pass
+
+    # 2. Mock Python puro
+    subprocess.run([sys.executable, "-m", "pip", "install", "-q", "aiosmtpd"],
+                   capture_output=True)
+    mock_url, cleanup = _start_mock_email_server(smtp_port=smtp_port, api_port=8025)
+    if mock_url:
+        return mock_url, cleanup
+
+    # 3. Docker fallback
+    try:
+        name = f"qa-mailhog-{int(time.time())}"
+        r = subprocess.run(
+            ["docker", "run", "-d", "--rm",
+             "-p", f"{smtp_port}:1025", "-p", "8025:8025",
+             "--name", name, "mailhog/mailhog"],
+            capture_output=True, text=True, timeout=60,
+        )
+        if r.returncode == 0:
+            cid = r.stdout.strip()
+            _wait_http_ready("http://localhost:8025/api/v2/messages", timeout_s=20)
+            return "http://localhost:8025", lambda: subprocess.run(
+                ["docker", "stop", cid], capture_output=True)
+    except Exception:
+        pass
+
+    return None, None
+```
+
+**Integração no fluxo de execução:** No início do script gerado, antes de qualquer TC, chame `auto_setup_email_provider(MAILHOG_URL)` e redefina `MAILHOG_URL` com a URL retornada. Se retornar `(None, None)`, marque todos os TCs como `skipped` com `reason: "email_provider_unavailable"` e mensagem descrevendo que Mailhog local, mock Python e Docker falharam. Envolva toda a execução em `try/finally` chamando `cleanup()` ao final — inclusive em caso de erro.
+
+---
+
 ## Providers suportados
 
 ### Mailhog (modo padrão — sem credencial)
@@ -262,7 +413,7 @@ def get_from(msg, provider_type):
 - **Validação de from:** substring match (aceita `noreply@app.com` ou `"App Name" <noreply@app.com>`).
 - **Validação de body:** substring match em texto puro ou HTML — basta constar em um dos dois.
 - **Validação de links:** GET em cada link `<a href="...">` extraído do HTML. Status < 400 = válido. Links com domínio `localhost` ou `127.0.0.1` são ignorados em validação de links (registre `links_skipped_local: true`).
-- **Se provider não configurado e Mailhog não responder (connection refused):** registre todos os TCs como `status: "skipped"` com `reason: "email_provider_not_configured"` e mensagem: `"Configure email_provider no contexto de execução (mailhog, mailtrap, imap ou gmail_api). Para Mailhog local: docker run -d -p 1025:1025 -p 8025:8025 mailhog/mailhog"`.
+- **Se provider não configurado ou Mailhog não responder:** chame `auto_setup_email_provider()`. Se retornar `(None, None)` — ou seja, mock Python e Docker também falharam — registre todos os TCs como `status: "skipped"` com `reason: "email_provider_unavailable"` e mensagem `"Provider de email indisponível: Mailhog local não respondeu, mock Python (aiosmtpd) falhou ao iniciar e Docker não disponível ou imagem mailhog/mailhog não encontrada"`.
 - **Limpeza de inbox:** não limpe o inbox automaticamente — pode interferir com outros agentes rodando em paralelo. Filtre por destinatário e janela de tempo.
 - **Janela de tempo:** ao buscar emails, prefira os recebidos nos últimos 5 minutos para evitar falsos positivos com emails antigos de execuções anteriores. Em Mailhog/Mailtrap, verifique o campo de data da mensagem quando disponível.
 
@@ -359,10 +510,10 @@ def run(tc_id, title, fn):
             "status": "passed",
             "duration_ms": int((time.time() - start) * 1000),
             "email_details": email_details,
-            "error": None,
+            "error": "",
             "attempts": 1,
             "retry_diff_logs": False,
-            "attempt_logs": [{"attempt": 1, "status": "passed", "error": None, "duration_ms": int((time.time() - start) * 1000)}],
+            "attempt_logs": [{"attempt": 1, "status": "passed", "error": "", "duration_ms": int((time.time() - start) * 1000)}],
         })
     except AssertionError as e:
         msg = str(e) if str(e) else "AssertionError sem mensagem"
@@ -536,10 +687,10 @@ Retorne JSON no formato:
         "links_valid": true,
         "links_checked": ["https://app.com/confirm/abc123"]
       },
-      "error": null,
+      "error": "",
       "attempts": 1,
       "retry_diff_logs": false,
-      "attempt_logs": [{"attempt": 1, "status": "passed", "error": null, "duration_ms": 4200}]
+      "attempt_logs": [{"attempt": 1, "status": "passed", "error": "", "duration_ms": 4200}]
     }
   ],
   "summary": {

@@ -39,24 +39,17 @@ Mapeamento dos campos:
 - `auth.token` → use como `Authorization: Bearer <token>` nas chamadas à aplicação.
 - `auth.credentials` → gere o token via HTTP POST antes de disparar os TCs usando `auto_get_token()`:
   ```python
-  import requests as _req
-
-  def auto_get_token(base_url, email, password):
-      for ep in ["/auth/login", "/api/auth/login", "/api/login", "/login", "/oauth/token"]:
-          try:
-              r = _req.post(base_url.rstrip("/") + ep,
-                            json={"email": email, "password": password}, timeout=5)
-              if r.ok:
-                  body = r.json()
-                  tok = (body.get("access_token") or body.get("token")
-                         or body.get("accessToken") or body.get("AccessToken"))
-                  if tok:
-                      return tok
-          except Exception:
-              pass
-      return None
+  # — carrega snippets do Squad QA —
+  import sys as _sys, os as _os
+  _p = _os.path.abspath(__file__)
+  for _ in range(6):
+      _p = _os.path.dirname(_p)
+      if _os.path.isdir(_os.path.join(_p, 'lib', 'snippets')):
+          _sys.path.insert(0, _os.path.join(_p, 'lib', 'snippets'))
+          break
+  from qa_auth import auto_get_token, detect_credentials_failed
   ```
-  Chame antes do loop de testes: `TOKEN = auto_get_token(BASE_URL, email, password)`.
+  Chame antes do loop de testes: `TOKEN = auto_get_token(base_url, email=email, password=password)`.
   Se `TOKEN` for `None`, não prossiga: retorne imediatamente todos os TCs com `{"status": "error", "credentials_failed": True, "error": "Falha ao obter token — verifique credenciais e endpoint de login"}`.
 - `auth.api_key` → injete conforme `auth.api_key.in`: se `"header"`, adicione ao header; se `"query"`, anexe à URL.
 - `auth_map` → mapa de autenticação por domínio; para cada chamada à aplicação, extraia o host e use a entrada correspondente em vez do `auth` global.
@@ -97,6 +90,152 @@ def install_queue_deps(queue_type):
         check=False
     )
 ```
+
+---
+
+## Auto-setup do broker
+
+Antes de executar qualquer TC, verifique se o broker está disponível. Se não estiver, tente subir automaticamente na seguinte ordem de fallback:
+
+1. **Broker já disponível** — usa diretamente, sem setup.
+2. **kombu in-memory (Python puro)** — sem Docker, sem serviços externos. Suporta apenas TCs de round-trip (publicar + consumir sem envolvimento da aplicação). TCs que dependem do app publicar na fila são marcados como `skipped` com `reason: "kombu_memory_no_app_integration"`.
+3. **Docker** — `rabbitmq:3-management` (RabbitMQ) ou `bitnami/kafka` (Kafka).
+
+Se todas as tentativas falharem, marque todos os TCs como `skipped` com `reason: "broker_unavailable_no_docker"`.
+
+```python
+def _wait_port(host, port, timeout_s=30):
+    import socket
+    deadline = time.time() + timeout_s
+    while time.time() < deadline:
+        try:
+            s = socket.create_connection((host, int(port)), timeout=2)
+            s.close()
+            return True
+        except Exception:
+            pass
+        time.sleep(1)
+    return False
+
+
+def auto_setup_queue(queue_type, queue_config):
+    """
+    Ordem de tentativas:
+    1. Broker já disponível → usa diretamente.
+    2. kombu in-memory → Python puro, só round-trip sem app.
+    3. Docker → sobe container se Docker disponível.
+    Retorna (backend_type, effective_config, cleanup_fn) ou (None, None, None) se tudo falhar.
+    backend_type: "real" | "kombu_memory" | None
+    """
+    cfg = queue_config or {}
+
+    if queue_type == "rabbitmq":
+        host = cfg.get("host", "localhost")
+        port = cfg.get("port", 5672)
+
+        # 1. Já disponível?
+        if _wait_port(host, port, timeout_s=3):
+            return "real", cfg, lambda: None
+
+        # 2. kombu in-memory
+        try:
+            subprocess.run([sys.executable, "-m", "pip", "install", "-q", "kombu"],
+                           capture_output=True, timeout=30)
+            import kombu  # noqa: F401
+            return "kombu_memory", {"transport": "memory", "virtual_host": "qa-test"}, lambda: None
+        except Exception:
+            pass
+
+        # 3. Docker
+        try:
+            name = f"qa-rabbitmq-{int(time.time())}"
+            r = subprocess.run(
+                ["docker", "run", "-d", "--rm",
+                 "-p", "5672:5672", "-p", "15672:15672",
+                 "--name", name, "rabbitmq:3-management"],
+                capture_output=True, text=True, timeout=60,
+            )
+            if r.returncode == 0:
+                cid = r.stdout.strip()
+                if _wait_port("localhost", 5672, timeout_s=30):
+                    docker_cfg = {"host": "localhost", "port": 5672,
+                                  "user": "guest", "password": "guest", "vhost": "/"}
+                    return "real", docker_cfg, lambda: subprocess.run(
+                        ["docker", "stop", cid], capture_output=True)
+        except Exception:
+            pass
+
+    elif queue_type == "kafka":
+        servers = cfg.get("bootstrap_servers", ["localhost:9092"])
+        host_port = servers[0].rsplit(":", 1)
+        host, port = (host_port[0], host_port[1]) if len(host_port) == 2 else ("localhost", "9092")
+
+        # 1. Já disponível?
+        if _wait_port(host, port, timeout_s=3):
+            return "real", cfg, lambda: None
+
+        # 2. Docker (Kafka não tem mock Python equivalente)
+        try:
+            name = f"qa-kafka-{int(time.time())}"
+            r = subprocess.run(
+                ["docker", "run", "-d", "--rm",
+                 "-p", "9092:9092",
+                 "-e", "KAFKA_CFG_NODE_ID=0",
+                 "-e", "KAFKA_CFG_PROCESS_ROLES=broker,controller",
+                 "-e", "KAFKA_CFG_LISTENERS=PLAINTEXT://:9092,CONTROLLER://:9093",
+                 "-e", "KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://localhost:9092",
+                 "-e", "KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT",
+                 "-e", "KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=0@localhost:9093",
+                 "-e", "KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER",
+                 "--name", name, "bitnami/kafka:latest"],
+                capture_output=True, text=True, timeout=60,
+            )
+            if r.returncode == 0:
+                cid = r.stdout.strip()
+                if _wait_port("localhost", 9092, timeout_s=45):
+                    return "real", {"bootstrap_servers": ["localhost:9092"]}, \
+                           lambda: subprocess.run(["docker", "stop", cid], capture_output=True)
+        except Exception:
+            pass
+
+    return None, None, None
+```
+
+### Conector kombu in-memory (backend_type == "kombu_memory")
+
+Usado quando o broker real não está disponível e Docker também falhou. Suporta apenas TCs que o próprio executor publica e consome (round-trip), sem envolvimento da aplicação.
+
+```python
+def publish_kombu_memory(virtual_host, exchange_name, routing_key, message):
+    from kombu import Connection, Exchange, Producer
+    with Connection(f"memory://{virtual_host}") as conn:
+        exchange = Exchange(exchange_name, type="direct", durable=False)
+        with conn.channel() as ch:
+            producer = Producer(ch, exchange=exchange, routing_key=routing_key)
+            producer.publish(message, serializer="json", declare=[exchange])
+
+
+def consume_kombu_memory(virtual_host, exchange_name, queue_name, routing_key,
+                         match_fn=None, timeout_s=10):
+    from kombu import Connection, Exchange, Queue as KombuQueue, Consumer
+    received = []
+    def _on_msg(body, msg):
+        received.append(body)
+        msg.ack()
+    with Connection(f"memory://{virtual_host}") as conn:
+        exchange = Exchange(exchange_name, type="direct", durable=False)
+        queue = KombuQueue(queue_name, exchange, routing_key=routing_key, durable=False)
+        with Consumer(conn, queues=[queue], callbacks=[_on_msg], accept=["json"]):
+            deadline = time.time() + timeout_s
+            while time.time() < deadline and not received:
+                try:
+                    conn.drain_events(timeout=1)
+                except Exception:
+                    break
+    return next((m for m in received if match_fn is None or match_fn(m)), None)
+```
+
+**Integração no fluxo de execução:** No início do script gerado, antes de qualquer TC, chame `auto_setup_queue(QUEUE_TYPE, queue_config_dict)`. Se `backend_type == "kombu_memory"`, use os conectores kombu acima e pule com `reason: "kombu_memory_no_app_integration"` qualquer TC que dispare ação na aplicação. Se retornar `(None, None, None)`, marque todos os TCs como `skipped` com `reason: "broker_unavailable_no_docker"`. Envolva toda a execução em `try/finally` chamando `cleanup()` ao final.
 
 ---
 
@@ -390,9 +529,9 @@ def run(tc_id, title, fn):
         dur = int((time.time() - start) * 1000)
         results.append({
             "id": tc_id, "title": title, "type": "queue", "status": "passed",
-            "duration_ms": dur, "message_details": details, "error": None,
+            "duration_ms": dur, "message_details": details, "error": "",
             "attempts": 1, "retry_diff_logs": False,
-            "attempt_logs": [{"attempt": 1, "status": "passed", "error": None, "duration_ms": dur}],
+            "attempt_logs": [{"attempt": 1, "status": "passed", "error": "", "duration_ms": dur}],
         })
     except AssertionError as e:
         dur = int((time.time() - start) * 1000)
@@ -578,7 +717,7 @@ A partir dos steps de cada TC recebido, gere funções específicas para os padr
 
 - **Isolamento de grupo:** sempre use `group_id = f"qa-test-{int(time.time())}"` para evitar interferência com consumers de produção. Nunca reutilize group_ids fixos em testes.
 - **`auto_offset_reset: "latest"`** — crie o consumer **antes** de disparar a ação na aplicação; isso garante que apenas mensagens novas (após o teste iniciar) sejam consumidas, nunca mensagens antigas de execuções anteriores.
-- **Broker não acessível:** se a conexão ao broker falhar em até 5 s, marque todos os TCs como `status: "skipped"` com `reason: "broker_not_reachable"` e `error: "Broker <tipo> não acessível em <host:porta> — verifique configuração de rede e credenciais"`. Nunca trave esperando conexão indefinidamente.
+- **Broker não acessível:** se a conexão ao broker falhar, chame `auto_setup_queue()`. Se retornar `backend_type == "kombu_memory"`, use os conectores kombu para TCs de round-trip e marque com `reason: "kombu_memory_no_app_integration"` os TCs que dependem do app publicar. Se retornar `(None, None, None)`, marque todos os TCs como `skipped` com `reason: "broker_unavailable_no_docker"` e `error: "Broker <tipo> não acessível, mock Python falhou e Docker indisponível"`. Nunca trave esperando conexão indefinidamente.
 - **Timeout de conexão:** use `socket_timeout=5` (RabbitMQ), `request_timeout=5` (SQS) ou `session_timeout_ms=5000` (Kafka) ao criar clientes. Se a conexão não for estabelecida em 5 s, falhe com `skipped`.
 - **Mensagem não chega no timeout:** registre `status: "failed"` com mensagem descritiva incluindo tópico/fila, evento esperado, timeout e identificador de negócio (ex: `order_id`).
 - **Limpeza após cada TC:** sempre chame `consumer.close()` / `conn.close()` ao final de cada TC para liberar recursos e evitar vazamento de conexões.
@@ -638,10 +777,10 @@ Retorne JSON no formato:
           "quantity": 2
         }
       },
-      "error": null,
+      "error": "",
       "attempts": 1,
       "retry_diff_logs": false,
-      "attempt_logs": [{"attempt": 1, "status": "passed", "error": null, "duration_ms": 2800}]
+      "attempt_logs": [{"attempt": 1, "status": "passed", "error": "", "duration_ms": 2800}]
     }
   ],
   "summary": {

@@ -108,6 +108,12 @@ framework = config["executors"]["api"]["framework"]
 | grpc | — | sempre `executor-grpc` | `executor-grpc` |
 | graphql | — | sempre `executor-graphql` | `executor-graphql` |
 | contrato | — | sempre `executor-contrato` | `executor-contrato` |
+| contrato-async | — | sempre `executor-contrato` (pact_mode=async) | `executor-contrato` |
+| soap | — | sempre `executor-api-soap` | `executor-api-soap` |
+| newman | — | sempre `executor-newman` | `executor-newman` |
+| sse | — | sempre `executor-sse` | `executor-sse` |
+| pytest | — | sempre `executor-pytest` | `executor-pytest` |
+| observabilidade | — | sempre `executor-observabilidade` | `executor-observabilidade` |
 | mobile nativo | — | sempre `executor-mobile` | `executor-mobile` |
 | data-driven | — | sempre `executor-datadrive` | `executor-datadrive` |
 | email | — | sempre `executor-email` | `executor-email` |
@@ -316,6 +322,12 @@ Use esta tabela como base de classificação. As palavras-chave são indicadores
 | `queue` | "fila de mensagens", "Kafka", "RabbitMQ", "SQS", "Service Bus", "evento publicado", "mensagem na fila", "consumer", "producer", "tópico", "publish", "consume", "event-driven", "mensagem assíncrona", "broker de mensagens" | `executor-queue` |
 | `i18n` | "tradução", "idioma", "locale", "internacionalização", "i18n", "l10n", "localização", "strings traduzidas", "texto em português", "formato de data por locale", "moeda local", "hardcoded strings", "pt-BR", "en-US", "de-DE", "multilíngue" | `executor-i18n` |
 | `chaos` | "resiliência", "degradação graciosa", "serviço fora do ar", "injeção de falha", "chaos", "Toxiproxy", "timeout do serviço", "circuit breaker", "fallback", "comportamento com dependência indisponível", "latência injetada", "falha de rede simulada", "recuperação após falha" | `executor-chaos` |
+| `soap` | "SOAP", "WSDL", "Web Service", "envelope SOAP", "SOAPAction", "operação WSDL", "serviço .asmx", "serviço .svc", "XML Web Service", "WS-Security", "UsernameToken", "SOAP Fault", "namespace XML", "chamada RPC XML", "serviço legado XML" | `executor-api-soap` |
+| `newman` | "Postman Collection", "Newman", "collection.json", "arquivo .json do Postman", "executar Collection", "rodar Collection", "importar Collection Postman", "environment Postman", "global-var Postman", "testes Postman" | `executor-newman` |
+| `sse` | "Server-Sent Events", "SSE", "EventSource", "text/event-stream", "stream de eventos", "evento push", "streaming HTTP", "NDJSON", "chunked response", "streaming de dados", "stream de notificações", "live stream", "real-time stream", "evento SSE", "stream contínuo" | `executor-sse` |
+| `pytest` | "pytest", "test_*.py", "*_test.py", "conftest", "pytest.ini", "pyproject.toml", "--json-report", "fixture", "parametrize", "mark.", "assert ", "def test_", "executar suite", "rodar testes Python", "suite Python existente" | `executor-pytest` |
+| `observabilidade` | "trace", "span", "Jaeger", "Zipkin", "OpenTelemetry", "Prometheus", "métricas", "counter", "http_requests_total", "tracing", "trace ID", "atributos do span", "latência de trace", "observabilidade", "telemetria" | `executor-observabilidade` |
+| `contrato-async` | "mensagem Pact", "contrato de evento", "message pact", "contrato assíncrono", "AsyncAPI", "schema de mensagem", "evento publicado no tópico", "consumer de fila espera mensagem", "produtor deve emitir evento", "Message Pact", "contrato de fila" | `executor-contrato` (modo async) |
 
 
 ---
@@ -391,6 +403,47 @@ Para testes com `type: "mobile"`, sempre inclua o campo `mobile_target: "web"` o
 | Testa comportamento quando dependência está fora do ar, com latência injetada ou falha de rede | `chaos` |
 | Menciona Toxiproxy, circuit breaker, fallback, degradação graciosa | `chaos` |
 | `environment_type == "production"` + indicadores de chaos | `needs_clarification` — nunca classifique como `chaos` em produção |
+
+**Desambiguação `soap` vs. `integração`:**
+
+| Indicador | Tipo correto |
+|---|---|
+| Steps mencionam WSDL, SOAPAction, envelope SOAP ou WS-Security | `soap` |
+| Serviço com endpoint `.asmx`, `.svc` ou resposta XML estruturada com namespace | `soap` |
+| Requisição HTTP REST sem WSDL nem SOAPAction | `integração` |
+
+**Desambiguação `newman` vs. `integração`:**
+
+| Indicador | Tipo correto |
+|---|---|
+| Steps mencionam arquivo `.postman_collection.json` ou Collection Postman | `newman` |
+| Steps mencionam CLI `newman run` ou environment file Postman | `newman` |
+| Testes de API sem referência a Collection ou Postman | `integração` |
+
+**Desambiguação `sse` vs. `websocket`:**
+
+| Indicador | Tipo correto |
+|---|---|
+| Steps mencionam `EventSource`, `text/event-stream`, NDJSON ou chunked response | `sse` |
+| Endpoint `/events`, `/stream` ou `/sse` com streaming HTTP unidirecional | `sse` |
+| Steps mencionam `ws://`, `wss://`, handshake ou mensagens bidirecionais | `websocket` |
+| Na dúvida entre SSE e WebSocket (apenas "streaming" sem indicador claro) | `sse` com `low_confidence: true` |
+
+**Desambiguação `pytest` vs. outros tipos:**
+
+| Indicador | Tipo correto |
+|---|---|
+| Steps referenciam arquivos `.py` existentes, diretório de testes Python ou sintaxe pytest (`def test_`, `conftest`, `fixture`, `parametrize`) | `pytest` |
+| Steps pedem para executar suite Python existente ou rodar `pytest` diretamente | `pytest` |
+| Teste descreve cenário funcional sem referenciar arquivos Python pré-existentes | tipo funcional correspondente (`integração`, `browser`, etc.) |
+
+**Desambiguação `observabilidade` vs. outros tipos:**
+
+| Indicador | Tipo correto |
+|---|---|
+| Steps validam traces, spans, métricas emitidas pela aplicação (Jaeger, Zipkin, Prometheus, OpenTelemetry) | `observabilidade` |
+| Tipicamente combinado com outro executor: API ou browser executa o fluxo, `observabilidade` valida o trace gerado | `observabilidade` (registre `depends_on` do TC que dispara o trace) |
+| Steps apenas verificam tempo de resposta ou SLA sem inspecionar traces/spans | `performance` |
 
 ---
 

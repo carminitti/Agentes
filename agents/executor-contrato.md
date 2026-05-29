@@ -143,10 +143,10 @@ tc_result = {
     "type": "contrato",
     "status": "passed",
     "pact_file": str(pact_file),
-    "error": None,
+    "error": "",
     "attempts": 1,
     "retry_diff_logs": False,
-    "attempt_logs": [{"attempt": 1, "status": "passed", "error": None, "duration_ms": elapsed_ms}],
+    "attempt_logs": [{"attempt": 1, "status": "passed", "error": "", "duration_ms": elapsed_ms}],
 }
 ```
 
@@ -188,6 +188,31 @@ Se não houver Pact Broker configurado mas houver arquivo `.json` de pact no `su
 verifier.verify_pacts(source=pact_file_path)
 ```
 
+**Template obrigatório de resultado para modo provedor:**
+```python
+import time as _time
+_t0 = _time.time()
+output, verifier_logs = verifier.verify_with_broker(...)  # ou verify_pacts()
+elapsed_ms = int((_time.time() - _t0) * 1000)
+
+# output == 0 significa que todos os pacts foram verificados com sucesso
+verified_ok = (output == 0)
+tc_result = {
+    "id": tc_id,
+    "title": title,
+    "type": "contrato",
+    "status": "passed" if verified_ok else "failed",
+    "error": (None if verified_ok
+              else f"Verificação falhou para provider '{provider_name}' — verifique pacts no Broker"),
+    "attempts": 1,
+    "retry_diff_logs": False,
+    "attempt_logs": [{"attempt": 1,
+                      "status": "passed" if verified_ok else "failed",
+                      "error": "", "duration_ms": elapsed_ms}],
+    "duration_ms": elapsed_ms,
+}
+```
+
 ---
 
 ## Output
@@ -204,10 +229,10 @@ verifier.verify_pacts(source=pact_file_path)
       "status": "passed",
       "duration_ms": 540,
       "pact_file": "suite_xxx/contratos/orders-service-payments-api.json",
-      "error": null,
+      "error": "",
       "attempts": 1,
       "retry_diff_logs": false,
-      "attempt_logs": [{"attempt": 1, "status": "passed", "error": null, "duration_ms": 540}]
+      "attempt_logs": [{"attempt": 1, "status": "passed", "error": "", "duration_ms": 540}]
     }
   ]
 }
@@ -217,3 +242,79 @@ verifier.verify_pacts(source=pact_file_path)
 - `type` sempre incluso em cada TC result — use o tipo do TC recebido.
 - `warnings: []` sempre incluso no summary — lista vazia quando não houver avisos.
 - `attempts`, `retry_diff_logs` e `attempt_logs` sempre inclusos por TC.
+
+---
+
+## Modo Async — Pact para sistemas event-driven
+
+**Ativado quando:** `pact_mode == "async"` no contexto **ou** steps contêm "mensagem Pact", "contrato de evento", "message pact", "contrato assíncrono", "AsyncAPI".
+
+Usa `pact-python` Message Pact para contratos de mensagens publicadas em filas/tópicos (Kafka, RabbitMQ, SQS). Não exige endpoint HTTP — o contrato descreve o **schema e conteúdo** da mensagem, não o protocolo de transporte.
+
+```python
+from pact import MessageConsumer, MessageProvider
+
+PACT_DIR = os.path.join(SUITE_DIR, "contratos") if SUITE_DIR else "contratos"
+os.makedirs(PACT_DIR, exist_ok=True)
+
+# --- Lado Consumidor (async) ---
+# Gera o pact JSON descrevendo a mensagem esperada pelo consumidor
+
+pact = (MessageConsumer("[consumer_name]")
+        .has_pact_with(MessageProvider("[provider_name]"), pact_dir=PACT_DIR))
+
+# Para cada mensagem definida nos steps:
+with pact:
+    (pact
+     .given("[estado do producer]")          # ex: "um pedido com id 42 foi criado"
+     .expects_to_receive("[descrição]")       # ex: "evento OrderCreated"
+     .with_content({                          # schema da mensagem
+         "orderId": Like(42),
+         "status":  Term(r"^(created|pending)$", "created"),
+         "items":   EachLike({"sku": Like("ABC-001"), "qty": Like(1)}),
+     })
+     .with_metadata({"contentType": "application/json"}))
+
+    # Função consumidora que processa a mensagem (injeta a mensagem do mock):
+    def _consumer_fn(message: dict):
+        assert "orderId" in message
+        assert message["status"] in ("created", "pending")
+
+    pact.verify(_consumer_fn, "[descrição]")
+
+# Pact JSON gerado em PACT_DIR/[consumer]-[provider].json
+
+# --- Lado Provedor (async) ---
+# Verifica que o producer emite mensagens que satisfazem os pacts existentes
+
+pact_verifier = (MessageProvider("[provider_name]")
+                 .honours_pact_with(MessageConsumer("[consumer_name]"),
+                                    pact_dir=PACT_DIR))
+
+# Mapeie cada estado do pact para uma função que produz a mensagem real:
+state_handlers = {
+    "[estado do producer]": lambda: {"orderId": 42, "status": "created", "items": []},
+}
+pact_verifier.verify(state_handlers)
+```
+
+**Publicação no Pact Broker (async):** idêntico ao modo síncrono — use `pact-broker publish` após gerar o pact JSON.
+
+**Resultado de TC async:**
+```json
+{
+  "id": "TC-PACT-ASYNC-01",
+  "title": "Consumidor orders-ui espera evento OrderCreated do orders-service",
+  "type": "contrato",
+  "status": "passed",
+  "pact_mode": "async",
+  "pact_file": "suite_xxx/contratos/orders-ui-orders-service.json",
+  "error": "",
+  "attempts": 1, "retry_diff_logs": false,
+  "attempt_logs": [{"attempt": 1, "status": "passed", "error": "", "duration_ms": 180}]
+}
+```
+
+> **Quando usar async vs. síncrono:**
+> - `pact_mode: "consumer"` / `"provider"` → serviços HTTP (REST/GraphQL)
+> - `pact_mode: "async"` → mensagens em fila/tópico (Kafka, SQS, RabbitMQ)

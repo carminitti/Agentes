@@ -19,22 +19,15 @@ Procure no input a seção `## Contexto de execução`. Se presente:
 - `auth.token` → injete como header `Authorization: Bearer <token>` em cada chamada.
 - `auth.credentials` → gere o token via HTTP POST antes de iniciar o loop de iterações usando `auto_get_token()`:
   ```python
-  import requests as _req
-
-  def auto_get_token(base_url, email, password):
-      for ep in ["/auth/login", "/api/auth/login", "/api/login", "/login", "/oauth/token"]:
-          try:
-              r = _req.post(base_url.rstrip("/") + ep,
-                            json={"email": email, "password": password}, timeout=5)
-              if r.ok:
-                  body = r.json()
-                  tok = (body.get("access_token") or body.get("token")
-                         or body.get("accessToken") or body.get("AccessToken"))
-                  if tok:
-                      return tok
-          except Exception:
-              pass
-      return None
+  # — carrega snippets do Squad QA —
+  import sys as _sys, os as _os
+  _p = _os.path.abspath(__file__)
+  for _ in range(6):
+      _p = _os.path.dirname(_p)
+      if _os.path.isdir(_os.path.join(_p, 'lib', 'snippets')):
+          _sys.path.insert(0, _os.path.join(_p, 'lib', 'snippets'))
+          break
+  from qa_auth import auto_get_token, detect_credentials_failed
   ```
   Se `TOKEN` for `None`, não prossiga: retorne todos os TCs com `{"status": "error", "credentials_failed": true, "error": "Falha ao obter token — verifique credenciais e endpoint de login"}`.
 - `auth.api_key` → injete conforme `auth.api_key.in`: se `"header"`, adicione ao dict de headers; se `"query"`, anexe à URL de cada requisição.
@@ -279,7 +272,7 @@ def run_iteration(tc_id, title, tc_type, row, iteration_index, fn):
         fn(row)
         duration_ms = int((time.time() - start) * 1000)
         status = "passed"
-        error_msg = None
+        error_msg = ""
         results.append({
             "id":              f"{tc_id}[{iteration_index}]",
             "title":           f"{title} — linha {iteration_index + 1}: {row}",
@@ -515,10 +508,10 @@ print(json.dumps(output))
       "duration_ms": 145,
       "iteration_index": 0,
       "row_data": {"email": "admin@test.com", "role": "admin"},
-      "error": null,
+      "error": "",
       "attempts": 1,
       "retry_diff_logs": false,
-      "attempt_logs": [{"attempt": 1, "status": "passed", "error": null, "duration_ms": 145}]
+      "attempt_logs": [{"attempt": 1, "status": "passed", "error": "", "duration_ms": 145}]
     },
     {
       "id": "TC-DD-001[1]",
@@ -539,10 +532,10 @@ print(json.dumps(output))
       "duration_ms": 118,
       "iteration_index": 2,
       "row_data": {"email": "blocked@test.com", "role": "viewer"},
-      "error": null,
+      "error": "",
       "attempts": 1,
       "retry_diff_logs": false,
-      "attempt_logs": [{"attempt": 1, "status": "passed", "error": null, "duration_ms": 118}]
+      "attempt_logs": [{"attempt": 1, "status": "passed", "error": "", "duration_ms": 118}]
     }
   ],
   "summary": {
