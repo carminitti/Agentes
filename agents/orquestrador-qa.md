@@ -598,6 +598,8 @@ No início de toda execução (logo após a Etapa 0 ser concluída), inicialize 
 ```python
 import datetime, time, json
 
+SQUAD_VERSION = "1.50.7"  # ← atualize aqui ao bumpar versão (única fonte de verdade)
+
 # Variáveis críticas de estado da execução — inicialize SEMPRE antes de qualquer etapa
 executor_results  = {}
 total_tcs         = 0
@@ -2305,7 +2307,7 @@ _t4_start = time.time()
 
 execution_metrics = {
     "suite_id": suite_dir,
-    "agent_version": "1.50.6",
+    "agent_version": SQUAD_VERSION,
     "suite_start_iso": datetime.datetime.fromtimestamp(_suite_start).isoformat(),
     "suite_end_iso": datetime.datetime.fromtimestamp(_t4_start).isoformat(),
     "total_duration_ms": int((_t4_start - _suite_start) * 1000),
@@ -2459,7 +2461,7 @@ _t4_start = time.time()
 
 execution_metrics = {
     "suite_id": suite_dir,
-    "agent_version": "1.50.6",
+    "agent_version": SQUAD_VERSION,
     "suite_start_iso": datetime.datetime.fromtimestamp(_suite_start).isoformat(),
     "suite_end_iso": datetime.datetime.fromtimestamp(_t4_start).isoformat(),
     "total_duration_ms": int((_t4_start - _suite_start) * 1000),

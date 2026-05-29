@@ -221,7 +221,8 @@ test_cases = [
 ]
 
 results = [run_tc(tc) for tc in test_cases]
-summary = make_summary("executor-sse", results)
+_credentials_failed = detect_credentials_failed(results)
+summary = make_summary("executor-sse", results, credentials_failed=_credentials_failed)
 output  = {"summary": summary, "results": results}
 out_file = os.path.join(SSE_DIR, "resultado.json")
 with open(out_file, "w", encoding="utf-8") as f:
