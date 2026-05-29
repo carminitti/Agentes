@@ -413,6 +413,7 @@ summary = {
     "failed":  sum(1 for r in results if r["status"] == "failed"),
     "error":   sum(1 for r in results if r["status"] == "error"),
     "skipped": sum(1 for r in results if r["status"] == "skipped"),
+    "credentials_failed": False,
     "warnings": [],
     "locales_with_issues": list({
         r["id"].split("[")[1].rstrip("]")
@@ -425,6 +426,7 @@ output_json = {
     "executor": "executor-i18n",
     "locales_tested": LOCALES,
     "environment": BASE_URL,
+    "credentials_failed": False,
     "results": results,
     "summary": summary,
 }

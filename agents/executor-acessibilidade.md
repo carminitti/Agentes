@@ -420,8 +420,9 @@ expect(announcement).toContain(EXPECTED_ANNOUNCEMENT);
     "total": 3,
     "passed": 1,
     "failed": 1,
-    "warning": 1,
+    "error": 0,
     "skipped": 0,
+    "credentials_failed": false,
     "warnings": [],
     "known_environment_failures": 1,
     "total_violations": 3,
@@ -528,7 +529,7 @@ Se o `## Contexto de execução` contiver `"lean_mode": true`, aplique todas as 
     { "id": "TC-070", "title": "Página inicial — WCAG 2.1 AA", "status": "passed", "duration_ms": 1200, "attempts": 1, "retry_diff_logs": false, "attempt_logs": [{"attempt": 1, "status": "passed", "error": "", "duration_ms": 1200}] },
     { "id": "TC-071", "title": "Formulário de login — WCAG 2.1 AA", "status": "failed", "duration_ms": 980, "error": "2 violações críticas: button-name, label", "attempts": 1, "retry_diff_logs": false, "attempt_logs": [{"attempt": 1, "status": "failed", "error": "2 violações críticas: button-name, label", "duration_ms": 980}] }
   ],
-  "summary": { "total": 2, "passed": 1, "failed": 1, "warning": 0, "skipped": 0 }
+  "summary": { "total": 2, "passed": 1, "failed": 1, "error": 0, "skipped": 0, "credentials_failed": false, "warnings": [] }
 }
 ```
 Omita completamente: `logs`, `violations`, `screenshot_path`, `generated_files`.

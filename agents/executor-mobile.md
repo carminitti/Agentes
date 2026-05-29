@@ -232,7 +232,8 @@ def swipe_down(driver):
                  size["width"] // 2, size["height"] // 4, 500)
 
 
-def record(tc_id, title, status, duration_ms, logs, error=None):
+def record(tc_id, title, status, duration_ms, logs, error=""):
+    _err = error or ""
     results.append({
         "id": tc_id,
         "title": title,
@@ -242,10 +243,10 @@ def record(tc_id, title, status, duration_ms, logs, error=None):
         "platform": PLATFORM,
         "device": DEVICE_NAME,
         "logs": logs,
-        "error": error,
+        "error": _err,
         "attempts": 1,
         "retry_diff_logs": False,
-        "attempt_logs": [{"attempt": 1, "status": status, "error": error, "duration_ms": duration_ms}],
+        "attempt_logs": [{"attempt": 1, "status": status, "error": _err, "duration_ms": duration_ms}],
     })
 
 
