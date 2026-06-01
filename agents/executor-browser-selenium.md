@@ -378,7 +378,8 @@ error   = sum(1 for r in results if r["status"] == "error")
 skipped = sum(1 for r in results if r["status"] == "skipped")
 summary = {
     "total": len(results), "passed": passed, "failed": failed,
-    "error": error, "skipped": skipped, "warnings": [],
+    "error": error, "skipped": skipped,
+    "credentials_failed": _credentials_failed, "warnings": [],
 }
 # Detecta falha de credenciais: todos os testes falharam com erro relacionado a login/auth
 _auth_keywords = ("401", "403", "unauthorized", "forbidden", "login", "password", "autenticação", "credencial")

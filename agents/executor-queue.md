@@ -544,7 +544,7 @@ def run(tc_id, title, fn):
         })
     except Exception as e:
         dur = int((time.time() - start) * 1000)
-        msg = str(e)
+        msg = str(e) or f"{type(e).__name__} (sem mensagem)"
         results.append({
             "id": tc_id, "title": title, "type": "queue", "status": "error",
             "duration_ms": dur, "message_details": None, "error": msg,
@@ -622,12 +622,15 @@ def tc_001():
 run("TC-QUEUE-001", "Evento order.created publicado na fila após criação de pedido", tc_001)
 
 # ── Persistência do resultado ─────────────────────────────────────────────────
+_credentials_failed = detect_credentials_failed(results)
+
 summary = {
     "total":   len(results),
     "passed":  sum(1 for r in results if r["status"] == "passed"),
     "failed":  sum(1 for r in results if r["status"] == "failed"),
     "error":   sum(1 for r in results if r["status"] == "error"),
     "skipped": sum(1 for r in results if r["status"] == "skipped"),
+    "credentials_failed": _credentials_failed,
     "warnings": [],
 }
 
@@ -636,7 +639,7 @@ output = {
     "queue_type":         QUEUE_TYPE,
     "topic":              TOPIC,
     "environment":        BASE_URL,
-    "credentials_failed": False,
+    "credentials_failed": _credentials_failed,
     "results":            results,
     "summary":            summary,
 }

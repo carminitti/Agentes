@@ -125,6 +125,14 @@ from appium.webdriver.common.appiumby import AppiumBy
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
+import sys as _sys, os as _os
+_p = _os.path.abspath(__file__)
+for _ in range(6):
+    _p = _os.path.dirname(_p)
+    if _os.path.isdir(_os.path.join(_p, 'lib', 'snippets')):
+        _sys.path.insert(0, _os.path.join(_p, 'lib', 'snippets'))
+        break
+from qa_auth import detect_credentials_failed
 
 # ── Capabilities ──────────────────────────────────────────────────────────────
 APPIUM_URL   = "[appium.url]"
@@ -262,10 +270,13 @@ if __name__ == "__main__":
     error   = sum(1 for r in results if r["status"] == "error")
     skipped = sum(1 for r in results if r["status"] == "skipped")
 
+    _credentials_failed = detect_credentials_failed(results)
+
     output = {
         "executor": "mobile",
         "platform": PLATFORM,
         "device": DEVICE_NAME,
+        "credentials_failed": _credentials_failed,
         "results": results,
         "summary": {
             "total": len(results),
@@ -273,7 +284,7 @@ if __name__ == "__main__":
             "failed": failed,
             "error": error,
             "skipped": skipped,
-            "credentials_failed": False,
+            "credentials_failed": _credentials_failed,
             "warnings": [],
         },
     }
@@ -443,7 +454,7 @@ def run_tc001():
 
     except (TimeoutException, NoSuchElementException) as e:
         duration = int((time.time() - start) * 1000)
-        msg = str(e)[:300]
+        msg = (str(e) or f"{type(e).__name__} (sem mensagem)")[:300]
         logs.append(f"[ERROR] {type(e).__name__}: {msg}")
         record("TC-001", "Login com credenciais válidas", "failed", duration, logs,
                error=f"Elemento não encontrado: {msg}")
@@ -453,7 +464,7 @@ def run_tc001():
         msg = traceback.format_exc()[:500]
         logs.append(f"[ERROR] {type(e).__name__}: {msg}")
         record("TC-001", "Login com credenciais válidas", "error", duration, logs,
-               error=f"{type(e).__name__}: {str(e)[:300]}")
+               error=f"{type(e).__name__}: {(str(e) or 'sem mensagem')[:300]}")
 
     finally:
         if driver:

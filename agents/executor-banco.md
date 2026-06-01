@@ -267,7 +267,7 @@ def test_connection(cs):
             return False, f"Tipo de banco não reconhecido: {cs[:40]}"
         return True, None
     except Exception as e:
-        return False, str(e)
+        return False, str(e) or f"{type(e).__name__} (erro de conexão)"
 
 import concurrent.futures as _cf
 

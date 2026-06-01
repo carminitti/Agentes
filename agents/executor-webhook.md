@@ -401,12 +401,15 @@ def tc_001():
 run("TC-WH-001", "Webhook payment.confirmed entregue após simulação de pagamento", tc_001)
 
 # ── Persistência do resultado ─────────────────────────────────────────────────
+_credentials_failed = detect_credentials_failed(results)
+
 summary = {
     "total":   len(results),
     "passed":  sum(1 for r in results if r["status"] == "passed"),
     "failed":  sum(1 for r in results if r["status"] == "failed"),
     "error":   sum(1 for r in results if r["status"] == "error"),
     "skipped": sum(1 for r in results if r["status"] == "skipped"),
+    "credentials_failed": _credentials_failed,
     "warnings": [],
 }
 
@@ -414,7 +417,7 @@ output = {
     "executor":           "executor-webhook",
     "webhook_receiver":   WEBHOOK_URL,
     "environment":        BASE_URL,
-    "credentials_failed": False,
+    "credentials_failed": _credentials_failed,
     "results":            results,
     "summary":            summary,
 }

@@ -511,7 +511,7 @@ def run_load_test(url, vus, duration_s, headers=None, method='GET', payload=None
                         errors.append(resp.status_code)
             except Exception as e:
                 with lock:
-                    errors.append(str(e))
+                    errors.append(str(e) or f"{type(e).__name__} (sem mensagem)")
 
     threads = [threading.Thread(target=worker) for _ in range(vus)]
     for t in threads:

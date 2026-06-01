@@ -516,7 +516,7 @@ def main():
     output = {
         "executor": "executor-observabilidade",
         "environment": BASE_URL or JAEGER_URL or PROMETHEUS_URL or ZIPKIN_URL,
-        "credentials_failed": False,
+        "credentials_failed": summary.get("credentials_failed", False),
         "generated_files": [
             {"path": os.path.join(OUTPUT_DIR, "resultado.json"), "content": "(resultado JSON)"},
         ],

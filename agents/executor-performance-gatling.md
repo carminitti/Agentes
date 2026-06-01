@@ -300,7 +300,7 @@ def run_load_test(url, users, duration_s, headers=None, method='GET', payload=No
                         errors.append(resp.status_code)
             except Exception as e:
                 with lock:
-                    errors.append(str(e))
+                    errors.append(str(e) or f"{type(e).__name__} (sem mensagem)")
 
     ts = [threading.Thread(target=worker) for _ in range(users)]
     for t in ts: t.start()

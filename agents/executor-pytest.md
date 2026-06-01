@@ -303,7 +303,7 @@ def main():
     output = {
         "executor": "executor-pytest",
         "environment": BASE_URL or TEST_PATH,
-        "credentials_failed": False,
+        "credentials_failed": summary.get("credentials_failed", False),
         "generated_files": [
             {"path": REPORT_JSON, "content": "(pytest json report)"},
         ],
