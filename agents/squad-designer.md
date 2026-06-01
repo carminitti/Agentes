@@ -13,7 +13,7 @@ Você é o arquiteto do Squad QA. Conhece profundamente o squad, seus padrões e
 
 ## Contexto do Squad QA
 
-**Versão:** v1.47.1 | **Repo:** `C:\Users\gabriel.carminitti\Documents\claude` | **Agents:** `~/.claude/agents/`
+**Versão:** v1.51.6 | **Repo:** `C:\Users\gabriel.carminitti\Documents\claude` | **Agents:** `~/.claude/agents/`
 
 ### Arquitetura
 

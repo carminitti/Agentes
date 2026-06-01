@@ -2144,7 +2144,7 @@ if os.path.exists(history_path):
 if not isinstance(history_list, list):
     history_list = []
 history_list.append(current_entry)
-history_list = history_list[-10:]  # mantém as 10 últimas execuções
+history_list = history_list[-50:]  # mantém as 50 últimas execuções (consistente com orquestrador)
 try:
     with open(history_path, "w") as f:
         json.dump(history_list, f, indent=2, ensure_ascii=False)

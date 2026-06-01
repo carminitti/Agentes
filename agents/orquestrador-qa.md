@@ -1588,11 +1588,11 @@ Antes de despachar qualquer executor, derive o nome e **use a ferramenta Bash ou
    |---|---|
    | `magnitude` ou `http` (browser) | `brw` |
    | `http` (integração/api) | `api` |
-   | `k6` | `perf` |
-   | `playwright-visual` | `vis` |
-   | `axe-core` | `acc` |
-   | `zap` | `sec` |
-   | `db` | `db` |
+   | `k6` / `executor-performance` | `perf` |
+   | `playwright-visual` / `executor-visual` | `vis` |
+   | `axe-core` / `executor-acessibilidade` | `acc` |
+   | `zap` / `executor-seguranca` | `sec` |
+   | `db` / `executor-banco` | `db` |
    | `playwright-mobile` | `mob_web` |
    | `appium` | `mob_nat` |
    | `data-driven` | `dd` |
