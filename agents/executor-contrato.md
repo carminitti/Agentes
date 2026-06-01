@@ -202,7 +202,7 @@ tc_result = {
     "title": title,
     "type": "contrato",
     "status": "passed" if verified_ok else "failed",
-    "error": (None if verified_ok
+    "error": ("" if verified_ok
               else f"Verificação falhou para provider '{provider_name}' — verifique pacts no Broker"),
     "attempts": 1,
     "retry_diff_logs": False,

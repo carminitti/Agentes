@@ -175,7 +175,7 @@ if os.path.exists(JSON_REPORT):
         status = "passed" if (not error_msg and all(a["passed"] for a in assertions_out)) else "failed"
         results.append({
             "id": tc_id, "title": title, "type": "newman",
-            "status": status, "error": error_msg,
+            "status": status, "error": error_msg or "",
             "assertions": assertions_out,
             "attempts": 1, "retry_diff_logs": False,
             "attempt_logs": [{"attempt": 1, "logs": logs}],

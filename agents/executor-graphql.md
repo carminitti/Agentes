@@ -180,7 +180,8 @@ def run_graphql_tc(tc_id, title, query, variables=None, expected_fields=None, ex
             else:
                 result["status"] = "passed"
     except Exception as e:
-        result["error"] = str(e)
+        result["status"] = "error"
+        result["error"] = str(e) or f"{type(e).__name__} (sem mensagem)"
     result["duration_ms"] = int((time.time() - start) * 1000)
     return result
 ```
@@ -217,7 +218,8 @@ async def run_subscription(tc_id, subscription_query, expected_event_field, time
             else:
                 result["error"] = f"Evento esperado '{expected_event_field}' não recebido. Recebido: {msg}"
     except Exception as e:
-        result["error"] = str(e)
+        result["status"] = "error"
+        result["error"] = str(e) or f"{type(e).__name__} (sem mensagem)"
     result["duration_ms"] = int((time.time() - start) * 1000)
     return result
 ```

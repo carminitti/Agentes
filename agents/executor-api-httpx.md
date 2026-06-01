@@ -268,14 +268,15 @@ async def run_tc(client: ApiClient, tc: dict) -> dict:
         }
     except AssertionError as e:
         _dur = int((time.time() - start_ts) * 1000)
+        _emsg = str(e) or "AssertionError sem mensagem"
         return {
             "id": tc_id, "title": title, "status": "failed",
             "duration_ms": _dur,
-            "logs": logs, "error": str(e),
+            "logs": logs, "error": _emsg,
             "type": tc.get("type", ""),
             "attempts": 1,
             "retry_diff_logs": False,
-            "attempt_logs": [{"attempt": 1, "status": "failed", "error": str(e), "duration_ms": _dur}]
+            "attempt_logs": [{"attempt": 1, "status": "failed", "error": _emsg, "duration_ms": _dur}]
         }
     except Exception as e:
         _emsg = str(e) or f"{type(e).__name__} (sem mensagem)"

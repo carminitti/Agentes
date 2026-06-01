@@ -793,4 +793,4 @@ Isso evita que threads concorrentes sobrescrevam a URL base umas das outras.
 - `credentials_failed` **deve** ser incluído no summary mesmo em lean_mode — é essencial para o retry loop do orquestrador.
 - `type` **sempre** incluso em cada TC result — use o tipo do TC recebido do classificador (`"integração"`, `"smoke"`, `"sanity"`).
 - `warnings` **sempre** incluso no summary como lista — `[]` quando não houver avisos; adicione strings descritivas para rate-limit, timeout alto, auth parcial etc.
-- `attempts`, `retry_diff_logs` e `attempt_logs` **sempre** inclusos em cada TC result; `attempts: 1` quando não houve retry, `attempt_logs: null` quando `attempts == 1`.
+- `attempts`, `retry_diff_logs` e `attempt_logs` **sempre** inclusos em cada TC result; `attempts: 1` quando não houve retry, `attempt_logs: [{"attempt": 1, "status": ..., "error": ..., "duration_ms": ...}]` — **nunca null**, mínimo 1 elemento.

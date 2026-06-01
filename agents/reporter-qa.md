@@ -209,7 +209,8 @@ deploy_blocked = (
     any(tc.get("status") in ("failed", "error") and tc.get("type") in ("smoke", "sanity") for tc in all_results)
     or any(
         tc.get("status") in ("failed", "error")
-        and any(kw in (tc.get("title") or "").lower() for kw in ("segurança", "security", "auth", "autenticação"))
+        and tc.get("type") == "segurança"
+        and (tc.get("severity") or "alta").lower() in ("alta", "high", "média", "medium")
         for tc in all_results
     )
 )

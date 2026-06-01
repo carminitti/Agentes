@@ -223,10 +223,10 @@ def run_zap_scan(target_url, tc_ids, url_map=None):
                 "high_details": [{"alert": a["alert"], "url": a["url"]}
                                  for a in tc_relevant_high[:5]]
             },
-            "error": error,
+            "error": error or "",
             "attempts": 1,
             "retry_diff_logs": False,
-            "attempt_logs": [{"attempt": 1, "status": status, "error": error, "duration_ms": 0}]
+            "attempt_logs": [{"attempt": 1, "status": status, "error": error or "", "duration_ms": 0}]
         })
     return results
 ```
@@ -313,7 +313,13 @@ def run_checks_parallel(check_fns):
             try:
                 results.append(future.result())
             except Exception as e:
-                results.append({"error": str(e), "status": "error"})
+                _emsg = str(e) or f"{type(e).__name__} (sem mensagem)"
+                results.append({
+                    "id": "TC-SEG-ERR", "title": "check error", "type": "segurança",
+                    "status": "error", "error": _emsg, "duration_ms": 0,
+                    "attempts": 1, "retry_diff_logs": False,
+                    "attempt_logs": [{"attempt": 1, "status": "error", "error": _emsg, "duration_ms": 0}]
+                })
     return results
 ```
 

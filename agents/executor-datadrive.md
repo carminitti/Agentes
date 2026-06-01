@@ -306,7 +306,7 @@ def run_iteration(tc_id, title, tc_type, row, iteration_index, fn):
     except Exception as e:
         duration_ms = int((time.time() - start) * 1000)
         status = "error"
-        error_msg = str(e)
+        error_msg = str(e) or f"{type(e).__name__} (sem mensagem)"
         results.append({
             "id":              f"{tc_id}[{iteration_index}]",
             "title":           f"{title} — linha {iteration_index + 1}: {row}",

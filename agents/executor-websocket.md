@@ -190,7 +190,8 @@ async def run_tc(tc_id, title, path, send_payload, expected_keys=None, expected_
             else:
                 result["status"] = "passed"
     except Exception as e:
-        result["error"] = str(e)
+        result["status"] = "error"
+        result["error"] = str(e) or f"{type(e).__name__} (sem mensagem)"
 
     result["duration_ms"] = int((time.time() - start) * 1000)
     return result

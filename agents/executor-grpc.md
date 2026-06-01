@@ -160,6 +160,7 @@ for line in proc.stdout.splitlines():
 ```json
 {
   "executor": "executor-grpc",
+  "credentials_failed": false,
   "summary": { "total": 3, "passed": 2, "failed": 0, "error": 0, "skipped": 1, "credentials_failed": false, "warnings": [] },
   "results": [
     { "id": "TC-GRPC-01", "title": "...", "type": "grpc", "status": "passed", "duration_ms": 340, "error": "", "attempts": 1, "retry_diff_logs": false, "attempt_logs": [{"attempt": 1, "status": "passed", "error": "", "duration_ms": 340}] }
@@ -171,3 +172,4 @@ for line in proc.stdout.splitlines():
 - `type` sempre incluso em cada TC result — use o tipo do TC recebido.
 - `warnings: []` sempre incluso no summary — lista vazia quando não houver avisos.
 - `attempts`, `retry_diff_logs` e `attempt_logs` sempre inclusos por TC.
+- `credentials_failed` sempre incluso na raiz e no summary — `false` por padrão; `true` quando `auto_get_token` falha ou quando ≥80% das chamadas retornam status gRPC `UNAUTHENTICATED (16)` / `PERMISSION_DENIED (7)`.

@@ -248,6 +248,15 @@ subprocess.run([sys.executable, "-m", "pip", "install", "-q",
     "playwright", "polib", "requests"], check=False)
 subprocess.run(["playwright", "install", "chromium", "--with-deps"], check=False)
 
+import sys as _sys, os as _os
+_p = _os.path.abspath(__file__)
+for _ in range(6):
+    _p = _os.path.dirname(_p)
+    if _os.path.isdir(_os.path.join(_p, 'lib', 'snippets')):
+        _sys.path.insert(0, _os.path.join(_p, 'lib', 'snippets'))
+        break
+from qa_auth import auto_get_token, detect_credentials_failed
+
 import re
 from playwright.sync_api import sync_playwright
 
@@ -322,11 +331,12 @@ def run(tc_id, title, fn):
             "attempt_logs": [{"attempt": 1, "status": "failed", "error": str(e) if str(e) else "AssertionError sem mensagem", "duration_ms": int((time.time() - start) * 1000)}]
         })
     except Exception as e:
+        _emsg = str(e) or f"{type(e).__name__} (sem mensagem)"
         results.append({
             "id": tc_id, "title": title, "status": "error",
-            "duration_ms": int((time.time() - start) * 1000), "error": str(e),
+            "duration_ms": int((time.time() - start) * 1000), "error": _emsg,
             "type": "i18n", "attempts": 1, "retry_diff_logs": False,
-            "attempt_logs": [{"attempt": 1, "status": "error", "error": str(e), "duration_ms": int((time.time() - start) * 1000)}]
+            "attempt_logs": [{"attempt": 1, "status": "error", "error": _emsg, "duration_ms": int((time.time() - start) * 1000)}]
         })
 
 # ── execução por locale ────────────────────────────────────────────────────────
@@ -407,13 +417,15 @@ with sync_playwright() as pw:
 
 # ── output ─────────────────────────────────────────────────────────────────────
 
+_credentials_failed = detect_credentials_failed(results)
+
 summary = {
     "total":   len(results),
     "passed":  sum(1 for r in results if r["status"] == "passed"),
     "failed":  sum(1 for r in results if r["status"] == "failed"),
     "error":   sum(1 for r in results if r["status"] == "error"),
     "skipped": sum(1 for r in results if r["status"] == "skipped"),
-    "credentials_failed": False,
+    "credentials_failed": _credentials_failed,
     "warnings": [],
     "locales_with_issues": list({
         r["id"].split("[")[1].rstrip("]")
@@ -426,7 +438,7 @@ output_json = {
     "executor": "executor-i18n",
     "locales_tested": LOCALES,
     "environment": BASE_URL,
-    "credentials_failed": False,
+    "credentials_failed": _credentials_failed,
     "results": results,
     "summary": summary,
 }
