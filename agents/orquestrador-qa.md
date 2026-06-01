@@ -598,7 +598,7 @@ No início de toda execução (logo após a Etapa 0 ser concluída), inicialize 
 ```python
 import datetime, time, json
 
-SQUAD_VERSION = "1.50.7"  # ← atualize aqui ao bumpar versão (única fonte de verdade)
+SQUAD_VERSION = "1.51.4"  # ← atualize aqui ao bumpar versão (única fonte de verdade)
 
 # Variáveis críticas de estado da execução — inicialize SEMPRE antes de qualquer etapa
 executor_results  = {}
