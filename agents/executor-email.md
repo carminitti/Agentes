@@ -430,6 +430,15 @@ _r = subprocess.run([sys.executable, "-m", "pip", "install", "-q",
 if _r.returncode != 0:
     raise SystemExit(f"[DEPENDENCY ERROR] pip install falhou:\n{_r.stderr.decode(errors='replace')}")
 
+import sys as _sys, os as _os
+_p = _os.path.abspath(__file__)
+for _ in range(6):
+    _p = _os.path.dirname(_p)
+    if _os.path.isdir(_os.path.join(_p, 'lib', 'snippets')):
+        _sys.path.insert(0, _os.path.join(_p, 'lib', 'snippets'))
+        break
+from qa_auth import detect_credentials_failed
+
 import requests, time, json, os
 from bs4 import BeautifulSoup
 
@@ -530,7 +539,7 @@ def run(tc_id, title, fn):
             "attempt_logs": [{"attempt": 1, "status": "failed", "error": msg, "duration_ms": int((time.time() - start) * 1000)}],
         })
     except Exception as e:
-        msg = str(e)
+        msg = str(e) or f"{type(e).__name__} (sem mensagem)"
         results.append({
             "id": tc_id,
             "title": title,
@@ -600,12 +609,15 @@ import pathlib
 output_dir = pathlib.Path(SUITE_DIR) / "email" if SUITE_DIR else pathlib.Path(f"tmp_email_{int(time.time())}")
 output_dir.mkdir(parents=True, exist_ok=True)
 
+_credentials_failed = detect_credentials_failed(results)
+
 summary = {
     "total":   len(results),
     "passed":  sum(1 for r in results if r["status"] == "passed"),
     "failed":  sum(1 for r in results if r["status"] == "failed"),
     "error":   sum(1 for r in results if r["status"] == "error"),
     "skipped": sum(1 for r in results if r["status"] == "skipped"),
+    "credentials_failed": _credentials_failed,
     "warnings": [],
 }
 
@@ -613,7 +625,7 @@ output = {
     "executor":    "executor-email",
     "provider":    PROVIDER_TYPE,
     "environment": BASE_URL,
-    "credentials_failed": False,
+    "credentials_failed": _credentials_failed,
     "results":  results,
     "summary":  summary,
 }
