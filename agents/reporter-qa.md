@@ -150,7 +150,7 @@ Ao consolidar os resultados, separe os testes em três grupos distintos:
 
 **Grupo 1 — Report Principal** (`relatorio.html`): todos os testes EXCETO os de performance e segurança.
 
-**Grupo 2 — Report de Performance** (`relatorio-performance.html`): somente testes com executor `k6` (tipos: `performance`, `carga`, `stress`, `soak`, `spike`). Gerado APENAS quando houver testes de performance na suite.
+**Grupo 2 — Report de Performance** (`relatorio-performance.html`): somente testes com executor `executor-performance` (tipos: `performance`, `carga`, `stress`, `soak`, `spike`). Gerado APENAS quando houver testes de performance na suite.
 
 **Grupo 3 — Report de Segurança** (`relatorio-seguranca.html`): somente testes com executor `zap` (tipo: `segurança`). Gerado APENAS quando houver testes de segurança na suite.
 
@@ -2215,13 +2215,49 @@ Chame `generate_junit_xml(suite_dir or "suite", all_results, suite_dir)` ao fina
 
 | Campo `executor` no JSON | Nome de exibição | Ícone |
 |---|---|---|
-| `browser` | Browser / UI | 🌐 |
-| `api` | API REST | 🔌 |
-| `k6` | Performance | ⚡ |
-| `playwright-visual` | Regressão Visual | 👁️ |
-| `axe-core` | Acessibilidade | ♿ |
-| `seguranca` | Segurança | 🔒 |
-| `db` | Banco de Dados | 🗄️ |
+| `browser` / `executor-browser` | Browser / UI | 🌐 |
+| `executor-browser-selenium` | Browser / UI (Selenium) | 🌐 |
+| `executor-browser-cypress` | Browser / UI (Cypress) | 🌐 |
+| `api` / `executor-api` | API REST | 🔌 |
+| `executor-api-httpx` | API REST (httpx) | 🔌 |
+| `executor-api-soap` | Web Service SOAP | 🔌 |
+| `executor-performance` / `k6` | Performance | ⚡ |
+| `executor-performance-jmeter` | Performance (JMeter) | ⚡ |
+| `executor-performance-gatling` | Performance (Gatling) | ⚡ |
+| `executor-visual` / `playwright-visual` | Regressão Visual | 👁️ |
+| `executor-acessibilidade` / `axe-core` | Acessibilidade | ♿ |
+| `executor-seguranca` / `seguranca` | Segurança | 🔒 |
+| `executor-banco` / `db` | Banco de Dados | 🗄️ |
+| `executor-websocket` | WebSocket | 🔌 |
+| `executor-grpc` | gRPC | 🔌 |
+| `executor-graphql` | GraphQL | 🔌 |
+| `executor-contrato` | Contrato (Pact) | 📋 |
+| `executor-mobile` | Mobile Nativo | 📱 |
+| `executor-datadrive` | Data-Driven | 📊 |
+| `executor-email` | Email | 📧 |
+| `executor-webhook` | Webhook | 🔗 |
+| `executor-queue` | Fila de Mensagens | 📨 |
+| `executor-i18n` | Internacionalização | 🌍 |
+| `executor-chaos` | Chaos / Resiliência | 💥 |
+| `executor-newman` / `newman` | Newman (Postman) | 📮 |
+| `executor-sse` | Server-Sent Events | 📡 |
+| `executor-pytest` | pytest | 🐍 |
+| `executor-observabilidade` | Observabilidade | 🔭 |
+
+### Badge de falha de credenciais (`credentials_failed`)
+
+Se **qualquer** executor no payload de entrada retornar `"credentials_failed": true` no `summary` ou na raiz do JSON de resultado, exiba o seguinte bloco logo após a tag `<main>` e antes do `<div class="metrics-panel">`:
+
+```html
+<div style="background:var(--orange-dim);border:1px solid var(--orange);border-radius:var(--radius-sm);padding:12px 20px;margin-bottom:20px;display:flex;align-items:center;gap:12px;font-size:14px;font-weight:700;color:var(--orange-light)">
+  ⚠️ Falha de credenciais detectada — execute <code>/orquestrador-qa</code> com credenciais corrigidas para obter resultados válidos.
+</div>
+```
+
+Regras:
+- Exiba o bloco em **ambos os modos** (relatório e técnico) — é uma condição de ambiente, não de teste individual.
+- Se múltiplos executores falharam por credenciais, exiba o bloco apenas uma vez.
+- Se `credentials_failed` for `false` ou ausente em todos os executores, **não** renderize o bloco.
 
 ### Regra de evidências visuais
 
@@ -2245,12 +2281,29 @@ path.replace(/\\/g, '/')
 
 | Executor | Como derivar steps |
 |---|---|
-| browser / visual / a11y | `result.steps[]` (nomes do `test.step()`) + linhas `[ACTION]` e `[ASSERT]` de `result.logs[]` |
-| api | Pares de linhas `[REQUEST]` + `[ASSERT]` / `[CONTRACT]` dos logs |
-| performance | Linhas `[CONFIG]`, `[STAGE-DONE]`, `[THRESHOLD]` dos logs |
-| security | Cada verificação listada nos logs (`[CHECK]`) |
-| banco | Cada query executada nos logs |
-| visual | Linhas `[NAV]`, `[SCREENSHOT]`, `[COMPARE]`, `[RESULT]` dos logs |
+| browser / executor-browser-selenium / executor-browser-cypress | `result.steps[]` (nomes do `test.step()`) + linhas `[ACTION]` e `[ASSERT]` de `result.logs[]` |
+| executor-api / executor-api-httpx | Pares de linhas `[REQUEST]` + `[ASSERT]` / `[CONTRACT]` dos logs |
+| executor-api-soap | Linhas `[WSDL]`, `[CALL]`, `[RESPONSE]`, `[ASSERT]` dos logs |
+| executor-performance / executor-performance-jmeter / executor-performance-gatling | Linhas `[CONFIG]`, `[STAGE-DONE]`, `[THRESHOLD]` dos logs |
+| executor-seguranca | Cada verificação listada nos logs (`[CHECK]`) |
+| executor-banco | Cada query executada nos logs |
+| executor-visual | Linhas `[NAV]`, `[SCREENSHOT]`, `[COMPARE]`, `[RESULT]` dos logs |
+| executor-acessibilidade | Linhas `[NAV]`, `[ANALYZE]`, `[VIOLATION]` dos logs |
+| executor-websocket | Linhas `[CONNECT]`, `[SEND]`, `[RECV]`, `[CLOSE]`, `[ASSERT]` dos logs |
+| executor-grpc | Linhas `[CALL]`, `[RESPONSE]`, `[ASSERT]` dos logs |
+| executor-graphql | Linhas `[QUERY]`/`[MUTATION]`/`[SUBSCRIPTION]`, `[ASSERT]` dos logs |
+| executor-contrato | Linhas `[CONSUMER]`/`[PROVIDER]`, `[PACT]`, `[VERIFY]`, `[ASSERT]` dos logs |
+| executor-mobile | `result.steps[]` (nomes do `test.step()`) + linhas `[ACTION]`, `[ASSERT]` dos logs |
+| executor-datadrive | Linhas `[ROW]`, `[ASSERT]`, `[ITERATE]` dos logs (uma iteração por linha de dados) |
+| executor-email | Linhas `[SEND]`, `[WAIT]`, `[RECV]`, `[ASSERT]` dos logs |
+| executor-webhook | Linhas `[TRIGGER]`, `[RECV]`, `[ASSERT]` dos logs |
+| executor-queue | Linhas `[PRODUCE]`, `[CONSUME]`, `[ASSERT]` dos logs |
+| executor-i18n | Linhas `[LOCALE]`, `[NAV]`, `[COMPARE]`, `[ASSERT]` dos logs |
+| executor-chaos | Linhas `[INJECT]`, `[REQUEST]`, `[ASSERT]`, `[RESTORE]` dos logs |
+| executor-newman | Cada item da Collection (request) como step + asserções Postman (`[ASSERT]`) |
+| executor-sse | Linhas `[CONNECT]`, `[EVENT]`, `[ASSERT]`, `[CLOSE]` dos logs |
+| executor-pytest | Cada item de teste do pytest via `result.steps[]` ou linhas `[PASSED]`/`[FAILED]` dos logs |
+| executor-observabilidade | Linhas `[TRACE]`, `[SPAN]`, `[METRIC]`, `[ASSERT]` dos logs |
 
 ### Descrição do teste por tipo (aba "O que o teste fez")
 

@@ -72,7 +72,7 @@ Para cada TC falhado, classifique o `error` field:
 | `500`, `Internal Server Error` | **Backend** | Bug no servidor |
 | `AssertionError`, `expect(`, `assert ` | **Asserção** | Comportamento mudou ou asserção frágil |
 | `KeyError`, `AttributeError`, `TypeError`, `undefined` | **Schema** | Resposta mudou de formato |
-| `json.JSONDecodeError`, `SyntaxError` | **Parse** | Resposta não é JSON (pode ser HTML de erro) |
+| `json.JSONDecodeError`, `SyntaxError`, `yaml.YAMLError`, `xml.etree.ElementTree.ParseError`, `tomllib.TOMLDecodeError` | **Parse** | Resposta não é JSON/YAML/XML/TOML (pode ser HTML de erro ou formato inesperado) |
 | `null`, `""` (erro vazio) | **Silencioso** | Exceção sem mensagem — ver lessons.md |
 
 ### Etapa 3 — Cruzamento com lessons.md

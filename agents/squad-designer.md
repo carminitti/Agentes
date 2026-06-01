@@ -75,10 +75,29 @@ executors_skipped: [{executor, reason, message}]
 tests: [{id, title, executor, status, error}]
 ```
 
-**`.qa_history.json`** (cross-suite):
+**`.qa_history.json`** (cross-suite) — schema esperado:
+```json
+[
+  {
+    "date": "2026-06-01T12:00:00",
+    "suite_dir": "suite_browser_20260601_120000",
+    "base_url": "https://staging.app.com",
+    "executors": ["executor-browser", "executor-api"],
+    "summary": {
+      "total": 12,
+      "passed": 10,
+      "failed": 2,
+      "skipped": 0,
+      "error": 0
+    },
+    "results": [
+      {"id": "TC-001", "status": "passed"},
+      {"id": "TC-002", "status": "failed"}
+    ]
+  }
+]
 ```
-[{date, results: [{id, status, executor, duration_ms}]}]
-```
+Arquivo criado pelo orquestrador quando `history_enabled: true`. Máximo 50 entradas (entradas mais antigas removidas automaticamente). Se ausente ou com formato inválido (não for array), o Modo Análise trata como `[]` silenciosamente.
 
 **`suite.log`**: erros de executor, warnings, falhas de credenciais.
 
