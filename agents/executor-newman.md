@@ -172,30 +172,38 @@ if os.path.exists(JSON_REPORT):
             error_msg = str(request_error)
             logs.append(f"[ERR] {error_msg}")
 
+        tc_dur = resp.get("responseTime", 0) if resp else 0
         status = "passed" if (not error_msg and all(a["passed"] for a in assertions_out)) else "failed"
         results.append({
             "id": tc_id, "title": title, "type": "newman",
             "status": status, "error": error_msg or "",
             "assertions": assertions_out,
             "attempts": 1, "retry_diff_logs": False,
-            "attempt_logs": [{"attempt": 1, "logs": logs}],
-            "duration_ms": resp.get("responseTime", 0) if resp else 0,
+            "attempt_logs": [{"attempt": 1, "status": status, "error": error_msg or "", "duration_ms": tc_dur}],
+            "duration_ms": tc_dur,
             "evidence": {},
         })
 else:
     # Newman falhou antes de gerar o JSON (ex: Collection não encontrada)
+    _err_txt = f"Newman não gerou relatório JSON. Saída: {proc.stderr[:500] or proc.stdout[:500]}"
     results.append({
         "id": "TC-NWM-000", "title": "Newman execution", "type": "newman",
         "status": "error",
-        "error": f"Newman não gerou relatório JSON. Saída: {proc.stderr[:500] or proc.stdout[:500]}",
+        "error": _err_txt,
         "assertions": [], "attempts": 1, "retry_diff_logs": False,
-        "attempt_logs": [{"attempt": 1, "logs": [proc.stderr[:1000]]}],
+        "attempt_logs": [{"attempt": 1, "status": "error", "error": _err_txt, "duration_ms": elapsed_ms}],
         "duration_ms": elapsed_ms, "evidence": {},
     })
 
 _credentials_failed = detect_credentials_failed(results)
 summary = make_summary("executor-newman", results, credentials_failed=_credentials_failed)
-output  = {"summary": summary, "results": results}
+output  = {
+    "executor":          "executor-newman",
+    "environment":       BASE_URL,
+    "credentials_failed": _credentials_failed,
+    "summary":           summary,
+    "results":           results,
+}
 out_file = os.path.join(NEWMAN_DIR, "resultado.json")
 with open(out_file, "w", encoding="utf-8") as f:
     json.dump(output, f, ensure_ascii=False, indent=2)
